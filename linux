@@ -1,0 +1,4 @@
+#!/bin/bash
+docker run --security-opt seccomp=unconfined -v ~/src/matmatmult:/src -it thesis_dev_env $@
+
+
