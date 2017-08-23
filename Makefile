@@ -30,8 +30,10 @@ workbench: workbench/workbench.cpp
 	g++ -c -g -std=c++11 -O0 -o build/workbench.o workbench/workbench.cpp
 	g++ -c -g -std=c++11 -O0 -o build/gemms_unoptimized.o workbench/gemms_unoptimized.cpp
 	g++ -c -g -std=c++11 -O3 -o build/gemms_optimized.o workbench/gemms_optimized.cpp
+	gcc -c -g -o build/gemms_libxsmm.o workbench/gemms_libxsmm.c
 	g++ -o build/workbench \
 		build/workbench.o \
 		build/gemms_optimized.o \
-		build/gemms_unoptimized.o
+		build/gemms_unoptimized.o \
+		build/gemms_libxsmm.o
 

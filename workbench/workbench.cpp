@@ -5,9 +5,7 @@
 // GEMM implementations written in C
 void gemm_8x12x8_c_unoptimized(double * A, double * B, double * C);
 void gemm_8x12x8_c_optimized(double * A, double * B, double * C);
-void gemm_8x12x8_libxsmm_dense(double * A, double * B, double * C) {
-  std::cout << "Hello from libxsmm_dense\n";
-}
+extern "C" void gemm_8x12x8_libxsmm_wsm(double * A, double * B, double * C);
 
 // GEMM implementations written in ASM
 // extern "C" double gemm_8x12x8_naive(double * A, double * B, double * C);
@@ -24,7 +22,7 @@ const char * function_names[impl_count] = {
 void (*function_pointers[impl_count]) (double * A, double * B, double * C) = {
   & gemm_8x12x8_c_unoptimized,
   & gemm_8x12x8_c_optimized,
-  & gemm_8x12x8_libxsmm_dense
+  & gemm_8x12x8_libxsmm_wsm
 };
 
 void print_help() {
