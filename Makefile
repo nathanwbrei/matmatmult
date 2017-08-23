@@ -26,4 +26,7 @@ asmtests_sumarray: asmtests/sumarray.asm asmtests/call_sumarray.cpp
 clean:
 	rm build/*
 
+workbench: workbench/workbench.cpp
+	g++ -c -g -std=c++11 -o build/workbench.o workbench/workbench.cpp
+	g++ -o build/workbench build/workbench.o
 
