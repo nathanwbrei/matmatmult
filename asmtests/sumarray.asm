@@ -1,49 +1,67 @@
 
 section .text
-global sumarray
 
-sumarray:
-  push rbp                    ; Save return address
+
+global sumarrayl
+sumarrayl:
+; arr=>rdi, n=>esi; i=>rcx, acc=>rax
+  push rbp
   mov rbp, rsp
 
-  push rdi
-  push rsi
+  mov rax, [rdi]
+  mov rcx, 1
 
-  mov rax, 1                    ; Write syscall
-  mov rdi, 1                    ; To stdout
-  mov rsi, str
-  mov rdx, str.len
-  syscall
-
-  pop rsi                       ; Array length
-  pop rdi                       ; Pointer to first item
-
-  ; acc => rax
-  ; n => rsi
-  ; arr => rdi
-  ; i => rcx
-
-  xor ecx, ecx
-  xor eax, eax
-
-for:
-  cmp rcx, rsi
-  je end_for
-
+.for:
+  cmp ecx, esi
+  je sumarrayl.end_for
   add rax, [rdi + rcx*8]
   inc rcx
-  jmp for
+  jmp sumarrayl.for
 
-end_for:
-
-  xor rdx, rdx
-  leave                       ; Reset
+.end_for:
+  leave
   ret
 
-section .data
-str:    db `Attempting to sum array...\n`
-.len:   equ $ - str
+
+global sumarrayi
+sumarrayi:
+; arr=>rdi, n=>esi; i=>rcx, acc=>rax
+  push rbp
+  mov rbp, rsp
+
+  mov rax, [rdi]
+  mov rcx, 1
+
+.for:
+  cmp ecx, esi
+  je sumarrayi.end_for
+  add eax, [rdi + rcx*4]
+  inc rcx
+  jmp sumarrayi.for
+
+.end_for:
+  leave
+  ret
 
 
 
+global sumarrayd
+sumarrayd:
+; arr=>rdi, n=>esi; i=>ecx, acc=>xmm0
+  push rbp
+  mov rbp, rsp
+
+  movsd xmm0, [rdi]
+  mov rcx, 1
+
+.for:
+  cmp ecx, esi
+  je sumarrayd.end_for
+  addsd xmm0, [rdi + rcx*8]
+  inc rcx
+  jmp sumarrayd.for
+
+.end_for:
+  leave
+  ret
 
