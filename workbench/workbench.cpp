@@ -5,24 +5,30 @@
 // GEMM implementations written in C
 void gemm_8x12x8_c_unoptimized(double * A, double * B, double * C);
 void gemm_8x12x8_c_optimized(double * A, double * B, double * C);
-extern "C" void gemm_8x12x8_libxsmm_wsm(double * A, double * B, double * C);
+extern "C" void gemm_8x12x8_libxsmm_sse(double * A, double * B, double * C);
+extern "C" void gemm_8x12x8_libxsmm_avx(double * A, double * B, double * C);
+extern "C" void gemm_8x12x8_libxsmm_avx2(double * A, double * B, double * C);
 
 // GEMM implementations written in ASM
 // extern "C" double gemm_8x12x8_naive(double * A, double * B, double * C);
 // extern "C" double gemm_8x12x8_avx256(double * A, double * B, double * C);
 
-const int impl_count = 3;
+const int impl_count = 5;
 
 const char * function_names[impl_count] = {
   "C Unoptimized",
   "C Optimized",
-  "LibXSMM Dense"
+  "LibXSMM Dense SSE",
+  "LibXSMM Dense AVX",
+  "LibXSMM Dense AVX2"
 };
 
 void (*function_pointers[impl_count]) (double * A, double * B, double * C) = {
   & gemm_8x12x8_c_unoptimized,
   & gemm_8x12x8_c_optimized,
-  & gemm_8x12x8_libxsmm_wsm
+  & gemm_8x12x8_libxsmm_sse,
+  & gemm_8x12x8_libxsmm_avx,
+  & gemm_8x12x8_libxsmm_avx2
 };
 
 void print_help() {
