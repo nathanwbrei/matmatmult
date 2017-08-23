@@ -1,13 +1,10 @@
 
 #include<iostream>
+#include "testcases.hpp"
 
 // GEMM implementations written in C
-void gemm_8x12x8_c_unoptimized(double * A, double * B, double * C) {
-  std::cout << "Hello from c_unoptimized\n";
-}
-void gemm_8x12x8_c_optimized(double * A, double * B, double * C) {
-  std::cout << "Hello from c_optimized\n";
-}
+void gemm_8x12x8_c_unoptimized(double * A, double * B, double * C);
+void gemm_8x12x8_c_optimized(double * A, double * B, double * C);
 void gemm_8x12x8_libxsmm_dense(double * A, double * B, double * C) {
   std::cout << "Hello from libxsmm_dense\n";
 }
@@ -30,13 +27,6 @@ void (*function_pointers[impl_count]) (double * A, double * B, double * C) = {
   & gemm_8x12x8_libxsmm_dense
 };
 
-/*
-   Need something to do timing
-   Need some sample arrays
-   Need an optimized C dense implementation
-   Need an assembly implementation
-*/
-
 void print_help() {
   for (int i=0; i<impl_count; i++) {
     std::cout << "[" << i << "]\t" << function_names[i] << std::endl;
@@ -57,7 +47,31 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  function_pointers[user_choice](NULL, NULL, NULL);
+  double * A = (double *) malloc(8*12*sizeof(double));
+  double * B = (double *) malloc(8*12*sizeof(double));
+  double * C = (double *) malloc(8*8*sizeof(double));
+
+  fill_matrix(A, 8, 12, 1.0, 2);
+  fill_matrix(B, 12, 8, 2.0, 2);
+  fill_matrix(C, 8, 8, 0.0, 0);
+
+  std::cout << "A before" << std::endl;
+  print_matrix(A, 8, 12);
+
+  std::cout << "B before" << std::endl;
+  print_matrix(B, 12, 8);
+
+  std::cout << "C before" << std::endl;
+  print_matrix(C, 8, 8);
+
+  function_pointers[user_choice](A,B,C);
+
+  std::cout << "C after" << std::endl;
+  print_matrix(C, 8, 8);
+
+  free(A);
+  free(B);
+  free(C);
 
 }
 
