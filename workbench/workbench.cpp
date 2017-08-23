@@ -1,6 +1,6 @@
 
 #include<iostream>
-#include "testcases.hpp"
+#include "matrix_utils.hpp"
 
 // GEMM implementations written in C
 void gemm_8x12x8_c_unoptimized(double * A, double * B, double * C);

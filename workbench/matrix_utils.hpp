@@ -1,3 +1,5 @@
+
+#pragma once
 #import<iostream>
 
 void fill_matrix(double * buffer, int rows, int cols, double startval, double increment) {
