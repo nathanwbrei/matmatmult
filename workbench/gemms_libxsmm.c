@@ -1,8 +1,5 @@
 void gemm_8x12x8_libxsmm_sse(const double* A, const double* B, double* C) {
 #ifdef __SSE3__
-#ifdef __AVX__
-#pragma message ("LIBXSMM KERNEL COMPILATION WARNING: compiling SSE3 code on AVX or newer architecture: " __FILE__)
-#endif
   __asm__ __volatile__("movq %0, %%rdi\n\t"
                        "movq %1, %%rsi\n\t"
                        "movq %2, %%rdx\n\t"
@@ -397,9 +394,6 @@ void gemm_8x12x8_libxsmm_sse(const double* A, const double* B, double* C) {
 
 void gemm_8x12x8_libxsmm_avx(const double* A, const double* B, double* C) {
 #ifdef __AVX__
-#ifdef __AVX2__
-#pragma message ("LIBXSMM KERNEL COMPILATION WARNING: compiling AVX code on AVX2 or newer architecture: " __FILE__)
-#endif
   __asm__ __volatile__("movq %0, %%rdi\n\t"
                        "movq %1, %%rsi\n\t"
                        "movq %2, %%rdx\n\t"
@@ -584,9 +578,6 @@ void gemm_8x12x8_libxsmm_avx(const double* A, const double* B, double* C) {
 
 void gemm_8x12x8_libxsmm_avx2(const double* A, const double* B, double* C) {
 #ifdef __AVX2__
-#ifdef __AVX512F__
-#pragma message ("LIBXSMM KERNEL COMPILATION WARNING: compiling AVX2 code on AVX512 or newer architecture: " __FILE__)
-#endif
   __asm__ __volatile__("movq %0, %%rdi\n\t"
                        "movq %1, %%rsi\n\t"
                        "movq %2, %%rdx\n\t"
