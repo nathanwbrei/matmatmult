@@ -37,18 +37,11 @@ void print_help() {
   }
 }
 
-int main(int argc, char** argv) {
+void run_alg(int alg) {
 
-  if (argc == 1) {
-    print_help();
-    return 0;
-  }
-
-  int user_choice = atoi(argv[1]);
-  if (user_choice < 0 || user_choice >= impl_count) {
+  if (alg < 0 || alg >= impl_count) {
     std::cout << "Choose an implementation between 0 and " << impl_count-1 << std::endl;
     print_help();
-    return 0;
   }
 
   double * A = (double *) malloc(8*12*sizeof(double));
@@ -68,7 +61,7 @@ int main(int argc, char** argv) {
   std::cout << "C before" << std::endl;
   print_matrix(C, 8, 8);
 
-  function_pointers[user_choice](A,B,C);
+  function_pointers[alg](A,B,C);
 
   std::cout << "C after" << std::endl;
   print_matrix(C, 8, 8);
@@ -76,7 +69,22 @@ int main(int argc, char** argv) {
   free(A);
   free(B);
   free(C);
-
 }
 
+extern "C" void matvec4x4(double * A, double * B, double * C);
 
+int main(int argc, char** argv) {
+
+  double A[16] = {1.0, 9.0, 17.0, 25.0, 3.0, 11.0, 19.0, 27.0,
+                   5.0, 13.0, 21.0, 29.0, 7.0, 15.0, 23.0, 31.0};
+  double B[4] = {2.0, 4.0, 6.0, 8.0};
+  double C[4] = {0.0, 0.0, 0.0, 0.0};
+
+  print_matrix(A,4,4);
+  print_matrix(B,4,1);
+  print_matrix(C,4,1);
+  std::cout << "Made some progress..." << std::endl;
+
+  matvec4x4(A, B, C);
+  print_matrix(C,4,1);
+}

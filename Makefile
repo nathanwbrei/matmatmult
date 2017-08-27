@@ -31,9 +31,11 @@ workbench: workbench/workbench.cpp workbench/gemms_libxsmm.c
 	g++ -c -g -std=c++11 -O0 -o build/gemms_unoptimized.o workbench/gemms_unoptimized.cpp
 	g++ -c -g -std=c++11 -O3 -o build/gemms_optimized.o workbench/gemms_optimized.cpp
 	gcc -c -g -mavx2 -o build/gemms_libxsmm.o workbench/gemms_libxsmm.c
+	nasm -f elf64 -g -o build/gemms_goto.o workbench/gemms_goto.asm
 	g++ -o build/workbench \
 		build/workbench.o \
 		build/gemms_optimized.o \
 		build/gemms_unoptimized.o \
-		build/gemms_libxsmm.o
+		build/gemms_libxsmm.o \
+		build/gemms_goto.o
 
