@@ -84,7 +84,18 @@ int main(int argc, char** argv) {
   print_matrix(B,4,1);
   print_matrix(C,4,1);
   std::cout << "Made some progress..." << std::endl;
-
   matvec4x4(A, B, C);
   print_matrix(C,4,1);
+
+  clock_t ticks_before = clock();
+  uint64_t cycles_before = get_timestampcounter();
+  for (int i=0; i<2000; i++) {
+    matvec4x4(A,B,C);
+  }
+  uint64_t cycles_after = get_timestampcounter();
+  clock_t ticks_after = clock();
+
+  std::cout << "Elapsed cycles= " << (cycles_after - cycles_before) << std::endl;
+  std::cout << "Elapsed ticks= " << (ticks_after - ticks_before) << std::endl;
+  std::cout << "CPU clock time= " << ((ticks_after - ticks_before)/((double)CLOCKS_PER_SEC)) << std::endl;
 }
