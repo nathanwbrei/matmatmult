@@ -36,10 +36,10 @@ struct blocksparse make_random_blocksparse(int rows, int cols, int pattern, int 
   for (int j=0; j<cols; j++) {
     for (int i=0; i<rows; i++) {
       for (int k=0; k<nnz; k++) {
-        values[k] = 1.0;    // Maybe make this random?
+        values[k] = 1.0;    // TODO: Maybe make this random?
       }
       for (int k=nnz; k<blocksize; k++) {
-        values[k] = 1./0;   // These are only used for padding, so let's poison them
+        values[k] = 0./0;   // These are only used for padding, so let's poison them
       }
       values += blocksize;  // Move on to the next block
     }
@@ -53,7 +53,32 @@ struct colmajor blocksparse_to_colmajor(struct blocksparse input) {
   result.cols = 3*input.cols;
   result.values = (double *) malloc(result.rows * result.cols * sizeof(double));
 
+  // TODO: Initialize automatically?
+  for (int i=0; i< result.rows*result.cols; i++) {
+    result.values[i] = 0.0;
+  }
 
+  double * current_block = input.values;
+  double * next_val = current_block;
+
+  // Iterate over each block, translate block coords to colmajor coords
+  for (int j=0; j<input.cols; j++) {
+    for (int i=0; i<input.rows; i++) {
+
+      // For each position inside sparse block
+      for (int k=0; k<9; k++) {
+        // If corresponding flag is set, we have a value
+        if ((input.pattern >> k) & 1) {
+          int cmrow = 3*i + (k % 3);
+          int cmcol = 3*j + (k / 3);
+          result.values[result.rows*cmcol + cmrow] = *next_val;
+          next_val++;
+        }
+      }
+      current_block += input.blocksize;
+      next_val = current_block;
+    }
+  }
   return result;
 }
 
