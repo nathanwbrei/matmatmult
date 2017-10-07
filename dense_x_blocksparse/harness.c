@@ -35,9 +35,8 @@ void (*impl_pointers[impl_count]) (double * A, double * B, double * C) = {
   & gemm_blocksparse_511
 };
 
-int main(int argc, char ** argv) {
-
-
+void run_tests() {
+  
   // For each pattern
   for (int testcase=0; testcase<impl_count; testcase++) {
     int pattern = impl_patterns[testcase];
@@ -76,4 +75,12 @@ int main(int argc, char ** argv) {
       blocksparse_ticks_after - blocksparse_ticks_before);
   }
 }
+
+
+int main(int argc, char ** argv) {
+  run_tests();
+}
+
+
+
 

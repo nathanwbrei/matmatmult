@@ -39,3 +39,8 @@ workbench: workbench/workbench.cpp workbench/gemms_libxsmm.c
 		build/gemms_libxsmm.o \
 		build/gemms_goto.o
 
+
+blocksparse: dense_x_blocksparse/harness.c dense_x_blocksparse/blocksparse.h
+	gcc -c -g -std=c11 -O0 -o build/harness.o dense_x_blocksparse/harness.c
+	gcc -o build/dense_x_blocksparse \
+		build/harness.o

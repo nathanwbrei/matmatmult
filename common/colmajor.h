@@ -1,5 +1,9 @@
+#ifndef COLMAJOR_H_
+#define COLMAJOR_H_
+
 #include<stdio.h>
 #include<stdlib.h>
+#include<stdbool.h>
 #include<unistd.h>
 #include<math.h>
 
@@ -49,8 +53,9 @@ void print_matrix(struct colmajor matrix) {
 }
 
 
-void checkEqual(struct colmajor expected, struct colmajor actual) {
+void test_equality(struct colmajor expected, struct colmajor actual) {
   bool equal = true;
+  double epsilon = 0.0001;
   if (expected.rows != actual.rows) {
     equal = false;
     printf("Expected %d rows, actually %d rows\n", expected.rows, actual.rows);
@@ -78,3 +83,4 @@ void checkEqual(struct colmajor expected, struct colmajor actual) {
 }
 
 
+#endif
