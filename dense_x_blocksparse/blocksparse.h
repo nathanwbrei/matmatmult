@@ -1,4 +1,5 @@
 #include<stdlib.h>
+#include "../common/colmajor.h"
 
 
 struct blocksparse {
@@ -9,11 +10,6 @@ struct blocksparse {
   double * values;   // Size = rows*cols*blocksize
 };
 
-struct colmajor {
-  int rows;
-  int cols;
-  double * values; // Size = rows*cols
-};
 
 struct blocksparse make_random_blocksparse(int rows, int cols, int pattern, int blocksize) {
 
@@ -48,16 +44,8 @@ struct blocksparse make_random_blocksparse(int rows, int cols, int pattern, int 
 }
 
 struct colmajor blocksparse_to_colmajor(struct blocksparse input) {
-  struct colmajor result;
-  result.rows = 3*input.rows;
-  result.cols = 3*input.cols;
-  result.values = (double *) malloc(result.rows * result.cols * sizeof(double));
 
-  // TODO: Initialize automatically?
-  for (int i=0; i< result.rows*result.cols; i++) {
-    result.values[i] = 0.0;
-  }
-
+  struct colmajor result = zeros(3*input.rows, 3*input.cols);
   double * current_block = input.values;
   double * next_val = current_block;
 
