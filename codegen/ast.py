@@ -55,7 +55,7 @@ class Register(Operand):
         if isinstance(offset, Constant):
             return MemoryAddress(self, offset)
         elif isinstance(offset, int):
-            return MemoryAddress(self, Constant(ConcreteType.Int64,offset))
+            return MemoryAddress(self, Constant(ConcreteType.i64,offset))
 
     def gen(self, env):
         if self.value is not None:
@@ -67,13 +67,13 @@ class Register(Operand):
 
 
 class MemoryAddress(Operand):
-    def __init__(self, type_info, pointer, offset):
+    def __init__(self, pointer, offset):
         # Only consider pointer-offset addresses for now.
         # Pointer is always a register, offset always a constant.
         # These components are allowed to be symbolic. The MemoryAddress
         # itself is not.
 
-        self.type_info = type_info
+        self.type_info = ConcreteType.unknown
         self.pointer = pointer
         self.offset = offset
 
@@ -101,9 +101,9 @@ class AssemblyStatement:
         self.implied_outputs = implied_outputs   # :: [Operand]
 
     def gen(self, env):
-        result = '    "' + operation
+        result = '    "' + self.operation + " "
         result += ", ".join(x.gen(env) for x in self.inputs)
-        result += ", " + self.output.gen(env) + "\n\t\""
+        result += ", " + self.output.gen(env) + "\\n\\t\""
         return result
 
 class AssemblyBlock:
@@ -111,10 +111,9 @@ class AssemblyBlock:
     def __init__(self):
         self.body = []  # [AssemblyStatement | AssemblyBlock]
 
-    def gen(self, env):
+    def gen(self, env={}):
         return "\n".join(s.gen(env) for s in body)
         # Concatenate each assembly statement
-        pass
 
     def calculate_inputs_and_outputs():
         pass
@@ -129,10 +128,10 @@ class Gemm:
         self.funcName = funcName
         self.body = []  # :: [Asm]
 
-    def gen(self):
-        asm_text = "\n".join(s.gen() for s in self.body)
+    def gen(self, env={}):
+        asm_text = "\n".join(s.gen(env) for s in self.body)
         return """
 
 void %1s (const double* A, const double* B, double* C) {
-  __asm__ __volatile__(""" % self.funcName + asm_text
+  __asm__ __volatile__(\n""" % self.funcName + asm_text
 

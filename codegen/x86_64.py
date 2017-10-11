@@ -24,17 +24,18 @@ def ymm(n):
 def zmm(n):
     return Register(ConcreteType.f64x8, "zmm"+str(n))
 
-
-
+i64 = ConcreteType.i64
+f64 = ConcreteType.f64
+f64x4 = ConcreteType.f64x4
 
 
 # x86_64 instructions
 # The type system is not doing it for me. I want pattern matching!!!
 # Should I move everything to Julia?
 
-def match(operands, pattern):
+def match(operands, patterns):
 
-    if len(operands) != len(pattern):
+    if len(operands) != len(patterns):
         return False
 
     for i in range(len(operands)):
@@ -49,7 +50,6 @@ def match(operands, pattern):
 
 
 
-
 def mov(*operands):
 
     if match(operands, [(Register,i64), (Register,i64)]) or \
@@ -57,17 +57,17 @@ def mov(*operands):
        match(operands, [(MemoryAddress), (Register,i64)]) or \
        match(operands, [(Register,i64), (MemoryAddress)]):
 
-        return AssemblyStatement("movq", *operands)
+        return AssemblyStatement("movq", [operands[0]], operands[1])
 
     else:
         raise Exception("Invalid operands: mov")
 
 
-def add(src, dest):
+def add(*operands):
     if match(operands, [(Register,i64), (Register,i64)]) or \
        match(operands, [(Constant,i64), (Register,i64)]):
 
-        return AssemblyStatement("addq", *operands)
+        return AssemblyStatement("addq", [operands[0]], operands[1])
 
     else:
         raise Exception("Invalid operands: mov")
@@ -79,6 +79,8 @@ def cmp(ops):
     else:
         raise Exception("Invalid operands: cmp")
 
+def label(l):
+    return AssemblyStatement()
 
 def jl(label):
     return AssemblyStatement("jl " + label)
