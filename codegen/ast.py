@@ -5,12 +5,14 @@ class ConcreteType:
        Each Operand has exactly one concrete type, which is often
        machine-dependent."""
 
-    Int32 = 0
-    Int64 = 1
-    Float64 = 2
-    Float64x2 = 3  # SSE/AVX(128)  (snb)
-    Float64x4 = 4  # AVX(256)      (hsw)
-    Float64x8 = 5  # AVX512        (knl, skx)
+    unknown = 0
+    i32 = 1
+    i64 = 2
+    f64 = 3
+    f64x2 = 4  # SSE/AVX(128)  (snb)
+    f64x4 = 5  # AVX(256)      (hsw)
+    f64x8 = 6  # AVX512        (knl, skx)
+
 
 class Operand:
     """ Base class for different types of operands.
@@ -28,46 +30,63 @@ class Operand:
 
 
 class Constant(Operand):
-    def gen(self, env, syntax="gas"):
-        if (self.value is None):
-            if (self.symbol in env):
-                return "$" + env[self.symbol]
-            else:
-                return "$?" + str(self.symbol)
+    def gen(self, env):
+        if self.value is not None:
+            return "$" + str(self.value)
+        elif self.symbol in env:
+            return "$" + env[self.symbol]
         else:
-            return "$" + self.value
+            return "$?" + str(self.symbol)
+
+
+class Label(Operand):
+    def __init__(self, value):
+        self.value = value
+        self.type_info = ConcreteType.i64
+
+    def gen(self, env):
+        return str(self.value)
+
 
 
 class Register(Operand):
-    def gen(self, env, syntax="gas"):
-        if (self.value is None):
-            if (self.symbol in env):
-                return "%%" + env[self.symbol]
-            else:
-                return "%?" + str(self.symbol)
+
+    def __add__(self, offset):
+        if isinstance(offset, Constant):
+            return MemoryAddress(self, offset)
+        elif isinstance(offset, int):
+            return MemoryAddress(self, Constant(ConcreteType.Int64,offset))
+
+    def gen(self, env):
+        if self.value is not None:
+            return "%%" + str(self.value)
+        elif self.symbol in env:
+            return "%%" + env[self.symbol]
         else:
-            return "%%" + self.value
+            return "%?" + str(self.symbol)
 
 
 class MemoryAddress(Operand):
-    def __init__(self, type_info, pointer, offset=None):
+    def __init__(self, type_info, pointer, offset):
         # Only consider pointer-offset addresses for now.
         # Pointer is always a register, offset always a constant.
-        # TODO: Rethink this.
+        # These components are allowed to be symbolic. The MemoryAddress
+        # itself is not.
 
         self.type_info = type_info
-        self.pointer = pointer   # pointer, offset might be symbolic
+        self.pointer = pointer
         self.offset = offset
 
-    def gen(self, env, syntax="gas"):
-        pointer_str = self.pointer.gen(env, syntax)
-        if (self.offset.value is None):
-            if (self.offset.symbol in env):
-                offset_str = env[self.offset.symbol]
-            else:
-                offset_str = "?" + str(self.offset.symbol)
+    def gen(self, env):
+        pointer_str = self.pointer.gen(env)
+
+        if self.offset.value is not None:
+            offset_str = str(self.offset.value)
+        elif self.offset.symbol in env:
+            offset_str = env[self.offset.symbol]
         else:
-            offset_str = self.offset.value
+            offset_str = "?" + str(self.offset.symbol)
+
         return offset_str + "(" + pointer_str + ")"
 
 
@@ -81,17 +100,19 @@ class AssemblyStatement:
         self.implied_inputs = implied_inputs     # :: [Operand]
         self.implied_outputs = implied_outputs   # :: [Operand]
 
-    def gen(self, syntax="gas"):
-        result = operation
-        result += " ".join(x.gen())
-
+    def gen(self, env):
+        result = '    "' + operation
+        result += ", ".join(x.gen(env) for x in self.inputs)
+        result += ", " + self.output.gen(env) + "\n\t\""
+        return result
 
 class AssemblyBlock:
     """ Represents a block of assembly statements"""
     def __init__(self):
-        self.body = []  # [AssemblyStatement]
+        self.body = []  # [AssemblyStatement | AssemblyBlock]
 
-    def gen(self):
+    def gen(self, env):
+        return "\n".join(s.gen(env) for s in body)
         # Concatenate each assembly statement
         pass
 
@@ -101,7 +122,6 @@ class AssemblyBlock:
 class Loop(AssemblyBlock):
     def __init__(self):
         pass
-
 
 
 class Gemm:
