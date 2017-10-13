@@ -1,103 +1,90 @@
 
 from codegen.ast import *
 
-
-# Sugar for referring to registers and constants
-
-def c(n):
-    if isinstance(n, int):
-        return Constant(ConcreteType.i64, value=n)
-    else:
-        raise Exception("Constant is not of valid type")
-
-def r(n):
-    return Register(ConcreteType.i64, "r"+str(n))
-
-rax = r("ax")
-rdx = r("dx")
-rdi = r("di")
-rsi = r("si")
-
-def ymm(n):
-    return Register(ConcreteType.f64x4, "ymm"+str(n))
-
-def zmm(n):
-    return Register(ConcreteType.f64x8, "zmm"+str(n))
-
 i64 = ConcreteType.i64
 f64 = ConcreteType.f64
 f64x4 = ConcreteType.f64x4
+f64x8 = ConcreteType.f64x8
+
+# Sugar for referring to registers and constants
+rax = Register(i64, "rax")
+rdx = Register(i64, "rdx")
+rdi = Register(i64, "rdi")
+rsi = Register(i64, "rsi")
+r   = lambda n: Register(ConcreteType.i64, "r"+str(n))
+ymm = lambda n: Register(ConcreteType.f64x4, "ymm"+str(n))
+zmm = lambda n: Register(ConcreteType.f64x8, "zmm"+str(n))
+c   = lambda n: Constant(ConcreteType.i64, value=int(n))
 
 
-# x86_64 instructions
-# The type system is not doing it for me. I want pattern matching!!!
-# Should I move everything to Julia?
+known_instructions = [
+    ("cmp",          "cmp",   [(Constant,i64)], (Register,i64)),
+    ("jl",           "jl",    [(Label)], None),
+    ("movq",         "mov",   [(Register,i64)], (Register,i64)),
+    ("movq",         "mov",   [(Constant,i64)], (Register,i64)),
+    ("movq",         "mov",   [(MemoryAddress)], (Register,i64)),
+    ("movq",         "mov",   [(Register,i64)], (MemoryAddress)),
+    ("addq",         "add",   [(Register,i64)], (Register,i64)),
+    ("addq",         "add",   [(Constant,i64)], (Register,i64)),
+    ("vaddpd",       "add",   [(Register,f64x4), (Register,f64x4)], (Register,f64x4)),
+    ("vaddpd",       "add",   [(Register,f64x8), (Register,f64x8)], (Register,f64x8)),
+    ("vmulpd",       "mul",   [(Register,f64x4), (Register,f64x4)], (Register,f64x4)),
+    ("vmulpd",       "mul",   [(Register,f64x8), (Register,f64x8)], (Register,f64x8)),
+    ("vmovapd",      "mov",   [(MemoryAddress)], (Register,f64x4)),
+    ("vmovapd",      "mov",   [(MemoryAddress)], (Register,f64x8)),
+    ("vfmadd231pd",  "fma",   [(Register,f64x4), (Register,f64x4)], (Register,f64x4)),
+    ("vfmadd231pd",  "fma",   [(Register,f64x8), (Register,f64x8)], (Register,f64x8)),
+    ("vfmadd231pd",  "fma",   [(Register,f64x8), (MemoryAddress)], (Register,f64x8)),
+    ("vbroadcastsd", "bcast", [(MemoryAddress)], (Register,f64x4)),
+    ("vbroadcastsd", "bcast", [(MemoryAddress)], (Register,f64x8)),
+]
 
-def match(operands, patterns):
+intel_syntax = {
+    "addq" : "add",
+    "movq" : "mov"
+}
 
-    if len(operands) != len(patterns):
+
+def match(operand, pattern):
+    """Compensate for the lack of ADTs and pattern matching in Python.
+       Ideally we would have something like
+       statement "vmovapd" (Register f64x8 _) (Register f64x8 _) = True
+       and this gets us a decent chunk of the way there."""
+
+    if not isinstance(operand, pattern[0]):
         return False
 
-    for i in range(len(operands)):
-        op = operands[i]
-        pattern = patterns[i]
-        if not isinstance(op, pattern[0]):
-            return False
-        if len(pattern) > 1 and op.type_info != pattern[1]:
-            return False
+    if len(pattern) > 1 and operand.type_info != pattern[1]:
+        return False
 
     return True
 
 
 
-def mov(*operands):
+def statement(instruction, inputs, output):
+    """Return an AssemblyStatement constructed from first matching row of known_instructions"""
 
-    if match(operands, [(Register,i64), (Register,i64)]) or \
-       match(operands, [(Constant,i64), (Register,i64)]) or \
-       match(operands, [(MemoryAddress), (Register,i64)]) or \
-       match(operands, [(Register,i64), (MemoryAddress)]):
+    for candidate in known_instructions:
 
-        return AssemblyStatement("movq", [operands[0]], operands[1])
+        flag = True
 
-    else:
-        raise Exception("Invalid operands: mov")
+        if (instruction != candidate[0] and instruction != candidate[1]):
+            flag = False
 
+        if (len(inputs) != len(candidate[2])):
+            flag = False
 
-def add(*operands):
-    if match(operands, [(Register,i64), (Register,i64)]) or \
-       match(operands, [(Constant,i64), (Register,i64)]):
+        if not match(candidate[3], output):
+            flag = False
 
-        return AssemblyStatement("addq", [operands[0]], operands[1])
+        for i in range(len(inputs)):
+            if not match(candidate[2][i], inputs[i]):
+                flag = False
 
-    else:
-        raise Exception("Invalid operands: mov")
+        if flag:
+            return AssemblyStatement(candidate[0], inputs, outputs)
 
+    raise Exception("Found no matching row in known_instructions table!")
 
-def cmp(ops):
-    if match(ops, [(Constant,i64), (Register,i64)]):
-        return AssemblyStatement("cmpq", ops)
-    else:
-        raise Exception("Invalid operands: cmp")
-
-def label(l):
-    return AssemblyStatement()
-
-def jl(label):
-    return AssemblyStatement("jl " + label)
-
-def vaddpd(r_lhs, r_rhs, r_out):
-    pass
-
-def vmulpd(r_lhs, r_rhs, r_out):
-    pass
-
-def vbroadcastsd(m_in, r_out):
-    pass
-
-def vmovapd(src, dest):
-    pass
-
-def vfmadd231pd():
-    pass
 
 
