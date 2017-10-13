@@ -17,7 +17,7 @@ class MatrixCursor:
         self.reg_width = reg_width
 
 
-    def move_beginning():
+    def reset():
         old_offset = self.offset
         self.offset = 0
         return add(c(-old_offset), self.ptr_reg)
@@ -25,7 +25,7 @@ class MatrixCursor:
     def move(direction, quantity, unit):
         ma = addr(direction, quantity, unit).offset
         self.cursor += offset.value
-        return add(offset, self.ptr_reg)
+        return statement("add", offset, self.ptr_reg)
 
     def addr(down=0, right=0, units="cells"):
         if (units == "cells"):
@@ -45,8 +45,9 @@ class MatrixCursor:
         statements = []
         for i in range(0,len(registers)):
             for j in range(0,len(registers[0])):
-                s = copy(self.addr(down=i,right=j,units="vectors"),
-                         registers[i][j])
+                s = statement("mov",
+                              self.addr(down=i,right=j,units="vectors"),
+                              registers[i][j])
                 statements.append(s)
         return statements
 
