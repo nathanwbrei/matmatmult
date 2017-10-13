@@ -23,30 +23,43 @@ class MatrixCursor:
         return add(c(-old_offset), self.ptr_reg)
 
     def move(direction, quantity, unit):
-        offset = addr(direction, quantity, unit)
-        self.cursor += offset
-        return add(c(offset), self.ptr_reg)
+        ma = addr(direction, quantity, unit).offset
+        self.cursor += offset.value
+        return add(offset, self.ptr_reg)
 
-
-    def addr(direction, quantity, units):
-        if (direction=="down" and units=="registers"):
-            offset = quantity * self.reg_width
-        elif (direction=="up" and units=="registers"):
-            offset = -quantity * self.reg_width
-        elif (direction=="down" and units=="blocks"):
-            offset = quantity * self.block_rows
-        elif (direction=="up" and units=="blocks"):
-            offset = -quantity * self.block_rows
-        elif (direction=="right" and units=="cols"):
-            offset = quantity * self.ld
-        elif (direction=="left" and units=="cols"):
-            offset = -quantity * self.ld
-        elif (direction=="right" and units=="blocks"):
-            offset = quantity * ld * block_cols
-        elif (direction=="left" and units=="blocks"):
-            offset = -quantity * ld * block_cols
+    def addr(down=0, right=0, units="cells"):
+        if (units == "cells"):
+            offset = right*self.ld + down
+        elif (units == "vectors"):
+            offset = right*self.ld + down*self.reg_width
+        elif (units == "blocks"):
+            offset = right*self.ld*self.block_cols + down*self.block_rows
         else:
-            raise Exception("Invalid cursor movement!")
-        return ptr_reg + offset
+            raise Exception("Units must be cells, vectors, or blocks.")
+        return self.ptr_reg + offset
+
+
+    # TODO: Figure out how to do this in conjunction with .move()
+    # TODO: Check that register dimensions are consistent with self.reg_width
+    def load_register_block(self, registers):
+        statements = []
+        for i in range(0,len(registers)):
+            for j in range(0,len(registers[0])):
+                s = copy(self.addr(down=i,right=j,units="vectors"),
+                         registers[i][j])
+                statements.append(s)
+        return statements
+
+
+    def store_register_block(registers):
+        statements = []
+        for i in range(0,len(registers)):
+            for j in range(0,len(registers[0])):
+                s = copy(registers[i][j],
+                         self.addr(down=i,right=j,units="vectors"))
+                statements.append(s)
+        return statements
+
+
 
 
