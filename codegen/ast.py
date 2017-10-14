@@ -5,14 +5,8 @@ class ConcreteType:
        Each Operand has exactly one concrete type, which is often
        machine-dependent."""
 
-    unknown = 0
-    i32 = 1
-    i64 = 2
-    f64 = 3
-    f64x2 = 4  # SSE/AVX(128)  (snb)
-    f64x4 = 5  # AVX(256)      (hsw)
-    f64x8 = 6  # AVX512        (knl, skx)
-
+    unknown,i8,i16,i32,i64,f32,f64,
+    f32x4,f32x8,f32x16,f64x2,f64x4,f64x8 = range(13)
 
 class Operand:
     """ Base class for different types of operands.
@@ -77,7 +71,7 @@ class MemoryAddress(Operand):
         self.pointer = pointer
         self.offset = offset
 
-    def gen(self, env):
+    def gen(self, env, syntax="inline"):
         pointer_str = self.pointer.gen(env)
 
         if self.offset.value is not None:
@@ -93,27 +87,53 @@ class MemoryAddress(Operand):
 
 class AssemblyStatement:
     """ Represents a single assembly statement"""
-    def __init__(self, operation, inputs, output, implied_inputs=[], implied_outputs=[]):
+    def __init__(self, operation, inputs, output,
+                 implied_inputs=[], implied_outputs=[],
+                 nicer_operation=None, comment=None):
         self.operation = operation               # :: str
         self.inputs = inputs                     # :: [Operand]
         self.output = output                     # :: Operand
         self.implied_inputs = implied_inputs     # :: [Operand]
         self.implied_outputs = implied_outputs   # :: [Operand]
+        self.nicer_operation = nicer_operation   # :: str
+        self.comment = comment                   # :: str
 
-    def gen(self, env):
-        result = '    "' + self.operation + " "
-        result += ", ".join(x.gen(env) for x in self.inputs)
-        result += ", " + self.output.gen(env) + "\\n\\t\""
-        return result
 
-class AssemblyBlock:
+    def gen(self, env={}, syntax="inline"):
+
+        if syntax == "inline":
+            result = '"' + self.operation + " "
+            result += ", ".join(x.gen(env,syntax) for x in self.inputs)
+            result += ", " + self.output.gen(env,syntax) + "\\n\\t\""
+            return result
+
+        else:
+            if self.nicer_operation is None:
+                result = self.operation
+            else:
+                result = self.nicer_operation
+            result += ", ".join(x.gen(env,syntax) for x in self.inputs)
+            result += " -> " + self.output.gen(env,syntax)
+            if self.comment is not None:
+                result += "\t\t; " + self.comment
+            return result
+
+
+class Asm:
     """ Represents a block of assembly statements"""
-    def __init__(self):
-        self.body = []  # [AssemblyStatement | AssemblyBlock]
+    def __init__(self, comment = None):
+        self.body = []  # [AssemblyStatement | Label | Asm]
+        self.comment = comment
 
-    def gen(self, env={}):
-        return "\n".join(s.gen(env) for s in body)
+    def loop(self, iteration_variable, initial_value, final_value, increment):
+        pass
+
+    def gen(self, env={}, syntax="inline"):
+        return "\n    ".join(s.gen(env) for s in body)
         # Concatenate each assembly statement
+
+    def prettyprint(self, env={}):
+        pass
 
     def calculate_inputs_and_outputs():
         pass
