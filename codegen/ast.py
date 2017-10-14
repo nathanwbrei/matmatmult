@@ -122,25 +122,62 @@ class AssemblyStatement:
 class Asm:
     """ Represents a block of assembly statements"""
     def __init__(self, comment = None):
-        self.body = []  # [AssemblyStatement | Label | Asm]
+        self._body = []  # [AssemblyStatement | Label | Asm]
         self.comment = comment
 
+    def stmt(self, operation, inputs, output):
+        s = statement(operation, inputs, outputs)
+        self._body.append(s)
+
+    def label(self, label):
+        self._body.append(Label(label))
+
+    def include(self, asm_block):
+        self._body.append(asm_block)
+
     def loop(self, iteration_variable, initial_value, final_value, increment):
+        loop = Loop()
         pass
 
     def gen(self, env={}, syntax="inline"):
-        return "\n    ".join(s.gen(env) for s in body)
+        if (syntax == "inline"):
+            return "\n    ".join(s.gen(env,syntax) for s in body)
+        else:
+            body = "\n"
+            return ";" + self.comment + \
+                " "*indent
         # Concatenate each assembly statement
 
-    def prettyprint(self, env={}):
-        pass
 
     def calculate_inputs_and_outputs():
         pass
 
 class Loop(AssemblyBlock):
-    def __init__(self):
-        pass
+    """ For now, unroll and optimize should only be used if the loop
+    body does not depend on the iteration variable."""
+    def __init__(self, iteration_var, initial_val, final_val, increment=1,
+                 parent=None, unroll=0, optimize=False):
+        self.iteration_var = iteration_var
+        self.initial_val = initial_val
+        self.final_val = final_val
+        self.increment = increment
+        self.parent = parent
+        self.unroll = unroll
+        self.optimize = optimize
+
+        ls = AssemblyBlock("Loop") \
+             .stmt("delicious") \
+             .stmt("waffle")
+
+        le = AssemblyBlock("Loop")
+        self._loop_start = ls
+        self._loop_end = le
+
+
+    def gen(self, env={}, syntax="inline"):
+
+
+
 
 
 class Gemm:
