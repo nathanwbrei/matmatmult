@@ -1,3 +1,4 @@
+from x86_64 import *
 
 class ConcreteType:
     """Enum of different concrete types, the useful subset of
@@ -5,7 +6,7 @@ class ConcreteType:
        Each Operand has exactly one concrete type, which is often
        machine-dependent."""
 
-    unknown,i8,i16,i32,i64,f32,f64,
+    unknown,i8,i16,i32,i64,f32,f64,\
     f32x4,f32x8,f32x16,f64x2,f64x4,f64x8 = range(13)
 
 class Operand:
@@ -152,7 +153,7 @@ class Asm:
     def calculate_inputs_and_outputs():
         pass
 
-class Loop(AssemblyBlock):
+class Loop(Asm):
     """ For now, unroll and optimize should only be used if the loop
     body does not depend on the iteration variable."""
     def __init__(self, iteration_var, initial_val, final_val, increment=1,
@@ -165,19 +166,17 @@ class Loop(AssemblyBlock):
         self.unroll = unroll
         self.optimize = optimize
 
-        ls = AssemblyBlock("Loop") \
+        ls = Asm("Loop") \
              .stmt("delicious") \
              .stmt("waffle")
 
-        le = AssemblyBlock("Loop")
+        le = Asm("Loop")
         self._loop_start = ls
         self._loop_end = le
 
 
     def gen(self, env={}, syntax="inline"):
-
-
-
+        pass
 
 
 class Gemm:

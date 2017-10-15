@@ -1,5 +1,5 @@
 
-from codegen.ast import *
+from ast import *
 
 i64 = ConcreteType.i64
 f64 = ConcreteType.f64
