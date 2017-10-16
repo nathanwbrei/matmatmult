@@ -6,7 +6,7 @@ class AsmStatement:
     def __init__(self, operation, inputs, output,
                  implied_inputs=[], implied_outputs=[],
                  comment=None):
-    
+
         self.operation = operation               # :: str
         self.inputs = inputs                     # :: [Operand]
         self.output = output                     # :: Operand
@@ -14,27 +14,29 @@ class AsmStatement:
         self.implied_outputs = implied_outputs   # :: [Operand]
         self.comment = comment                   # :: str
 
+    T = AsmType
 
     known_instructions = [
-        ("cmp",          [(Constant,i64)], (Register,i64)),
+        ("syscall",      [], None),
+        ("cmp",          [(Constant,T.i64)], (Register,T.i64)),
         ("jl",           [(Label)], None),
-        ("movq",         [(Register,i64)], (Register,i64)),
-        ("movq",         [(Constant,i64)], (Register,i64)),
-        ("movq",         [(MemoryAddress)], (Register,i64)),
-        ("movq",         [(Register,i64)], (MemoryAddress)),
-        ("addq",         [(Register,i64)], (Register,i64)),
-        ("addq",         [(Constant,i64)], (Register,i64)),
-        ("vaddpd",       [(Register,f64x4), (Register,f64x4)], (Register,f64x4)),
-        ("vaddpd",       [(Register,f64x8), (Register,f64x8)], (Register,f64x8)),
-        ("vmulpd",       [(Register,f64x4), (Register,f64x4)], (Register,f64x4)),
-        ("vmulpd",       [(Register,f64x8), (Register,f64x8)], (Register,f64x8)),
-        ("vmovapd",      [(MemoryAddress)], (Register,f64x4)),
-        ("vmovapd",      [(MemoryAddress)], (Register,f64x8)),
-        ("vfmadd231pd",  [(Register,f64x4), (Register,f64x4)], (Register,f64x4)),
-        ("vfmadd231pd",  [(Register,f64x8), (Register,f64x8)], (Register,f64x8)),
-        ("vfmadd231pd",  [(Register,f64x8), (MemoryAddress)], (Register,f64x8)),
-        ("vbroadcastsd", [(MemoryAddress)], (Register,f64x4)),
-        ("vbroadcastsd", [(MemoryAddress)], (Register,f64x8)),
+        ("movq",         [(Register,T.i64)], (Register,T.i64)),
+        ("movq",         [(Constant,T.i64)], (Register,T.i64)),
+        ("movq",         [(MemoryAddress)], (Register,T.i64)),
+        ("movq",         [(Register,T.i64)], (MemoryAddress)),
+        ("addq",         [(Register,T.i64)], (Register,T.i64)),
+        ("addq",         [(Constant,T.i64)], (Register,T.i64)),
+        ("vaddpd",       [(Register,T.f64x4), (Register,T.f64x4)], (Register,T.f64x4)),
+        ("vaddpd",       [(Register,T.f64x8), (Register,T.f64x8)], (Register,T.f64x8)),
+        ("vmulpd",       [(Register,T.f64x4), (Register,T.f64x4)], (Register,T.f64x4)),
+        ("vmulpd",       [(Register,T.f64x8), (Register,T.f64x8)], (Register,T.f64x8)),
+        ("vmovapd",      [(MemoryAddress)], (Register,T.f64x4)),
+        ("vmovapd",      [(MemoryAddress)], (Register,T.f64x8)),
+        ("vfmadd231pd",  [(Register,T.f64x4), (Register,T.f64x4)], (Register,T.f64x4)),
+        ("vfmadd231pd",  [(Register,T.f64x8), (Register,T.f64x8)], (Register,T.f64x8)),
+        ("vfmadd231pd",  [(Register,T.f64x8), (MemoryAddress)], (Register,T.f64x8)),
+        ("vbroadcastsd", [(MemoryAddress)], (Register,T.f64x4)),
+        ("vbroadcastsd", [(MemoryAddress)], (Register,T.f64x8)),
     ]
 
     ops_lookup = {
@@ -102,9 +104,9 @@ class AsmStatement:
     }
 
 
-    def gen(self, env={}, syntax="inline"):
+    def gen(self, env={}, syntax:Syntax = Syntax.inline):
 
-        if syntax == "inline":
+        if syntax == Syntax.inline:
             result = self.operation + " "
             result += ", ".join(x.gen(env,syntax) for x in self.inputs)
             result += ", " + self.output.gen(env,syntax)
@@ -112,7 +114,7 @@ class AsmStatement:
                 result += "\t\t; " + self.comment
             return result
 
-        elif syntax == "intel":
+        elif syntax == Syntax.intel:
             result = intel_syntax.get(self.operation, self.operation) + " "
             result += ", ".join(x.gen(env,syntax) for x in self.inputs)
             result += ", " + self.output.gen(env,syntax)
@@ -120,7 +122,7 @@ class AsmStatement:
                 result += "\t\t; " + self.comment
             return result
 
-        elif syntax == "pretty":
+        elif syntax == Syntax.pretty:
             result = pretty_syntax.get(self.operation, self.operation) + " "
             result += ", ".join(x.gen(env,syntax) for x in self.inputs)
             result += " -> " + self.output.gen(env,syntax)

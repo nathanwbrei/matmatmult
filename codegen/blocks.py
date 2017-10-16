@@ -4,33 +4,41 @@ from statements import *
 class AsmBlock:
     """ Represents a block of assembly statements"""
 
-    def __init__(self, parent : AsmBlock, comment : str = None):
-        self._body = []  # [AssemblyStatement | Label | Asm]
+    def __init__(self, parent: AsmBlock, comment: str = None):
+        self.block : List[Union[AsmStatement, Label, AsmBlock]] = []
         self.comment = comment
 
-    def stmt(self, operation, inputs, output):
-        s = statement(operation, inputs, outputs)
-        self._body.append(s)
+    def stmt(self, operation: str, inputs: List[Operand], output: Operand) -> AsmBlock:
+        s = AsmStatement(operation, inputs, outputs)
+        self.block.append(s)
+        return self
 
-    def label(self, label):
-        self._body.append(Label(label))
+    def label(self, label: str) -> AsmBlock:
+        self.block.append(Label(label))
+        return self
 
-    def include(self, asm_block):
-        self._body.append(asm_block)
+    def include(self, child_block) -> AsmBlock:
+        child_block.parent = self
+        self.block.append(child_block)
+        return child_block
 
-    def loop(self, iteration_variable, initial_value, final_value, increment):
-        loop = Loop()
-        pass
+    def close(self) -> AsmBlock:
+        return self.parent
 
-    def gen(self, env={}, syntax="inline"):
-        if (syntax == "inline"):
-            return "\n    ".join(s.gen(env,syntax) for s in body)
+    def gen(self, env={}, syntax:Syntax=Syntax.inline):
+
+        result: str = ""
+        if (syntax is Syntax.inline) or (syntax is Syntax.intel):
+            result = "\n".join(s.gen(env,syntax) for s in self.block)
+
         else:
-            body = "\n"
-            return ";" + self.comment + \
-                " "*indent
-        # Concatenate each assembly statement
+            if self.comment is not None:
+                result += ";; " + self.comment + "\n  "
+
+            result += "\n  ".join(s for s in self.block)
+            
+        return result
 
 
-    def calculate_inputs_and_outputs():
+    def outputs(self):
         pass
