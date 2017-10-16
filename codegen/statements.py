@@ -104,28 +104,33 @@ class AsmStatement:
     }
 
 
-    def gen(self, env={}, syntax:Syntax = Syntax.inline):
+    def gen(self, env={}, syntax:Syntax = Syntax.inline, depth=0):
 
+        result = ""
         if syntax == Syntax.inline:
-            result = self.operation + " "
+            result += self.operation + " "
             result += ", ".join(x.gen(env,syntax) for x in self.inputs)
-            result += ", " + self.output.gen(env,syntax)
+            if self.output is not None:
+                result += ", " + self.output.gen(env,syntax)
             if self.comment is not None:
                 result += "\t\t; " + self.comment
             return result
 
         elif syntax == Syntax.intel:
-            result = self.intel_syntax.get(self.operation, self.operation) + " "
+            result += self.intel_syntax.get(self.operation, self.operation) + " "
+            if self.output is not None:
+                result += self.output.gen(env,syntax) + ", "
             result += ", ".join(x.gen(env,syntax) for x in self.inputs)
-            result += ", " + self.output.gen(env,syntax)
             if self.comment is not None:
                 result += "\t\t; " + self.comment
             return result
 
         elif syntax == Syntax.pretty:
-            result = self.pretty_syntax.get(self.operation, self.operation) + " "
+            result += '  '*(depth-1)
+            result += self.pretty_syntax.get(self.operation, self.operation) + " "
             result += ", ".join(x.gen(env,syntax) for x in self.inputs)
-            result += " -> " + self.output.gen(env,syntax)
+            if self.output is not None:
+                result += " -> " + self.output.gen(env,syntax)
             if self.comment is not None:
                 result += "\t\t; " + self.comment
             return result
@@ -134,6 +139,18 @@ class AsmStatement:
             raise Exception("Valid syntaxes are: inline, intel, pretty")
 
 
+
+#TODO: Think about this more carefully
+class LabelDeclaration:
+    def __init__(self, label:Label) -> None:
+        self.label = label
+
+    def gen(self, env={}, syntax:Syntax=Syntax.inline, depth=0):
+        result = ""
+        if (syntax == Syntax.pretty):
+            result += "  "*(depth-1)
+        result += self.label.gen(env,syntax) + ":"
+        return result
 
 
 

@@ -55,9 +55,11 @@ class Label(Operand):
         self.value = value
         self.type_info = AsmType.i64
 
-    def gen(self, env, syntax):
+    def gen(self, env={}, syntax=Syntax.inline):
         return str(self.value)
 
+def l(label: str):
+    return Label(label)
 
 
 class Register(Operand):
