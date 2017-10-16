@@ -25,7 +25,7 @@ class MatrixCursor:
     def move(direction, quantity, unit):
         ma = addr(direction, quantity, unit).offset
         self.cursor += offset.value
-        return statement("add", offset, self.ptr_reg)
+        return statement("add", offset, self.ptr_reg, "Move cursor ")
 
     def addr(down=0, right=0, units="cells"):
         if (units == "cells"):
