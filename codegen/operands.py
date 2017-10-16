@@ -17,6 +17,7 @@ class Operand:
     """ Base class for different types of operands.
         Any Operand may contain either a value or a symbol.
         Contains mechanism for interning symbolic operands. """
+    # TODO: Do we really need symbolic operands?
     symbols: List[int] = []
     def __init__(self, type_info=AsmType.unknown, value=None):
         self.type_info = type_info
