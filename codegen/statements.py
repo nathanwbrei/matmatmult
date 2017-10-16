@@ -115,7 +115,7 @@ class AsmStatement:
             return result
 
         elif syntax == Syntax.intel:
-            result = intel_syntax.get(self.operation, self.operation) + " "
+            result = self.intel_syntax.get(self.operation, self.operation) + " "
             result += ", ".join(x.gen(env,syntax) for x in self.inputs)
             result += ", " + self.output.gen(env,syntax)
             if self.comment is not None:
@@ -123,7 +123,7 @@ class AsmStatement:
             return result
 
         elif syntax == Syntax.pretty:
-            result = pretty_syntax.get(self.operation, self.operation) + " "
+            result = self.pretty_syntax.get(self.operation, self.operation) + " "
             result += ", ".join(x.gen(env,syntax) for x in self.inputs)
             result += " -> " + self.output.gen(env,syntax)
             if self.comment is not None:

@@ -1,8 +1,9 @@
 from enum import Enum
+from typing import List
 
 
 AsmType = Enum('AsmType', ['unknown','i8','i16','i32','i64','f32','f64',
-			   'f32x4','f32x8','f32x16','f64x2','f64x4','f64x8'])
+                           'f32x4','f32x8','f32x16','f64x2','f64x4','f64x8'])
 
 AsmType.__doc__ = """Enum of different concrete types, the useful subset of
     the cross product {Int,Float} x {size} x {vector length}.
@@ -16,7 +17,7 @@ class Operand:
     """ Base class for different types of operands.
         Any Operand may contain either a value or a symbol.
         Contains mechanism for interning symbolic operands. """
-    symbols = []
+    symbols: List[int] = []
     def __init__(self, type_info=AsmType.unknown, value=None):
         self.type_info = type_info
         self.value = value
@@ -38,13 +39,13 @@ class Constant(Operand):
             base = "?" + str(self.symbol)
 
         if syntax == Syntax.inline:
-        	return "?" + base
+            return "$" + base
         else:
-        	return base
+            return base
 
 def c(n):
-	"""Sugar for conveniently defining integer constants"""
-	return Constant(AsmType.i64, value=int(n))
+    """Sugar for conveniently defining integer constants"""
+    return Constant(AsmType.i64, value=int(n))
 
 
 
@@ -53,7 +54,7 @@ class Label(Operand):
         self.value = value
         self.type_info = AsmType.i64
 
-    def gen(self, env):
+    def gen(self, env, syntax):
         return str(self.value)
 
 
@@ -66,13 +67,19 @@ class Register(Operand):
         elif isinstance(offset, int):
             return MemoryAddress(self, Constant(AsmType.i64,offset))
 
-    def gen(self, env, syntax="inline"):
+    def gen(self, env={}, syntax:Syntax=Syntax.inline):
+
         if self.value is not None:
-            return "%%" + str(self.value)
+            base = str(self.value)
         elif self.symbol in env:
-            return "%%" + env[self.symbol]
+            base = env[self.symbol]
         else:
-            return "%?" + str(self.symbol)
+            base = "?" + str(self.symbol)
+
+        if syntax is Syntax.inline:
+            return "%%" + base
+        else:
+            return base
 
 
 rax = Register(AsmType.i64, "rax")
@@ -91,7 +98,7 @@ zmm = lambda n: Register(AsmType.f64x8, "zmm"+str(n))
 
 class MemoryAddress(Operand):
 
-    def __init__(self, pointer: Register, offset: Constant, alignment: int = None):
+    def __init__(self, pointer: Register, offset: Constant, alignment: int = None) -> None:
         # Only consider pointer-offset addresses for now.
         # Pointer is always a register, offset always a constant.
         # These components are allowed to be symbolic. The MemoryAddress
@@ -106,12 +113,12 @@ class MemoryAddress(Operand):
     def gen(self, env = {}, syntax: Syntax = Syntax.inline) -> str:
 
         pointer_str = self.pointer.gen(env, syntax)
-        offset_str = self.offset.get(env, Syntax.intel)
+        offset_str = self.offset.gen(env, Syntax.intel)
 
-        if syntax -- Syntax.inline:
-	        return offset_str + "(" + pointer_str + ")"
-	    else:
-        	return "[" + pointer_str + " + " + offset_str + "]"
+        if syntax == Syntax.inline:
+            return offset_str + "(" + pointer_str + ")"
+        else:
+            return "[" + pointer_str + " + " + offset_str + "]"
 
 
 
