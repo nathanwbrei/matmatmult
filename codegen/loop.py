@@ -19,36 +19,37 @@ class Loop(AsmBlock):
 
 
     def preamble(self):
-        return AsmBlock("Loop preamble") \
-                .stmt("mov", [self.initial_val], self.iteration_var) \
-                .label(l("loop_begin"))
+        return AsmBlock() \
+                .stmt("mov", self.initial_val, self.iteration_var) \
+                .label("loop_begin")
 
 
     def postamble(self):
         if (self.final_val.value == 0):
-            return AsmBlock("Loop postamble") \
-                    .stmt("addq", [self.increment], self.iteration_var) \
-                    .stmt("jz", [l("loop_begin")], None)
+            return AsmBlock() \
+                    .stmt("addq", self.increment, self.iteration_var) \
+                    .stmt("jz", "loop_begin")
         else:
-            return AsmBlock("Loop postamble") \
-                    .stmt("addq", [self.increment], self.iteration_var) \
-                    .stmt("cmp", [self.iteration_var], self.final_val) \
-                    .stmt("jl", [l("loop_begin")], None)
+            return AsmBlock() \
+                    .stmt("addq", self.increment, self.iteration_var) \
+                    .stmt("cmp", self.iteration_var, self.final_val, None) \
+                    .stmt("jl", "loop_begin", None)
 
 
     def gen(self, env={}, syntax=Syntax.inline, depth=0):
 
+        result = ""
+
         if (syntax==Syntax.pretty):
-            spacing = "\n\n"
-        else:
-            spacing = "\n"
-            
-        result = "  "*depth
-        result += f";; Loop({self.iteration_var.value} <- " 
-        result += f"{self.initial_val.value}:{self.increment.value}:{self.final_val.value})\n"
-        result += self.preamble().gen(env, syntax, depth+1) + spacing
-        result += super().gen(env, syntax, depth+1) + spacing
-        result += self.postamble().gen(env, syntax, depth+1)
+            result += "\n" + "  "*depth
+            result += f";; Loop({self.iteration_var.value} <- " 
+            result += f"{self.initial_val.value}:{self.increment.value}:{self.final_val.value})\n"
+
+        result += self.preamble().gen(env, syntax, depth) + "\n"
+        result += super().gen(env, syntax, depth+1) + "\n"
+        result += self.postamble().gen(env, syntax, depth)
+        if (syntax==Syntax.pretty):
+            result += "\n"
 
         return result                        
 
