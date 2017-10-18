@@ -16,7 +16,6 @@ class MatrixCursor:
 
         self._name = name
         self._ptr_reg = ptr_reg
-        self._cursor = 0
         self._rows = rows
         self._cols = cols
         self._ld = ld
@@ -26,16 +25,9 @@ class MatrixCursor:
         self._vector_width = vector_width
 
 
-    def reset(self) -> AsmStatement:
-        comment = f"Matrix {self._name} cursor reset to start"
-        offset = c(-self._cursor)
-        self._cursor = 0
-        return AsmStatement("addq", [offset], self._ptr_reg, comment=comment)
-
     def move(self, down:int=0, right:int=0, units:str="cells") -> AsmStatement:
         comment = f"Matrix {self._name} cursor moved down={down}, right={right} {units}"
         offset = self.addr(down, right, units).offset
-        self._cursor += offset.value
         return AsmStatement("addq", [offset], self._ptr_reg, comment=comment)
 
     def addr(self, down:int=0, right:int=0, units:str="cells") -> MemoryAddress:

@@ -53,7 +53,7 @@ def gemm(M,N,K):
                 A.move(right=-1, down=1, units="blocks"),
                 C.move(down=1, units="blocks")
             ]),
-            A.move(down=-4, units="blocks"), #TODO: A.reset() is probably a bad idea entirely
+            A.move(down=-4, units="blocks"),
             B.move(right=1, units="blocks"),
             C.move(down=-4, right=1, units="blocks")
         ])
