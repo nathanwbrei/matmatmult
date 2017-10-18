@@ -5,32 +5,28 @@ from matrixcursor import *
 
 
 # TODO: Specialize for different architectures
-# TODO: Think more carefully about k
-def reg_outer_product(A, B, C_regs, k, stream_reg, bcast_regs, temp_regs):
+def make_outer_product(A, B, C_regs, stream_reg, bcast_regs, temp_regs):
 
-    w = len(bcast_regs)
-    asm = AsmBlock(f"Unrolled {w}x{w} outer product at k={k}")
+    def generator(k):
+        w = len(bcast_regs)
+        asm = AsmBlock(f"Unrolled {w}x{w} outer product at k={k}")
 
-    for x in range(0,w):
-        asm.stmt("vbroadcastsd", B.addr(down=k,right=x), bcast_regs[x])
+        for x in range(0,w):
+            asm.stmt("vbroadcastsd", B.addr(down=k,right=x), bcast_regs[x])
 
-    for m in range(0,w):
-        asm.stmt("vmovapd", A.addr(down=m, units="vectors"), stream_reg)
-        if (m == w-1):
-            asm.include(A.move(right=1))  # Put here only to be consistent with libxsmm
+        for m in range(0,w):
+            asm.stmt("vmovapd", A.addr(down=m, units="vectors"), stream_reg)
+            if (m == w-1):
+                asm.include(A.move(right=1))  # Put here only to be consistent with libxsmm
 
-        for n in range(0,w):
-            asm.stmt("vmulpd", stream_reg, bcast_regs[n], temp_regs[m])
-            asm.stmt("vaddpd", temp_regs[m], C_regs[m][n], C_regs[m][n])
+            for n in range(0,w):
+                asm.stmt("vmulpd", stream_reg, bcast_regs[n], temp_regs[m])
+                asm.stmt("vaddpd", temp_regs[m], C_regs[m][n], C_regs[m][n])
 
-    return asm
+        return asm
+    return generator
 
 
-def unrolled_inner_product(A, B, C_regs, K, stream_reg, bcast_regs, temp_regs ):
-    asm = AsmBlock("Unrolled inner product")
-    for k in range(K):
-        asm.block.append(reg_outer_product(A,B,C_regs,k,stream_reg,bcast_regs,temp_regs))
-    return asm
 
 def gemm(M,N,K):
 
@@ -52,9 +48,8 @@ def gemm(M,N,K):
         loop(n_reg, 0, N, 3).body([
             loop(m_reg, 0, M, 12).body([
                 C.load_register_block(C_regs),
-                unrolled_inner_product(A,B,C_regs,K,stream_reg,bcast_regs,temp_regs),
+                unroll(make_outer_product(A,B,C_regs,stream_reg,bcast_regs,temp_regs), range(K)),
                 C.store_register_block(C_regs),
-
                 A.move(right=-1, down=1, units="blocks"),
                 C.move(down=1, units="blocks")
             ]),

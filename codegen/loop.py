@@ -60,3 +60,14 @@ class Loop(AsmBlock):
 def loop(iter_var, initial, final, increment):
     return Loop(iter_var, c(initial), c(final), c(increment))
 
+
+# TODO: Figure out how to statically type this
+# TODO: Extend to partial unrolling
+
+def unroll(block_generator, iteration_range) -> AsmBlock:
+    asm = AsmBlock("Unrolled over " + str(range))
+    for x in iteration_range:
+        asm.include(block_generator(x))
+    return asm
+
+
