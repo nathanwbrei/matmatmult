@@ -1,18 +1,17 @@
 
-import x86_64
-import gemm_pieces
+import blocks
 
 def outer_product(A, B, C_regs, k, stream_reg, bcast_regs, temp_regs):
-    asm = []
+    asm = AsmBlock("Fully unrolled k x k outer product")
     for x in range(0,k):
-        asm.append(statement("bcast", B.addr(right=x), bcast_regs[x]))
+        asm.stmt("vbroadcastsd", B.addr(right=x), bcast_regs[x])
 
     for m in range(0,k):
-        asm.append(statement("mov", A.addr(down=m, units="vectors"), stream_reg))
+        asm.stmt("vmovapd", A.addr(down=m, units="vectors"), stream_reg)
 
         for n in range(0,k):
-            asm.append(statement("mult", [stream_reg, bcast_regs[n]], temp_regs[n]))
-            asm.append(statement("add", [temp_reg], C_regs[m][n]))
+            asm.stmt("vmulpd", [stream_reg, bcast_regs[n]], temp_regs[n])
+            asm.stmt("vaddpd", [temp_reg], C_regs[m][n])
 
     return asm
 
@@ -37,6 +36,11 @@ def gemm(m,n,k):
     mb = 12
     nb = 3
     kb = 3
+
+    
+    # Asm loop over j
+       # Asm loop over i
+          
 
     
 

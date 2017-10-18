@@ -1,65 +1,72 @@
-from x86_64 import *
-
+from blocks import *
 
 class MatrixCursor:
 
-    def __init__(self, ptr_reg,
-                 rows, cols, ld,
-                 block_rows=16, block_cols=3,
-                 reg_width=4):
-        self.ptr_reg = ptr_reg
-        self.cursor = 0
-        self.rows = rows
-        self.cols = cols
-        self.ld = ld
-        self.block_rows = block_rows
-        self.block_cols = block_cols
-        self.reg_width = reg_width
+    def __init__(self,
+                 name : str,
+                 ptr_reg: Register,
+                 rows: int,
+                 cols: int,
+                 ld: int,
+                 block_rows: int = 16,
+                 block_cols: int = 3,
+                 reg_width: int = 4
+                 ) -> None:
+
+        self._name = name
+        self._ptr_reg = ptr_reg
+        self._cursor = 0
+        self._rows = rows
+        self._cols = cols
+        self._ld = ld
+        self._block_rows = block_rows
+        self._block_cols = block_cols
+        self._reg_width = reg_width
 
 
-    def reset():
-        old_offset = self.offset
-        self.offset = 0
-        return add(c(-old_offset), self.ptr_reg)
+    def reset(self) -> AsmStatement:
+        comment = f"Matrix {self._name} cursor reset to start"
+        offset = c(-self._cursor)
+        self._cursor = 0
+        return AsmStatement("addq", [offset], self._ptr_reg, comment=comment)
 
-    def move(direction, quantity, unit):
-        ma = addr(direction, quantity, unit).offset
-        self.cursor += offset.value
-        return statement("add", offset, self.ptr_reg, "Move cursor ")
+    def move(self, down:int=0, right:int=0, units:str="cells") -> AsmStatement:
+        comment = f"Matrix {self._name} cursor moved down={down}, right={right} {units}"
+        offset = self.addr(down, right, units).offset
+        self._cursor += offset.value
+        return AsmStatement("addq", [offset], self._ptr_reg, comment=comment)
 
-    def addr(down=0, right=0, units="cells"):
+    def addr(self, down:int=0, right:int=0, units:str="cells") -> MemoryAddress:
         if (units == "cells"):
-            offset = right*self.ld + down
+            offset = right*self._ld + down
         elif (units == "vectors"):
-            offset = right*self.ld + down*self.reg_width
+            offset = right*self._ld + down*self._reg_width
         elif (units == "blocks"):
-            offset = right*self.ld*self.block_cols + down*self.block_rows
+            offset = right*self._ld*self._block_cols + down*self._block_rows
         else:
             raise Exception("Units must be cells, vectors, or blocks.")
-        return self.ptr_reg + offset
+        return self._ptr_reg + offset
 
 
-    # TODO: Figure out how to do this in conjunction with .move()
     # TODO: Check that register dimensions are consistent with self.reg_width
-    def load_register_block(self, registers):
-        statements = []
+    def load_register_block(self, registers:List[List[Register]]) -> AsmBlock:
+        asm = AsmBlock("Load register block")
         for i in range(0,len(registers)):
             for j in range(0,len(registers[0])):
-                s = statement("mov",
-                              self.addr(down=i,right=j,units="vectors"),
-                              registers[i][j])
-                statements.append(s)
-        return statements
+                asm.stmt("vmovapd",
+                         self.addr(down=i,right=j,units="vectors"),
+                         registers[i][j])
+        return asm
 
 
-    def store_register_block(registers):
-        statements = []
+    def store_register_block(self, registers:List[List[Register]]) -> AsmBlock:
+        asm = AsmBlock("Store register block")
         for i in range(0,len(registers)):
             for j in range(0,len(registers[0])):
-                s = copy(registers[i][j],
+                asm.stmt("vmovapd",
+                         registers[i][j],
                          self.addr(down=i,right=j,units="vectors"))
-                statements.append(s)
-        return statements
+        return asm
 
 
 

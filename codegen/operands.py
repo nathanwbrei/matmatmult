@@ -28,6 +28,9 @@ class Operand:
         else:
             self.symbol = None
 
+    def gen(self, env, syntax):
+        pass
+
 
 class Constant(Operand):
     def gen(self, env={}, syntax:Syntax = Syntax.inline):

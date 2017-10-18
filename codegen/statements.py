@@ -3,16 +3,21 @@ from operands import *
 
 class AsmStatement:
     """ Represents a single assembly statement"""
-    def __init__(self, operation, inputs, output,
-                 implied_inputs=[], implied_outputs=[],
-                 comment=None):
+    def __init__(self,
+                 operation : str,
+                 inputs : List[Operand],
+                 output : Operand,
+                 implied_inputs : List[Operand] = [],
+                 implied_outputs : List[Operand] = [],
+                 comment : str = None
+                 ) -> None:
 
-        self.operation = operation               # :: str
-        self.inputs = inputs                     # :: [Operand]
-        self.output = output                     # :: Operand
-        self.implied_inputs = implied_inputs     # :: [Operand]
-        self.implied_outputs = implied_outputs   # :: [Operand]
-        self.comment = comment                   # :: str
+        self.operation = operation
+        self.inputs = inputs
+        self.output = output
+        self.implied_inputs = implied_inputs
+        self.implied_outputs = implied_outputs
+        self.comment = comment
 
     T = AsmType
 
