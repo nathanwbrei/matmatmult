@@ -4,6 +4,7 @@ from blocks import *
 class Loop(AsmBlock):
     """ For now, unroll and optimize should only be used if the loop
     body does not depend on the iteration variable."""
+    _labels = []
     def __init__(self, 
             iteration_var: Register, 
             initial_val: Constant, 
@@ -16,24 +17,26 @@ class Loop(AsmBlock):
         self.initial_val = initial_val
         self.final_val = final_val
         self.increment = increment
+        self.label = "loop_top_" + str(len(Loop._labels))
+        Loop._labels.append(self.label)
 
 
     def preamble(self):
         return AsmBlock() \
                 .stmt("mov", self.initial_val, self.iteration_var) \
-                .label("loop_begin")
+                .label(self.label)
 
 
     def postamble(self):
         if (self.final_val.value == 0):
             return AsmBlock() \
                     .stmt("addq", self.increment, self.iteration_var) \
-                    .stmt("jz", "loop_begin")
+                    .stmt("jz", self.label)
         else:
             return AsmBlock() \
                     .stmt("addq", self.increment, self.iteration_var) \
-                    .stmt("cmp", self.iteration_var, self.final_val, None) \
-                    .stmt("jl", "loop_begin", None)
+                    .stmt("cmpq", self.iteration_var, self.final_val, None) \
+                    .stmt("jl", self.label, None)
 
 
     def gen(self, env={}, syntax=Syntax.inline, depth=0):
@@ -51,5 +54,9 @@ class Loop(AsmBlock):
         if (syntax==Syntax.pretty):
             result += "\n"
 
-        return result                        
+        return result
+
+
+def loop(iter_var, initial, final, increment):
+    return Loop(iter_var, c(initial), c(final), c(increment))
 

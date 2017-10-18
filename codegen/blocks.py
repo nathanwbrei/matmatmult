@@ -36,7 +36,6 @@ class AsmBlock:
         return self
 
     def include(self, child_block) -> "AsmBlock":
-        child_block.parent = self
         self.block.append(child_block)
         return self
 

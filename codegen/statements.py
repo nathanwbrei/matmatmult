@@ -23,7 +23,7 @@ class AsmStatement:
 
     known_instructions = [
         ("syscall",      [], None),
-        ("cmp",          [(Constant,T.i64)], (Register,T.i64)),
+        ("cmpq",         [(Constant,T.i64)], (Register,T.i64)),
         ("jl",           [(Label)], None),
         ("movq",         [(Register,T.i64)], (Register,T.i64)),
         ("movq",         [(Constant,T.i64)], (Register,T.i64)),
@@ -46,6 +46,7 @@ class AsmStatement:
 
     ops_lookup = {
         "add":   ["addq", "vaddpd"],
+        "cmp":   ["cmpq"],
         "mov":   ["movq", "vmovapd"],
         "mul":   ["vmulpd"],
         "fma":   ["vfmadd231pd"],
@@ -95,11 +96,13 @@ class AsmStatement:
 
     intel_syntax = {
         "addq" : "add",
+        "cmpq" : "cmp",
         "movq" : "mov"
     }
 
     pretty_syntax = {
         "addq": "add",
+        "cmpq": "cmp",
         "movq": "mov",
         "vaddpd": "add",
         "vmulpd": "mul",
