@@ -22,18 +22,21 @@ class Loop(AsmBlock):
 
 
     def preamble(self):
-        return AsmBlock() \
+        comment = f"Loop({self.iteration_var.value} <- " + \
+                  f"{self.initial_val.value}:{self.increment.value}:{self.final_val.value})"
+
+        return AsmBlock(comment) \
                 .stmt("mov", self.initial_val, self.iteration_var) \
                 .label(self.label)
 
 
     def postamble(self):
         if (self.final_val.value == 0):
-            return AsmBlock() \
+            return AsmBlock("Loop postamble") \
                     .stmt("addq", self.increment, self.iteration_var) \
                     .stmt("jz", self.label)
         else:
-            return AsmBlock() \
+            return AsmBlock("Loop postamble") \
                     .stmt("addq", self.increment, self.iteration_var) \
                     .stmt("cmpq", self.iteration_var, self.final_val, None) \
                     .stmt("jl", self.label, None)
@@ -41,20 +44,12 @@ class Loop(AsmBlock):
 
     def gen(self, env={}, syntax=Syntax.inline, depth=0):
 
-        result = ""
-
-        if (syntax==Syntax.pretty):
-            result += "\n" + "  "*depth
-            result += f";; Loop({self.iteration_var.value} <- " 
-            result += f"{self.initial_val.value}:{self.increment.value}:{self.final_val.value})\n"
-
-        result += self.preamble().gen(env, syntax, depth) + "\n"
-        result += super().gen(env, syntax, depth+1) + "\n"
-        result += self.postamble().gen(env, syntax, depth)
-        if (syntax==Syntax.pretty):
-            result += "\n"
-
-        return result
+        outer = self.preamble()
+        inner = AsmBlock("Loop body")
+        inner.block.extend(self.block)
+        outer.block.append(inner)
+        outer.block.extend(self.postamble().block)
+        return outer.gen(env, syntax, depth)
 
 
 def loop(iter_var, initial, final, increment):
@@ -64,10 +59,10 @@ def loop(iter_var, initial, final, increment):
 # TODO: Figure out how to statically type this
 # TODO: Extend to partial unrolling
 
-def unroll(block_generator, iteration_range) -> AsmBlock:
-    asm = AsmBlock("Unrolled over " + str(range))
+def unroll(block_generator, iteration_range, parameters) -> AsmBlock:
+    asm = AsmBlock("Unrolled over " + str(iteration_range))
     for x in iteration_range:
-        asm.include(block_generator(x))
+        asm.include(block_generator(x, parameters))
     return asm
 
 

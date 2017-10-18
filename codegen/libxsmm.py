@@ -2,53 +2,43 @@
 from blocks import *
 from loop import *
 from matrixcursor import *
+from libxsmm_params import *
 
 
-# TODO: Specialize for different architectures
-def make_outer_product(A, B, C_regs, stream_reg, bcast_regs, temp_regs):
+def make_outer_product(x:int, p:LibxsmmParameters) -> AsmBlock:
 
-    def generator(k):
-        w = len(bcast_regs)
-        asm = AsmBlock(f"Unrolled {w}x{w} outer product at k={k}")
+    A, B, C, C_regs = p.A(), p.B(), p.C(), p.C_regs
+    bcast_regs, temp_regs, stream_reg = p.bcast_regs, p.temp_regs, p.stream_reg
 
-        for x in range(0,w):
-            asm.stmt("vbroadcastsd", B.addr(down=k,right=x), bcast_regs[x])
+    w = len(bcast_regs)
+    asm = AsmBlock(f"{w}x{w} outer product at x={x}")
 
-        for m in range(0,w):
-            asm.stmt("vmovapd", A.addr(down=m, units="vectors"), stream_reg)
-            if (m == w-1):
-                asm.include(A.move(right=1))  # Put here only to be consistent with libxsmm
+    for j in range(0,w):
+        asm.stmt("vbroadcastsd", B.addr(down=x,right=j), bcast_regs[j])
 
-            for n in range(0,w):
-                asm.stmt("vmulpd", stream_reg, bcast_regs[n], temp_regs[m])
-                asm.stmt("vaddpd", temp_regs[m], C_regs[m][n], C_regs[m][n])
+    for i in range(0,w):
+        asm.stmt("vmovapd", A.addr(down=i, units="vectors"), stream_reg)
+        if (i == w-1):
+            asm.include(A.move(right=1))  # Put here only to be consistent with libxsmm
 
-        return asm
-    return generator
+        for j in range(0,w):
+            asm.stmt("vmulpd", stream_reg, bcast_regs[j], temp_regs[i])
+            asm.stmt("vaddpd", temp_regs[i], C_regs[i][j], C_regs[i][j])
+
+    return asm
 
 
 
-def gemm(M,N,K):
+def make_gemm(p:LibxsmmParameters) -> AsmBlock:
 
-    A = MatrixCursor("A", rdi, 48, 9, 48, 12, 9, 8, 4)
-    B = MatrixCursor("B", rsi, 9, 9, 9, 9, 3, 8, 4)
-    C = MatrixCursor("C", rdx, 48, 9, 48, 12, 3, 8, 4)
-
-    C_regs = [[ymm(7), ymm(10), ymm(13)],
-              [ymm(8), ymm(11), ymm(14)],
-              [ymm(9), ymm(12), ymm(15)]]
-
-    stream_reg = ymm(3)
-    bcast_regs = [ymm(0), ymm(1), ymm(2)]
-    temp_regs = [ymm(4), ymm(5), ymm(6)]
-
-    m_reg,n_reg,k_reg = r(12),r(13),r(14)
+    m, n, k, A, B, C = p.m, p.n, p.k, p.A(), p.B(), p.C()
+    m_reg, n_reg, C_regs = p.m_reg, p.n_reg, p.C_regs
 
     asm = AsmBlock("LibXSMM-style 48x9x9 GEMM on SandyBridge").body([
-        loop(n_reg, 0, N, 3).body([
-            loop(m_reg, 0, M, 12).body([
+        loop(n_reg, 0, n, 3).body([
+            loop(m_reg, 0, m, 12).body([
                 C.load_register_block(C_regs),
-                unroll(make_outer_product(A,B,C_regs,stream_reg,bcast_regs,temp_regs), range(K)),
+                unroll(make_outer_product, range(k), p),
                 C.store_register_block(C_regs),
                 A.move(right=-1, down=1, units="blocks"),
                 C.move(down=1, units="blocks")
