@@ -36,7 +36,7 @@ class LibxsmmParameters(NamedTuple):
                             self.scalar_bytes, self.vector_width)
 
     def C(self):
-        return MatrixCursor("C", self.B_ptr, self.m, self.n, self.ldc,
+        return MatrixCursor("C", self.C_ptr, self.m, self.n, self.ldc,
                             len(self.C_regs) * self.vector_width,
                             len(self.C_regs[0]),
                             self.scalar_bytes, self.vector_width)

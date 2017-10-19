@@ -9,19 +9,20 @@ def make_gemm(p:LibxsmmParameters) -> AsmBlock:
 
     m, n, k, A, B, C = p.m, p.n, p.k, p.A(), p.B(), p.C()
     m_reg, n_reg, C_regs = p.m_reg, p.n_reg, p.C_regs
+    m_block, n_block = len(C_regs)*p.vector_width, len(C_regs[0])
 
     asm = AsmBlock(f"LibXSMM-style {m}x{n}x{k} GEMM using {p.instruction_sets}").body([
-        loop(n_reg, 0, n, 3).body([
-            loop(m_reg, 0, m, 12).body([
+        loop(n_reg, 0, n, n_block).body([
+            loop(m_reg, 0, m, m_block).body([
                 C.load_register_block(C_regs),
                 unroll(make_outer_product, range(k), p),
                 C.store_register_block(C_regs),
                 A.move(right=-1, down=1, units="blocks"),
                 C.move(down=1, units="blocks")
             ]),
-            A.move(down=-4, units="blocks"),
-            B.move(right=1, units="blocks"),
-            C.move(down=-4, right=1, units="blocks")
+            C.move(down=-m, right=n_block, units="cells"),
+            A.move(down=-m, units="cells"),
+            B.move(right=1, units="blocks")
         ])
     ])
     return asm
