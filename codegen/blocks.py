@@ -61,6 +61,11 @@ class AsmBlock:
         result += "\n".join(s.gen(env,syntax,depth+1) for s in self.block)
         return result
 
+    def show(self):
+        print(self.gen(syntax=Syntax.pretty))
+
+    def __str__(self):
+        return self.gen({}, syntax=Syntax.pretty)
 
     def outputs(self):
         pass

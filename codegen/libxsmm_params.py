@@ -58,11 +58,12 @@ hsw = LibxsmmParameters(
     m = 48, n = 9, k = 9, lda = 48, ldb = 9, ldc = 48,
     instruction_sets = ["avx256","fma"],
     vector_width = 4,
-    C_regs = [[ymm(7), ymm(10), ymm(13)],
-              [ymm(8), ymm(11), ymm(14)],
-              [ymm(9), ymm(12), ymm(15)]],
+    C_regs = [[ymm(4), ymm(8), ymm(12)],
+              [ymm(5), ymm(9), ymm(13)],
+              [ymm(6), ymm(10), ymm(14)],
+              [ymm(7), ymm(11), ymm(15)]],
     stream_reg = ymm(3),
     bcast_regs = [ymm(0), ymm(1), ymm(2)],
-    temp_regs = [ymm(4), ymm(5), ymm(6)])
+    temp_regs = [])
 
 
