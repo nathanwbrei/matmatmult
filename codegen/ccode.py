@@ -18,7 +18,9 @@ def make_cfunc(funcName:str, body:AsmBlock, matchLibxsmm=False):
     else:
         indent = "    "
     body_text = "\n".join(indent + f'"{stmt}\\n\\t"' for stmt in body.gen().splitlines())
-    clobbered = ",".join(f'"{reg.value}"' for reg in body.outputs())
+    out_regs = [f'"{reg.value}"' for reg in body.outputs()]
+    out_regs.sort()
+    clobbered = ",".join(out_regs)
     return template.format(funcName = funcName,
                            body_text = body_text,
                            clobbered = clobbered)

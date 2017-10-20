@@ -1,6 +1,7 @@
 from statements import *
 from typing import List,Union
 
+
 class AsmBlock:
     """ Represents a block of assembly statements"""
 
@@ -68,4 +69,8 @@ class AsmBlock:
         return self.gen({}, syntax=Syntax.pretty)
 
     def outputs(self):
-        return [rax,rbx,rcx,rdx]
+        result = set()
+        for x in self.block:
+            result.update(x.outputs())
+        return result
+

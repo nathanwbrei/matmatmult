@@ -1,4 +1,5 @@
 from operands import *
+from typing import Set
 
 
 class AsmStatement:
@@ -121,7 +122,7 @@ class AsmStatement:
             if self.output is not None:
                 result += ", " + self.output.gen(env,syntax)
             if self.comment is not None:
-                result += "\t\t; " + self.comment
+                result += "    ; " + self.comment
             return result
 
         elif syntax == Syntax.intel:
@@ -130,7 +131,7 @@ class AsmStatement:
                 result += self.output.gen(env,syntax) + ", "
             result += ", ".join(x.gen(env,syntax) for x in self.inputs)
             if self.comment is not None:
-                result += "\t\t; " + self.comment
+                result += "    ; " + self.comment
             return result
 
         elif syntax == Syntax.pretty:
@@ -140,12 +141,16 @@ class AsmStatement:
             if self.output is not None:
                 result += " -> " + self.output.gen(env,syntax)
             if self.comment is not None:
-                result += "\t\t; " + self.comment
+                result += "    ; " + self.comment
             return result
 
         else:
             raise Exception("Valid syntaxes are: inline, intel, pretty")
 
+    def outputs(self) -> Set[Register]:
+
+        all_outputs = [self.output] + self.implied_outputs
+        return set(x for x in all_outputs if isinstance(x,Register))
 
 
 #TODO: Think about this more carefully
