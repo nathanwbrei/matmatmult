@@ -1,15 +1,29 @@
 
 from blocks import *
 
-class Gemm:
-	""" Generate a C function to enclose the provided assembly block """
-    def __init__(self, funcName:str, asmBlock:AsmBlock):
-        self.funcName = funcName
-        self.body = []=  # :: [Asm]
 
-    def gen(self, env={}):
-        asm_text = "".join('    "'+s.gen(env,syntax="inline")+'\\n\\t"' for s in self.body)
-        return """
+template = """
 
-void %1s (const double* A, const double* B, double* C) {
-  __asm__ __volatile__(\n""" % self.funcName + asm_text
+void {funcName} (const double* A, const double* B, double* C) {{
+  __asm__ __volatile__(
+{body_text}
+                       : : "m"(A), "m"(B), "m"(C) : {clobbered});
+}};
+"""
+
+def make_cfunc(funcName:str, body:AsmBlock, matchLibxsmm=False):
+
+    if (matchLibxsmm):
+        indent = " " * 23
+    else:
+        indent = "    "
+    body_text = "\n".join(indent + f'"{stmt}\\n\\t"' for stmt in body.gen().splitlines())
+    clobbered = ",".join(f'"{reg.value}"' for reg in body.outputs())
+    return template.format(funcName = funcName,
+                           body_text = body_text,
+                           clobbered = clobbered)
+
+
+
+
+

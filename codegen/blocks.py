@@ -68,4 +68,4 @@ class AsmBlock:
         return self.gen({}, syntax=Syntax.pretty)
 
     def outputs(self):
-        pass
+        return [rax,rbx,rcx,rdx]
