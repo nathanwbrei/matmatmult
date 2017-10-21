@@ -69,9 +69,9 @@ class Register(Operand):
 
     def __add__(self, offset):
         if isinstance(offset, Constant):
-            return MemoryAddress(self, offset)
+            return MemoryAddress(self, None, None, offset)
         elif isinstance(offset, int):
-            return MemoryAddress(self, Constant(AsmType.i64,offset))
+            return MemoryAddress(self, None, None, Constant(AsmType.i64,offset))
 
     def gen(self, env={}, syntax:Syntax=Syntax.inline):
 
@@ -104,28 +104,52 @@ zmm = lambda n: Register(AsmType.f64x8, "zmm"+str(n))
 
 class MemoryAddress(Operand):
 
-    def __init__(self, pointer: Register, offset: Constant, alignment: int = None) -> None:
-        # Only consider pointer-offset addresses for now.
-        # Pointer is always a register, offset always a constant.
-        # These components are allowed to be symbolic. The MemoryAddress
-        # itself is not.
-
-        self.type_info = AsmType.unknown
-        self.pointer = pointer
+    def __init__(self,
+                 base: Register,
+                 index: Register,
+                 scale: Constant,
+                 offset: Constant,
+                 alignment: int = None,
+                 bcast: bool = False) -> None:
+        self.base = base
+        self.index = index
+        self.scale = scale
         self.offset = offset
         self.alignment = alignment
+        self.bcast = bcast
+        self.type_info = AsmType.unknown
 
 
     def gen(self, env = {}, syntax: Syntax = Syntax.inline) -> str:
 
-        pointer_str = self.pointer.gen(env, syntax)
+        base_str = self.base.gen(env, syntax)
         offset_str = self.offset.gen(env, Syntax.intel)
-
-        if syntax == Syntax.inline:
-            return offset_str + "(" + pointer_str + ")"
+        if not self.bcast:
+            bcast_str = ""
+        elif syntax == Syntax.inline:
+            bcast_str = "%{1to8%}"
         else:
-            return "[" + pointer_str + " + " + offset_str + "]"
+            bcast_str = "x8"
+
+        if self.index is not None and self.scale is not None:
+            index_str = self.index.gen(env, syntax)
+            scale_str = self.scale.gen(env, syntax.intel)
+
+            if syntax == Syntax.inline:
+                return f"{offset_str}({base_str}, {index_str}, {scale_str}){bcast_str}"
+            else:
+                return f"[{base_str} + {index_str}*{scale_str} + {offset_str}]{bcast_str}"
+        else:
+            if syntax == Syntax.inline:
+                return f"{offset_str}({base_str}){bcast_str}"
+            else:
+                return f"[{base_str} + {offset_str}]{bcast_str}"
 
 
+def bcast(ma:MemoryAddress):
+    ma.bcast = True
+
+def mem(base, index, scale, offset):
+    return MemoryAddress(base, index, scale, offset)
 
 

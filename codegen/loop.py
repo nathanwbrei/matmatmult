@@ -38,7 +38,7 @@ class Loop(AsmBlock):
         else:
             return AsmBlock("Loop postamble") \
                     .stmt("addq", self.increment, self.iteration_var) \
-                    .stmt("cmpq", self.iteration_var, self.final_val, None) \
+                    .stmt("cmpq", self.final_val, self.iteration_var, None) \
                     .stmt("jl", self.label, None)
 
 
@@ -50,6 +50,12 @@ class Loop(AsmBlock):
         outer.block.append(inner)
         outer.block.extend(self.postamble().block)
         return outer.gen(env, syntax, depth)
+
+    def outputs(self):
+        result = AsmBlock.outputs(self)
+        result.update(self.preamble().outputs())
+        result.update(self.postamble().outputs())
+        return result
 
 
 def loop(iter_var, initial, final, increment):

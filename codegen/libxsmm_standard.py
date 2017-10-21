@@ -82,12 +82,12 @@ def make_gemm(p:Parameters) -> AsmBlock:
                 C.load_register_block(C_regs),
                 unroll(make_outer_product, range(k), p),
                 C.store_register_block(C_regs),
-                A.move(right=-1, down=1, units="blocks"),
-                C.move(down=1, units="blocks")
+                C.move(down=1, units="blocks"),
+                A.move(right=-1, down=1, units="blocks")
             ]),
             C.move(down=-m, right=n_block, units="cells"),
-            A.move(down=-m, units="cells"),
-            B.move(right=1, units="blocks")
+            B.move(right=1, units="blocks"),
+            A.move(down=-m, units="cells")
         ])
     ])
     return asm

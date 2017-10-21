@@ -165,5 +165,8 @@ class LabelDeclaration:
         result += self.label.gen(env,syntax) + ":"
         return result
 
+    def outputs(self):
+        return set()
+
 
 
