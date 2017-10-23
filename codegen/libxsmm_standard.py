@@ -14,6 +14,7 @@ class Parameters(NamedTuple):
     ldc: int
     instruction_sets: List[str]  # ["avx128", "avx256", "fma", "avx512"]
     vector_width: int
+    sparsity_pattern: List[List[bool]]
     C_regs: List[List[Register]]
     stream_reg: Register
     bcast_regs: List[Register]
@@ -106,26 +107,20 @@ def make_outer_product(x:int, p:Parameters) -> AsmBlock:
     block_cols = len(bcast_regs)
     asm = AsmBlock(f"{block_rows}x{block_cols} outer product at x={x}")
 
-    if "avx512" in p.instruction_sets:
-        stream_block = AsmBlock("Stream columns of A")
-        fma_block = AsmBlock("Fused-multiply-add C += A*B with scalar-broadcasted B")
-        asm.include(intersperse(stream_block, 2, fma_block, 8))
+    for j in range(0, block_cols):
+        asm.stmt("vbroadcastsd", B.addr(down=x,right=j), bcast_regs[j])
 
-    else:
+    for i in range(0, block_rows):
+        asm.stmt("vmovapd", A.addr(down=i, units="vectors"), stream_reg)
+        if i == block_rows-1:
+            asm.include(A.move(right=1))  # Put here only to be consistent with libxsmm
+
         for j in range(0, block_cols):
-            asm.stmt("vbroadcastsd", B.addr(down=x,right=j), bcast_regs[j])
-
-        for i in range(0, block_rows):
-            asm.stmt("vmovapd", A.addr(down=i, units="vectors"), stream_reg)
-            if i == block_rows-1:
-                asm.include(A.move(right=1))  # Put here only to be consistent with libxsmm
-
-            for j in range(0, block_cols):
-                if "fma" in p.instruction_sets:
-                    asm.stmt("vfmadd231pd", stream_reg, bcast_regs[j], C_regs[i][j])
-                else:
-                    asm.stmt("vmulpd", stream_reg, bcast_regs[j], temp_regs[i])
-                    asm.stmt("vaddpd", temp_regs[i], C_regs[i][j], C_regs[i][j])
+            if "fma" in p.instruction_sets:
+                asm.stmt("vfmadd231pd", stream_reg, bcast_regs[j], C_regs[i][j])
+            else:
+                asm.stmt("vmulpd", stream_reg, bcast_regs[j], temp_regs[i])
+                asm.stmt("vaddpd", temp_regs[i], C_regs[i][j], C_regs[i][j])
 
     return asm
 
