@@ -37,12 +37,14 @@ void (*impl_pointers[impl_count]) (double * A, double * B, double * C) = {
 
 void run_tests() {
   
+  double A[] = {1.,2.,3.,4.,5.,6.,7.,8.,10.};
   // For each pattern
   for (int testcase=0; testcase<impl_count; testcase++) {
     int pattern = impl_patterns[testcase];
 
-    struct colmajor A = make_random_colmajor(48,9);
-    struct blocksparse B_bsp = make_random_blocksparse();
+    struct colmajor A = zeros(48,9);
+    fill(&A, 1, 1);
+    struct blocksparse B_bsp = make_random_blocksparse(16,3,1,18);
     struct colmajor B_cm = blocksparse_to_colmajor(B_bsp);
     struct colmajor C_expected = zeros(48,9);
     struct colmajor C_actual = zeros(48,9);
@@ -51,7 +53,7 @@ void run_tests() {
     clock_t dense_ticks_before = clock();
     uint64_t dense_cycles_before = tsc();
     for (int t=0; t<2000; t++)
-      gemm_dense(A, B_cm, C_expected);
+      gemm_dense(A.values, B_cm.values, C_expected.values);
     uint64_t dense_cycles_after = tsc();
     clock_t dense_ticks_after = clock();
 
@@ -59,19 +61,19 @@ void run_tests() {
     clock_t blocksparse_ticks_before = clock();
     uint64_t blocksparse_cycles_before = tsc();
     for (int t=0; t<2000; t++)
-      impl_pointers[testcase](A,B_bsp,C_actual);
+      impl_pointers[testcase](A.values,B_bsp.values,C_actual.values);
     uint64_t blocksparse_cycles_after = tsc();
     clock_t blocksparse_ticks_after = clock();
 
     // Verify that result is correct
-    test_equality(C_expected, C_actual);
+    assert_equals(C_expected, C_actual);
 
     // Emit timing information
-    printf("%d, %d, %d, %d, %d\n",
+    printf("%d, %lld, %ld, %lld, %ld\n",
       pattern,
       dense_cycles_after - dense_cycles_before,
       dense_ticks_after - dense_ticks_before,
-      blocksparse_cycles_after - blocksparse_ticks_before,
+      blocksparse_cycles_after - blocksparse_cycles_before,
       blocksparse_ticks_after - blocksparse_ticks_before);
   }
 }
@@ -79,6 +81,7 @@ void run_tests() {
 
 int main(int argc, char ** argv) {
   run_tests();
+  return 0;
 }
 
 

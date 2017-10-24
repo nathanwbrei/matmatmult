@@ -41,6 +41,7 @@ workbench: workbench/workbench.cpp workbench/gemms_libxsmm.c
 
 
 blocksparse: dense_x_blocksparse/harness.c dense_x_blocksparse/blocksparse.h
-	gcc -c -g -std=c11 -O0 -o build/harness.o dense_x_blocksparse/harness.c
-	gcc -o build/dense_x_blocksparse \
-		build/harness.o
+	gcc -g -std=c11 -O0 -o build/dense_x_blocksparse dense_x_blocksparse/harness.c
+
+matrix_tests: dense_x_blocksparse/harness.c dense_x_blocksparse/blocksparse.h
+	gcc -g -std=c11 -O0 -o build/matrix_tests common/matrix_tests.c

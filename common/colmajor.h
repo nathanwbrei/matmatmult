@@ -27,33 +27,50 @@ struct colmajor zeros(int rows, int cols) {
 }
 
 
-struct colmajor make_random_colmajor(int rows, int cols) {
+void fill(struct colmajor * matrix, double startval, double increment) {
 
-  double startval = 1.0;
-  double increment = 2.0;
-
-  struct colmajor matrix = zeros(rows, cols);
+  int cols = matrix->cols;
+  int rows = matrix->rows;
   for (int col = 0; col < cols; col++) {
     for (int row = 0; row < rows; row++) {
-      matrix.values[row + col*rows] = startval;
+      matrix->values[row + col*rows] = startval;
       startval += increment;
     }
   }
-  return matrix;
 }
 
 
-void print_matrix(struct colmajor matrix) {
-  for (int row = 0; row < matrix.rows; row++) {
-    for (int col = 0; col < matrix.cols; col++) {
-      printf("%f\t", matrix.values[row + col*matrix.rows]);
+void print_matrix(struct colmajor * matrix) {
+
+  int cols = matrix->cols;
+  int rows = matrix->rows;
+  for (int row = 0; row < rows; row++) {
+    for (int col = 0; col < cols; col++) {
+      printf("%f\t", matrix->values[row + col*rows]);
     }
     printf("\n");
   }
 }
 
+void ddmm(struct colmajor * A, struct colmajor * B, struct colmajor * C) {
 
-void test_equality(struct colmajor expected, struct colmajor actual) {
+  int m = C->rows;
+  int n = C->cols;
+  int k = A->cols;
+
+  for (int in=0; in<n; in++) {
+    for (int ik=0; ik<k; ik++) {
+      #pragma simd
+      for (int im=0; im<m; im++) {
+        // C[i,j] += A[i,x]*B[x,j]
+        C->values[in*m + im] += A->values[ik*m + im] * B->values[in*k + ik];
+      }
+    }
+  }
+}
+
+
+void assert_equals(struct colmajor expected, struct colmajor actual) {
   bool equal = true;
   double epsilon = 0.0001;
   if (expected.rows != actual.rows) {
@@ -76,9 +93,9 @@ void test_equality(struct colmajor expected, struct colmajor actual) {
   }
   if (!equal) {
     printf("\n\n------ EXPECTED -----=-\n");
-    print_matrix(expected);
+    print_matrix(&expected);
     printf("\n\n------ ACTUAL -----=-\n");
-    print_matrix(actual);
+    print_matrix(&actual);
   }
 }
 
