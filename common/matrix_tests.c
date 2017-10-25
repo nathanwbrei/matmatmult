@@ -5,6 +5,22 @@
 #include "../common/colmajor.h"
 
 
+void test_sparse() {
+
+  struct colmajor A;
+  A.rows = 4;
+  A.cols = 4;
+  A.values = (double[]) {1.,0.,0.,0.,0.,2.,0.,0.,0.,0.,3.,0.,0.,0.,0.,4.};
+
+  struct sparse_csc actual = dense2sparse(&A);
+
+  struct sparse_csc expected;
+  expected.values = (double[]) {1.,2.,3.,4.};
+
+  assert_equals(expected, actual);
+
+}
+
 int main(int argc, char ** argv) {
   //run_tests();
   struct colmajor A;

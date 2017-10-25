@@ -6,6 +6,7 @@
 #include<stdbool.h>
 #include<unistd.h>
 #include<math.h>
+#include<assert.h>
 
 struct colmajor {
   int rows;
@@ -19,13 +20,17 @@ struct colmajor zeros(int rows, int cols) {
   result.rows = rows;
   result.cols = cols;
   result.values = malloc(result.rows * result.cols * sizeof(double));
-
-  for (int i=0; i<rows*cols; i++) {
-    result.values[i] = 0.0;
-  }
+  reset(result);
   return result;
 }
 
+
+inline void reset(struct colmajor * dense) {
+  int size = dense->rows * dense->cols;
+  for (int i=0; i<size; i++) {
+    dense.values[i] = 0.0;
+  }  
+}
 
 void fill(struct colmajor * matrix, double startval, double increment) {
 
@@ -97,6 +102,7 @@ void assert_equals(struct colmajor expected, struct colmajor actual) {
     printf("\n\n------ ACTUAL -----=-\n");
     print_matrix(&actual);
   }
+  assert(equal);
 }
 
 

@@ -2,6 +2,19 @@ import unittest
 from blocks import *
 from loop import *
 
+import harness
+
+class TestHarness(unittest.TestCase):
+
+    def test_denseMat(self):
+        M = DenseMatrix("A", [[1,2,3],[4,5,6]])
+        self.assertEqual(2, M.rows)
+        self.assertEqual(3, M.cols)
+        self.assertEqual(M.values, [1,4,2,5,3,6])
+
+
+
+
 class TestAsm(unittest.TestCase):
 
 
