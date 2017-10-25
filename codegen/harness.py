@@ -13,6 +13,7 @@ class HarnessBuilder:
 
     main_template = """
     int main(int argc, char ** argv) {{
+    {decls}
     {body}
     }}
 
@@ -23,8 +24,9 @@ class HarnessBuilder:
 
         /******* {test_name} *******/
 
-        {test_name}(A,B,C_actual);
-        assert_equal(C_expected, C_actual);
+        reset(&C_actual);
+        {test_name}(A.values,B.values,C_actual.values);
+        assert_equal(&C_expected, &C_actual);
 
         clock_t ticks_before = clock();
         uint64_t cycles_before = tsc();
@@ -41,12 +43,16 @@ class HarnessBuilder:
 
     def __init__(self):
         self.test_names: List[str] = []
+        self.vars : List[Matrix] = []
 
     def add_test(self, test_name: str) -> None:
         self.test_names.append(test_name)
 
     def make_imports(self) -> str:
         return self.imports_template
+
+    def make_decls(self) -> str:
+        return "\n    ".join(m.gen for m in self.vars)
 
     def make_main(self) -> str:
 
@@ -62,19 +68,30 @@ class BlockSparseMatrix():
 
     def __init__(self, name:str, rows:int, cols:int, 
                  pattern: List[List[bool]],
-                 values: List[float]):
+                 values: List[float] = None,
+                 nnz: int = None):
         self.name = name
         self.rows = rows
         self.cols = cols
         self.block_rows = len(pattern)
         self.block_cols = len(pattern[0])
         self.pattern = pattern
-        self.values = values
 
-    def make_csc(self):
-        pattern_nnzs = sum(sum(r) for r in self.pattern)
-        nnz = pattern_nnzs * self.rows/self.block_rows * self.cols/self.block_cols
-        # TODO: This assumes pattern tiles perfectly
+        if (nnz is not None):
+            self.nnz = nnz
+        elif (values is not None):
+            self.nnz = len(values)
+        else:
+            pattern_nnzs = sum(sum(r) for r in pattern)
+            self.nnz = pattern_nnzs * rows//self.block_rows * cols//self.block_cols
+
+        if (values is None):
+            self.values = list(range(10,self.nnz+10))
+        else:
+            self.values = values
+
+
+    def gen(self):
         output = """
             struct sparse_csc {name};
             {name}.rows = {rows};
@@ -85,7 +102,7 @@ class BlockSparseMatrix():
                    rows=self.rows,
                    cols=self.cols,
                    vals=",".join(str(v) for v in self.values),
-                   nnz=nnz)
+                   nnz=self.nnz)
         return output
 
     def dense(self):
@@ -96,21 +113,29 @@ class BlockSparseMatrix():
                 if self.pattern[i%self.block_rows][j%self.block_cols]:
                     dense_values[i][j] = self.values[x]
                     x += 1
-        return DenseMatrix(self.name, dense_values)
+        return DenseMatrix(self.name, values=dense_values)
 
+    def __str__(self):
+        return str(self.dense())
 
-    def make_input(self):
-        return f"*{self.name}";
 
 
 class DenseMatrix():
-    def __init__(self, name:str, values: List[List[float]]):
-        self.name = name
-        self.rows = len(values)
-        self.cols = len(values[0])
-        self.values = values
+    def __init__(self, name:str, rows:int = None, cols:int = None, 
+                 values: List[List[float]] = None):
 
-    def make_dense(self):
+        self.name = name
+        if values is None:
+            self.rows = rows
+            self.cols = cols
+            self.values = [[x+y for x in range(0,rows*cols,rows)]
+                                for y in range(rows)]
+        else:
+            self.rows = len(values)
+            self.cols = len(values[0])
+            self.values = values
+
+    def gen(self):
         colmajor = [str(self.values[i][j]) for j in range(self.cols)
                                            for i in range(self.rows)]
         output = """
@@ -123,14 +148,6 @@ class DenseMatrix():
                    cols=self.cols,
                    vals=",".join(colmajor))
         return output
-
-
-    def make_input(self):
-        return f"{self.name}->values";
-
-    def reset(self):
-        return f"    reset({self.name});"
-
 
     def __str__(self):
         return "\n".join(str(r) for r in self.values)

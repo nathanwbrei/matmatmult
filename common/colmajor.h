@@ -75,21 +75,21 @@ void ddmm(struct colmajor * A, struct colmajor * B, struct colmajor * C) {
 }
 
 
-void assert_equals(struct colmajor expected, struct colmajor actual) {
+void assert_equals(struct colmajor * expected, struct colmajor * actual) {
   bool equal = true;
   double epsilon = 0.0001;
-  if (expected.rows != actual.rows) {
+  if (expected->rows != actual->rows) {
     equal = false;
-    printf("Expected %d rows, actually %d rows\n", expected.rows, actual.rows);
+    printf("Expected %d rows, actually %d rows\n", expected->rows, actual->rows);
   }
-  if (expected.cols != actual.cols) {
+  if (expected->cols != actual->cols) {
     equal = false;
-    printf("Expected %d cols, actually %d cols\n", expected.cols, actual.cols);
+    printf("Expected %d cols, actually %d cols\n", expected->cols, actual->cols);
   }
-  for (int row = 0; row < expected.rows; row++) {
-    for (int col = 0; col < expected.cols; col++) {
-      double a = expected.values[row + col*expected.rows];
-      double b = actual.values[row + col*expected.rows];
+  for (int row = 0; row < expected->rows; row++) {
+    for (int col = 0; col < expected->cols; col++) {
+      double a = expected->values[row + col*expected->rows];
+      double b = actual->values[row + col*expected->rows];
       if (fabs(a-b) > epsilon) {
         equal = false;
         printf("Mismatch %f != %f at row %d, col %d\n", a,b,row,col);
@@ -98,9 +98,9 @@ void assert_equals(struct colmajor expected, struct colmajor actual) {
   }
   if (!equal) {
     printf("\n\n------ EXPECTED -----=-\n");
-    print_matrix(&expected);
+    print_matrix(expected);
     printf("\n\n------ ACTUAL -----=-\n");
-    print_matrix(&actual);
+    print_matrix(actual);
   }
   assert(equal);
 }

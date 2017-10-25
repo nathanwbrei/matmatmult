@@ -31,6 +31,13 @@ def make_exp_code(alg_builder, alg_namer, params) -> str:
 
     result = ""
     harness = HarnessBuilder()
+    harness.vars = [
+        DenseMatrix(name="C_expected", rows=params.m, cols=params.n),
+        DenseMatrix(name="C_actual", rows=params.m, cols=params.n),
+        DenseMatrix(name="A", rows=params.m, cols=params.k),
+        BlockSparseMatrix(name="B", rows=params.k, cols=params.n, 
+                          sparsity_pattern=params.sparsity_pattern)
+    ]
     result += harness.make_imports()
 
     for param in params:

@@ -14,7 +14,6 @@ class Parameters(NamedTuple):
     ldc: int
     instruction_sets: List[str]  # ["avx128", "avx256", "fma", "avx512"]
     vector_width: int
-    sparsity_pattern: List[List[bool]]
     C_regs: List[List[Register]]
     stream_reg: Register
     bcast_regs: List[Register]
@@ -26,6 +25,7 @@ class Parameters(NamedTuple):
     A_ptr: Register = rdi
     B_ptr: Register = rsi
     C_ptr: Register = rdx
+    sparsity_pattern: List[List[bool]] = None
 
     def A(self):
         return MatrixCursor("A", self.A_ptr, self.m, self.k, self.lda,
