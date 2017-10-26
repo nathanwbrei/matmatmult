@@ -102,13 +102,21 @@ def make_outer_product(x:int, p:Parameters) -> AsmBlock:
 
     A, B, C, C_regs = p.A(), p.B(), p.C(), p.C_regs
     bcast_regs, temp_regs, stream_reg = p.bcast_regs, p.temp_regs, p.stream_reg
+    pattern = p.sparsity_pattern
+    pattern_rows = len(pattern)  # Pattern cols must be equal to block cols
+                                 # Pattern rows may be anything > 0
 
     block_rows = len(C_regs)
     block_cols = len(bcast_regs)
     asm = AsmBlock(f"{block_rows}x{block_cols} outer product at x={x}")
 
+    if sum(pattern[x % pattern_rows]) == 0:
+        # Entire row of B block is zero. Do nothing.
+        return asm
+
     for j in range(0, block_cols):
-        asm.stmt("vbroadcastsd", B.addr(down=x,right=j), bcast_regs[j])
+        if pattern[x % pattern_rows][j]:
+            asm.stmt("vbroadcastsd", B.addr(down=x,right=j), bcast_regs[j])
 
     for i in range(0, block_rows):
         asm.stmt("vmovapd", A.addr(down=i, units="vectors"), stream_reg)
@@ -116,11 +124,12 @@ def make_outer_product(x:int, p:Parameters) -> AsmBlock:
             asm.include(A.move(right=1))  # Put here only to be consistent with libxsmm
 
         for j in range(0, block_cols):
-            if "fma" in p.instruction_sets:
-                asm.stmt("vfmadd231pd", stream_reg, bcast_regs[j], C_regs[i][j])
-            else:
-                asm.stmt("vmulpd", stream_reg, bcast_regs[j], temp_regs[i])
-                asm.stmt("vaddpd", temp_regs[i], C_regs[i][j], C_regs[i][j])
+            if pattern[x % pattern_rows][j]:
+                if "fma" in p.instruction_sets:
+                    asm.stmt("vfmadd231pd", stream_reg, bcast_regs[j], C_regs[i][j])
+                else:
+                    asm.stmt("vmulpd", stream_reg, bcast_regs[j], temp_regs[i])
+                    asm.stmt("vaddpd", temp_regs[i], C_regs[i][j], C_regs[i][j])
 
     return asm
 
