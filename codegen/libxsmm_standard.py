@@ -36,10 +36,9 @@ class Parameters(NamedTuple):
                             self.scalar_bytes, self.vector_width)
 
     def B(self):
-        return MatrixCursor("B", self.B_ptr, self.k, self.n, self.ldb,
-                            self.k,
-                            len(self.C_regs[0]),
-                            self.scalar_bytes, self.vector_width)
+        return SparseMatrixCursor("B", self.B_ptr, self.k, self.n,
+                                  self.sparsity_pattern,
+                                  self.scalar_bytes)
 
     def C(self):
         return MatrixCursor("C", self.C_ptr, self.m, self.n, self.ldc,

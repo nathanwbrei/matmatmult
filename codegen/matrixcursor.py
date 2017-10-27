@@ -65,10 +65,12 @@ class MatrixCursor:
 
 class SparseMatrixCursor:
     def __init__(self,
-                 ptr_reg:Register,
+                 name: str,
+                 ptr_reg: Register,
                  rows:int, cols:int,
                  pattern:List[List[bool]],
                  scalar_bytes:int ):
+        self._name = name
         self.rows = rows
         self.cols = cols
         self.pattern = pattern
@@ -76,7 +78,7 @@ class SparseMatrixCursor:
         self._ptr_reg = ptr_reg
         self._scalar_bytes = scalar_bytes
 
-        # Build lookup table 
+        # Build lookup table
         pattern_rows = len(pattern)
         pattern_cols = len(pattern[0])
         x = 0
@@ -87,13 +89,33 @@ class SparseMatrixCursor:
                     self.lookup[i][j] = x
                     x += 1
 
-    def abs_addr(self, row: int, col: int):
-        offset = self.lookup[row][col]
-        if offset == -1:
-            raise Exception(f"No value at location ({row},{col}).")
-        else:
-            return self._ptr_reg + self._scalar_bytes*offset
+        def nnz(pattern):
+            return sum(sum(r) for r in pattern)
 
+        self._move_offset = (rows//pattern_rows) * nnz(pattern)  # Complete blocks
+        self._move_offset += nnz(pattern[0:rows%pattern_rows])   # Partial block
+
+    def addr(self, down:int=0, right:int=0, units:str="cells") -> MemoryAddress:
+        if units != "cells":
+            raise Exception("Sparse addr() only supports absolute offsets in units of cells")
+
+        offset = self.lookup[down][right]
+        if offset == -1:
+            raise Exception(f"No value at location ({down},{right}).")
+
+        return self._ptr_reg + self._scalar_bytes*offset
+
+
+    def move(self, down:int=0, right:int=0, units:str="blocks") -> AsmStatement:
+        if units != "blocks":
+            raise Exception("Sparse move() only supports offsets in blocks of width sparsity_pattern")
+        if down != 0:
+            raise Exception("Sparse move() only supports moving horizontally")
+
+        comment = f"Matrix {self._name} cursor moved right {right} pattern-blocks"
+
+        offset = self._scalar_bytes * self._move_offset * right
+        return AsmStatement("addq", [c(offset)], self._ptr_reg, comment=comment)
 
 
 
