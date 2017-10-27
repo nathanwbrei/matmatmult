@@ -25,7 +25,9 @@ class Parameters(NamedTuple):
     A_ptr: Register = rdi
     B_ptr: Register = rsi
     C_ptr: Register = rdx
-    sparsity_pattern: List[List[bool]] = None
+    sparsity_pattern: List[List[bool]] = [[True,True,True],
+                                          [True,True,True],
+                                          [True,True,True]]
 
     def A(self):
         return MatrixCursor("A", self.A_ptr, self.m, self.k, self.lda,

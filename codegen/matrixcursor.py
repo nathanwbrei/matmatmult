@@ -63,5 +63,41 @@ class MatrixCursor:
         return asm
 
 
+class SparseMatrixCursor:
+    def __init__(self,
+                 ptr_reg:Register,
+                 rows:int, cols:int,
+                 pattern:List[List[bool]],
+                 scalar_bytes:int ):
+        self.rows = rows
+        self.cols = cols
+        self.pattern = pattern
+        self.lookup = [[-1]*cols for i in range(rows)]
+        self._ptr_reg = ptr_reg
+        self._scalar_bytes = scalar_bytes
+
+        # Build lookup table 
+        pattern_rows = len(pattern)
+        pattern_cols = len(pattern[0])
+        x = 0
+
+        for j in range(cols):
+            for i in range(rows):
+                if pattern[i % pattern_rows][j % pattern_cols]:
+                    self.lookup[i][j] = x
+                    x += 1
+
+    def abs_addr(self, row: int, col: int):
+        offset = self.lookup[row][col]
+        if offset == -1:
+            raise Exception(f"No value at location ({row},{col}).")
+        else:
+            return self._ptr_reg + self._scalar_bytes*offset
+
+
+
+
+
+
 
 
