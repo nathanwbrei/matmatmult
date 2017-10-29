@@ -1,5 +1,4 @@
-import blocks
-import loop
+from codegen import blocks, loop
 
 
 def addq(*args):

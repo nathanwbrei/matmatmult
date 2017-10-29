@@ -1,7 +1,8 @@
 
-from blocks import *
-from loop import *
-from matrixcursor import *
+from codegen.blocks import *
+from codegen.loop import *
+from codegen.matrixcursor import *
+
 from typing import NamedTuple
 
 

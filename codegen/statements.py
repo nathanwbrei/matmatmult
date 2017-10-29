@@ -1,4 +1,4 @@
-from operands import *
+from codegen.operands import *
 from typing import Set
 
 

@@ -1,5 +1,5 @@
 
-from blocks import *
+from codegen.blocks import *
 
 
 template = """

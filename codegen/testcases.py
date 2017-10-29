@@ -1,6 +1,6 @@
 import unittest
-from blocks import *
-from loop import *
+from codegen.blocks import *
+from codegen.loop import *
 
 import harness
 

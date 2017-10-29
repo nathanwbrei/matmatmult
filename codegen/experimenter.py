@@ -1,7 +1,7 @@
 
-from harness import *
-from libxsmm_standard import *
-from ccode import *
+from codegen.harness import *
+from codegen.libxsmm_standard import *
+from codegen.ccode import *
 
 
 def run():
