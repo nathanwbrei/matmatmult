@@ -7,6 +7,7 @@ from typing import NamedTuple
 
 
 class Parameters(NamedTuple):
+    description: str
     m: int
     n: int
     k: int
@@ -49,6 +50,7 @@ class Parameters(NamedTuple):
 
 
 snb = Parameters(
+    description="Libxsmm SandyBridge",
     m = 48, n = 9, k = 9, lda = 48, ldb = 9, ldc = 48,
     instruction_sets = ["avx256"],
     vector_width = 4,
@@ -61,6 +63,7 @@ snb = Parameters(
 
 
 hsw = Parameters(
+    description="Libxsmm Haswell",
     m = 48, n = 9, k = 9, lda = 48, ldb = 9, ldc = 48,
     instruction_sets = ["avx256","fma"],
     vector_width = 4,

@@ -54,13 +54,23 @@ class HarnessBuilder:
     def make_decls(self) -> str:
         return "\n    ".join(m.gen for m in self.vars)
 
-    def make_main(self) -> str:
 
-        body = ""
+    def make(self) -> str:
+
+        result = self.make_imports()
+
+        for param in self.params:
+            test_asm = self.alg_builder(param)
+            test_c = make_cfunc(param.description, test_asm, True)
+        result += test_c + "\n\n"
+
+
         for test_name in self.test_names:
             body += self.test_template.format(test_name=test_name)
 
-        return self.main_template.format(body=body)
+        result.self.main_template.format(body=body)
+        result += main_code
+        return result
 
 
 
@@ -151,7 +161,6 @@ class DenseMatrix():
 
     def __str__(self):
         return "\n".join(str(r) for r in self.values)
-
 
 
 
