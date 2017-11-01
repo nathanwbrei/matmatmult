@@ -1,9 +1,12 @@
 
+### Experiment 1 ###
+# On Sandy Bridge, run sparse B with different nnzs, compare performance against dense B
+
 from codegen.experimenter import *
 from codegen.libxsmm_standard import *
 
 
-def pattern(nnz):
+def pattern_update(nnz):
     metapattern = [[1,4,6],[7,2,5],[9,8,3]]
     return [[x <= nnz for x in row]
                       for row in metapattern]
@@ -23,38 +26,42 @@ def param_space():
 
             for i in range(1,10)]
 
-### Experiment 1 ###
-# On Sandy Bridge, run sparse B with different nnzs, compare performance against dense B
 
 def make_code() -> str:
 
-    harness = HarnessBuilder()
-    harness.testcase = lambda p: "Reset C_actual"
-    harness.setup = "Set A,B,C_expected,C_actual"
-    harness.teardown = "Noop"
-    harness.alg_builder = make_gemm
-    harness.params = param_space()
+    harness = HarnessBuilder(make_gemm, param_space())
+
+    harness.make_test = lambda p: f"""
+        reset(*C_expected);
+        reset(*C_actual);
+        update_pattern(*B, {p.pattern_row}, {p.pattern_col}, 1);
+        sparse2dense(*B, *B_dense);
+
+        gemm(A.values, B_dense.values, C_expected.values);
+        assert_equals(*C_expected, *C_actual);
+
+        ticks_before = clock();
+        cycles_before = tsc();
+        for (int t=0; t<2000; t++)
+            {p.description}(A.values, B.values, C_actual.values);
+        ticks_after = clock();
+        cycles_after = tsc();
+
+        printf("{p.description}, %lld, %ld\n",
+            cycles_after - cycles_before,
+            ticks_after - ticks_before );
+    """
+
+    harness.setup = """
+        clock_t ticks_before, ticks_after;
+        uint64_t cycles_before, cycles_after;
+        struct colmajor A = zeros(48, 9);
+        struct colmajor C_expected = zeros(48, 9);
+        struct colmajor C_actual = zeros(48, 9);
+        struct sparse_csc B = create_sparse(9, 9);
+        fill_dense(A, 1, 2);"
+    """
+
     return harness.make()
 
-
-
-    result = ""
-    harness = HarnessBuilder()
-    harness.vars = [
-        DenseMatrix(name="C_expected", rows=params.m, cols=params.n),
-        DenseMatrix(name="C_actual", rows=params.m, cols=params.n),
-        DenseMatrix(name="A", rows=params.m, cols=params.k),
-        BlockSparseMatrix(name="B", rows=params.k, cols=params.n,
-                          sparsity_pattern=params.sparsity_pattern)
-    ]
-    result += harness.make_imports()
-
-    for param in params:
-        test_asm = alg_builder(param)
-        test_c = make_cfunc(param.description, test_asm, True)
-        result += test_c + "\n\n"
-
-    main_code = harness.make_main()
-    result += main_code
-    return result
 

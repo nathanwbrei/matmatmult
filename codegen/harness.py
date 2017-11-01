@@ -1,25 +1,36 @@
 from typing import List
+from codegen.ccode import make_cfunc
 
 class HarnessBuilder:
 
-    imports_template = """
+    def __init__(self, alg_builder, params):
+        self.alg_builder = alg_builder
+        self.params = params
+
+
+    harness_template = """
+    {imports} \n\n
+    {algdefs} \n\n
+    int main(int argc, char ** argv) {{
+    {setup} \n\n
+    {tests} \n\n
+    {teardown}
+    }}
+    """
+
+    imports = """
     #include<stdio.h>
     #include<time.h>
     #include "../common/timing.h"
     #include "../common/colmajor.h"
-    #include "blocksparse.h"
-
+    #include "../common/sparse.h"
     """
 
-    main_template = """
-    int main(int argc, char ** argv) {{
-    {decls}
-    {body}
-    }}
+    setup = ""
+    teardown = ""
 
-    """
-
-    test_template = """
+    def make_test(p):
+        return """
 
 
         /******* {test_name} *******/
@@ -38,45 +49,37 @@ class HarnessBuilder:
         printf("{test_name}, %d, %d\\n",
           cycles_after - cycles_before,
           ticks_after - ticks_before);
-    """
+    """.format(test_name=p.description)
 
-
-    def __init__(self):
-        self.test_names: List[str] = []
-        self.vars : List[Matrix] = []
-
-    def add_test(self, test_name: str) -> None:
-        self.test_names.append(test_name)
-
-    def make_imports(self) -> str:
-        return self.imports_template
-
-    def make_decls(self) -> str:
-        return "\n    ".join(m.gen for m in self.vars)
 
 
     def make(self) -> str:
 
-        result = self.make_imports()
+        algdefs = ""
+        tests = ""
 
         for param in self.params:
-            test_asm = self.alg_builder(param)
-            test_c = make_cfunc(param.description, test_asm, True)
-        result += test_c + "\n\n"
+            # Generate asm for each alg variant, wrapped in a C fn
+            alg_asm = self.alg_builder(param)
+            alg_c = make_cfunc(param.description, alg_asm, True)
+            algdefs += alg_c + "\n\n"
 
+            # Generate the code which calls this
+            tests += self.make_test(param) + "\n\n"
 
-        for test_name in self.test_names:
-            body += self.test_template.format(test_name=test_name)
+        return harness_template.format(
+            imports = self.imports,
+            algdefs = algdefs,
+            setup = self.setup,
+            tests = tests,
+            teardown = self.teardown)
 
-        result.self.main_template.format(body=body)
-        result += main_code
-        return result
 
 
 
 class BlockSparseMatrix():
 
-    def __init__(self, name:str, rows:int, cols:int, 
+    def __init__(self, name:str, rows:int, cols:int,
                  pattern: List[List[bool]],
                  values: List[float] = None,
                  nnz: int = None):
