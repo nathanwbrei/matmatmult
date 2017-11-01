@@ -3,7 +3,7 @@ from codegen.blocks import *
 from codegen.loop import *
 from codegen.matrixcursor import *
 
-from typing import NamedTuple
+from typing import NamedTuple, Tuple
 
 
 class Parameters(NamedTuple):
@@ -27,6 +27,7 @@ class Parameters(NamedTuple):
     A_ptr: Register = rdi
     B_ptr: Register = rsi
     C_ptr: Register = rdx
+    pattern_update: Tuple[int,int] = [0,0]
     sparsity_pattern: List[List[bool]] = [[True,True,True],
                                           [True,True,True],
                                           [True,True,True]]

@@ -9,22 +9,22 @@ class HarnessBuilder:
 
 
     harness_template = """
-    {imports} \n\n
-    {algdefs} \n\n
-    int main(int argc, char ** argv) {{
-    {setup} \n\n
-    {tests} \n\n
-    {teardown}
-    }}
-    """
+{imports} \n\n
+{algdefs} \n\n
+int main(int argc, char ** argv) {{
+{setup} \n\n
+{tests} \n\n
+{teardown}
+}}
+"""
 
     imports = """
-    #include<stdio.h>
-    #include<time.h>
-    #include "../common/timing.h"
-    #include "../common/colmajor.h"
-    #include "../common/sparse.h"
-    """
+#include<stdio.h>
+#include<time.h>
+#include "../common/timing.h"
+#include "../common/colmajor.h"
+#include "../common/sparse.h"
+"""
 
     setup = ""
     teardown = ""
@@ -67,7 +67,7 @@ class HarnessBuilder:
             # Generate the code which calls this
             tests += self.make_test(param) + "\n\n"
 
-        return harness_template.format(
+        return self.harness_template.format(
             imports = self.imports,
             algdefs = algdefs,
             setup = self.setup,
