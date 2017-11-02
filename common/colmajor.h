@@ -12,6 +12,7 @@ struct colmajor {
   int rows;
   int cols;
   double * values; // Size = rows*cols
+  double * origin; // Free this instead of values
 };
 
 
@@ -28,7 +29,15 @@ struct colmajor zeros(int rows, int cols) {
   struct colmajor result;
   result.rows = rows;
   result.cols = cols;
-  result.values = malloc(result.rows * result.cols * sizeof(double));
+
+  // TODO: Get aligned malloc from libxsmm library
+  uint64_t align = 8*sizeof(double);
+  result.origin = malloc(result.rows * result.cols * sizeof(double) + align);
+  // printf("Original address=%lu\n", (uint64_t) result.origin);
+  uint64_t offset = (((uint64_t)result.origin)+align) % align;
+  // printf("Offset is: %lu\n", offset);
+  result.values = (double *) (((uint64_t) result.origin) + offset);
+  // printf("Aligned address=%lu\n", (uint64_t) result.values);
   reset(&result);
   return result;
 }
