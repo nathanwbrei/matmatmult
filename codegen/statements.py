@@ -169,4 +169,22 @@ class LabelDeclaration:
         return set()
 
 
+class Jump(AsmStatement):
+    def __init__(self, op:str, label:str, direction="b") -> None:
+        self.op = op
+        self.label = Label(label)
+        self.direction = direction
+
+    def gen(self, env={}, syntax=Syntax.inline, depth=0):
+        if syntax == Syntax.pretty:
+            indent = "  "*(depth-1)
+            return f"{indent}{self.op} {self.label.gen(syntax)} ({self.direction})"
+        else:
+            return f"{self.op} {self.label.gen(syntax)}{self.direction}"
+
+    def outputs(self):
+        return set()
+
+
+
 

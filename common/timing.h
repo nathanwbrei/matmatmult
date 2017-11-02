@@ -2,6 +2,7 @@
 #define TIMING_H_
 
 #include<unistd.h>
+#include<stdint.h>
 
 // TODO: Retrive floating point ops counter?
 

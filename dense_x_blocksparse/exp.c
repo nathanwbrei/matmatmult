@@ -11,11 +11,13 @@
 
 
 void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
-  __asm__ __volatile__(
-                       "mov $0, %%r13\n\t"
-                       "loop_top_0:\n\t"
-                       "mov $0, %%r12\n\t"
-                       "loop_top_1:\n\t"
+  __asm__ __volatile__("movq %0, %%rdi\n\t"
+                       "movq %1, %%rsi\n\t"
+                       "movq %2, %%rdx\n\t"
+                       "movq $0, %%r13\n\t"
+                       "0:\n\t"
+                       "movq $0, %%r12\n\t"
+                       "1:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -263,13 +265,13 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_1\n\t"
+                       "jl 1b\n\t"
                        "addq $768, %%rdx\n\t"
                        "addq $216, %%rsi\n\t"
                        "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_0\n\t"
+                       "jl 0b\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -277,11 +279,13 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
 
 
 void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
-  __asm__ __volatile__(
-                       "mov $0, %%r13\n\t"
-                       "loop_top_2:\n\t"
-                       "mov $0, %%r12\n\t"
-                       "loop_top_3:\n\t"
+  __asm__ __volatile__("movq %0, %%rdi\n\t"
+                       "movq %1, %%rsi\n\t"
+                       "movq %2, %%rdx\n\t"
+                       "movq $0, %%r13\n\t"
+                       "2:\n\t"
+                       "movq $0, %%r12\n\t"
+                       "3:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -529,13 +533,13 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_3\n\t"
+                       "jl 3b\n\t"
                        "addq $768, %%rdx\n\t"
                        "addq $216, %%rsi\n\t"
                        "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_2\n\t"
+                       "jl 2b\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -543,11 +547,13 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
 
 
 void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
-  __asm__ __volatile__(
-                       "mov $0, %%r13\n\t"
-                       "loop_top_4:\n\t"
-                       "mov $0, %%r12\n\t"
-                       "loop_top_5:\n\t"
+  __asm__ __volatile__("movq %0, %%rdi\n\t"
+                       "movq %1, %%rsi\n\t"
+                       "movq %2, %%rdx\n\t"
+                       "movq $0, %%r13\n\t"
+                       "4:\n\t"
+                       "movq $0, %%r12\n\t"
+                       "5:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -795,13 +801,13 @@ void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
                        "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_5\n\t"
+                       "jl 5b\n\t"
                        "addq $768, %%rdx\n\t"
                        "addq $216, %%rsi\n\t"
                        "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_4\n\t"
+                       "jl 4b\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -809,11 +815,13 @@ void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
 
 
 void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
-  __asm__ __volatile__(
-                       "mov $0, %%r13\n\t"
-                       "loop_top_6:\n\t"
-                       "mov $0, %%r12\n\t"
-                       "loop_top_7:\n\t"
+  __asm__ __volatile__("movq %0, %%rdi\n\t"
+                       "movq %1, %%rsi\n\t"
+                       "movq %2, %%rdx\n\t"
+                       "movq $0, %%r13\n\t"
+                       "6:\n\t"
+                       "movq $0, %%r12\n\t"
+                       "7:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -1061,13 +1069,13 @@ void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
                        "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_7\n\t"
+                       "jl 7b\n\t"
                        "addq $768, %%rdx\n\t"
                        "addq $216, %%rsi\n\t"
                        "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_6\n\t"
+                       "jl 6b\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -1075,11 +1083,13 @@ void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
 
 
 void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
-  __asm__ __volatile__(
-                       "mov $0, %%r13\n\t"
-                       "loop_top_8:\n\t"
-                       "mov $0, %%r12\n\t"
-                       "loop_top_9:\n\t"
+  __asm__ __volatile__("movq %0, %%rdi\n\t"
+                       "movq %1, %%rsi\n\t"
+                       "movq %2, %%rdx\n\t"
+                       "movq $0, %%r13\n\t"
+                       "8:\n\t"
+                       "movq $0, %%r12\n\t"
+                       "9:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -1327,13 +1337,13 @@ void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
                        "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_9\n\t"
+                       "jl 9b\n\t"
                        "addq $768, %%rdx\n\t"
                        "addq $216, %%rsi\n\t"
                        "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_8\n\t"
+                       "jl 8b\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -1341,11 +1351,13 @@ void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
 
 
 void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
-  __asm__ __volatile__(
-                       "mov $0, %%r13\n\t"
-                       "loop_top_10:\n\t"
-                       "mov $0, %%r12\n\t"
-                       "loop_top_11:\n\t"
+  __asm__ __volatile__("movq %0, %%rdi\n\t"
+                       "movq %1, %%rsi\n\t"
+                       "movq %2, %%rdx\n\t"
+                       "movq $0, %%r13\n\t"
+                       "10:\n\t"
+                       "movq $0, %%r12\n\t"
+                       "11:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -1593,13 +1605,13 @@ void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
                        "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_11\n\t"
+                       "jl 11b\n\t"
                        "addq $768, %%rdx\n\t"
                        "addq $216, %%rsi\n\t"
                        "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_10\n\t"
+                       "jl 10b\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -1607,11 +1619,13 @@ void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
 
 
 void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
-  __asm__ __volatile__(
-                       "mov $0, %%r13\n\t"
-                       "loop_top_12:\n\t"
-                       "mov $0, %%r12\n\t"
-                       "loop_top_13:\n\t"
+  __asm__ __volatile__("movq %0, %%rdi\n\t"
+                       "movq %1, %%rsi\n\t"
+                       "movq %2, %%rdx\n\t"
+                       "movq $0, %%r13\n\t"
+                       "12:\n\t"
+                       "movq $0, %%r12\n\t"
+                       "13:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -1859,13 +1873,13 @@ void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
                        "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_13\n\t"
+                       "jl 13b\n\t"
                        "addq $768, %%rdx\n\t"
                        "addq $216, %%rsi\n\t"
                        "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_12\n\t"
+                       "jl 12b\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -1873,11 +1887,13 @@ void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
 
 
 void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
-  __asm__ __volatile__(
-                       "mov $0, %%r13\n\t"
-                       "loop_top_14:\n\t"
-                       "mov $0, %%r12\n\t"
-                       "loop_top_15:\n\t"
+  __asm__ __volatile__("movq %0, %%rdi\n\t"
+                       "movq %1, %%rsi\n\t"
+                       "movq %2, %%rdx\n\t"
+                       "movq $0, %%r13\n\t"
+                       "14:\n\t"
+                       "movq $0, %%r12\n\t"
+                       "15:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -2125,13 +2141,13 @@ void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
                        "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_15\n\t"
+                       "jl 15b\n\t"
                        "addq $768, %%rdx\n\t"
                        "addq $216, %%rsi\n\t"
                        "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_14\n\t"
+                       "jl 14b\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -2139,11 +2155,13 @@ void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
 
 
 void blocksparse_snb_nnz9 (const double* A, const double* B, double* C) {
-  __asm__ __volatile__(
-                       "mov $0, %%r13\n\t"
-                       "loop_top_16:\n\t"
-                       "mov $0, %%r12\n\t"
-                       "loop_top_17:\n\t"
+  __asm__ __volatile__("movq %0, %%rdi\n\t"
+                       "movq %1, %%rsi\n\t"
+                       "movq %2, %%rdx\n\t"
+                       "movq $0, %%r13\n\t"
+                       "16:\n\t"
+                       "movq $0, %%r12\n\t"
+                       "17:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -2391,13 +2409,13 @@ void blocksparse_snb_nnz9 (const double* A, const double* B, double* C) {
                        "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_17\n\t"
+                       "jl 17b\n\t"
                        "addq $768, %%rdx\n\t"
                        "addq $216, %%rsi\n\t"
                        "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_16\n\t"
+                       "jl 16b\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -2437,7 +2455,7 @@ int main(int argc, char ** argv) {
     ticks_after = clock();
     cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz1, %lld, %ld\n",
+    printf("blocksparse_snb_nnz1, %lud, %ld\n",
         cycles_after - cycles_before,
         ticks_after - ticks_before );
     
@@ -2461,7 +2479,7 @@ int main(int argc, char ** argv) {
     ticks_after = clock();
     cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz2, %lld, %ld\n",
+    printf("blocksparse_snb_nnz2, %lud, %ld\n",
         cycles_after - cycles_before,
         ticks_after - ticks_before );
     
@@ -2485,7 +2503,7 @@ int main(int argc, char ** argv) {
     ticks_after = clock();
     cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz3, %lld, %ld\n",
+    printf("blocksparse_snb_nnz3, %lud, %ld\n",
         cycles_after - cycles_before,
         ticks_after - ticks_before );
     
@@ -2509,7 +2527,7 @@ int main(int argc, char ** argv) {
     ticks_after = clock();
     cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz4, %lld, %ld\n",
+    printf("blocksparse_snb_nnz4, %lud, %ld\n",
         cycles_after - cycles_before,
         ticks_after - ticks_before );
     
@@ -2533,7 +2551,7 @@ int main(int argc, char ** argv) {
     ticks_after = clock();
     cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz5, %lld, %ld\n",
+    printf("blocksparse_snb_nnz5, %lud, %ld\n",
         cycles_after - cycles_before,
         ticks_after - ticks_before );
     
@@ -2557,7 +2575,7 @@ int main(int argc, char ** argv) {
     ticks_after = clock();
     cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz6, %lld, %ld\n",
+    printf("blocksparse_snb_nnz6, %lud, %ld\n",
         cycles_after - cycles_before,
         ticks_after - ticks_before );
     
@@ -2581,7 +2599,7 @@ int main(int argc, char ** argv) {
     ticks_after = clock();
     cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz7, %lld, %ld\n",
+    printf("blocksparse_snb_nnz7, %lud, %ld\n",
         cycles_after - cycles_before,
         ticks_after - ticks_before );
     
@@ -2605,7 +2623,7 @@ int main(int argc, char ** argv) {
     ticks_after = clock();
     cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz8, %lld, %ld\n",
+    printf("blocksparse_snb_nnz8, %lud, %ld\n",
         cycles_after - cycles_before,
         ticks_after - ticks_before );
     
@@ -2629,7 +2647,7 @@ int main(int argc, char ** argv) {
     ticks_after = clock();
     cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz9, %lld, %ld\n",
+    printf("blocksparse_snb_nnz9, %lud, %ld\n",
         cycles_after - cycles_before,
         ticks_after - ticks_before );
     

@@ -52,7 +52,7 @@ def make_code() -> str:
     ticks_after = clock();
     cycles_after = tsc();
 
-    printf("{p.description}, %lld, %ld\\n",
+    printf("{p.description}, %lud, %ld\\n",
         cycles_after - cycles_before,
         ticks_after - ticks_before );
     """

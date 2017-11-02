@@ -54,12 +54,23 @@ def c(n):
 
 
 class Label(Operand):
+    _interns = {}
+    _last = -1
     def __init__(self, value):
         self.value = value
         self.type_info = AsmType.i64
+        if value in Label._interns:
+            self.ordinal = Label._interns[value]
+        else:
+            self.ordinal = Label._last + 1
+            Label._last += 1
+            Label._interns[value] = self.ordinal
 
     def gen(self, env={}, syntax=Syntax.inline):
-        return str(self.value)
+        if syntax == Syntax.inline:
+            return str(self.ordinal)
+        else:
+            return str(self.value)
 
 def l(label: str):
     return Label(label)

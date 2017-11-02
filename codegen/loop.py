@@ -26,7 +26,7 @@ class Loop(AsmBlock):
                   f"{self.initial_val.value}:{self.increment.value}:{self.final_val.value})"
 
         return AsmBlock(comment) \
-                .stmt("mov", self.initial_val, self.iteration_var) \
+                .stmt("movq", self.initial_val, self.iteration_var) \
                 .label(self.label)
 
 
@@ -34,12 +34,12 @@ class Loop(AsmBlock):
         if (self.final_val.value == 0):
             return AsmBlock("Loop postamble") \
                     .stmt("addq", self.increment, self.iteration_var) \
-                    .stmt("jz", self.label)
+                    .include(Jump("jz", self.label, "b"))
         else:
             return AsmBlock("Loop postamble") \
                     .stmt("addq", self.increment, self.iteration_var) \
                     .stmt("cmpq", self.final_val, self.iteration_var, None) \
-                    .stmt("jl", self.label, None)
+                    .include(Jump("jl", self.label, "b"))
 
 
     def gen(self, env={}, syntax=Syntax.inline, depth=0):
