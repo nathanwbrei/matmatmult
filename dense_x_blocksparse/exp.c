@@ -4,7 +4,7 @@
 #include<time.h>
 #include "../common/timing.h"
 #include "../common/colmajor.h"
-#include "../common/sparse.h"
+#include "../common/patternsparse.h"
  
 
 
@@ -13,9 +13,9 @@
 void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
   __asm__ __volatile__(
                        "mov $0, %%r13\n\t"
-                       "loop_top_198:\n\t"
+                       "loop_top_0:\n\t"
                        "mov $0, %%r12\n\t"
-                       "loop_top_199:\n\t"
+                       "loop_top_1:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -43,7 +43,7 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -68,7 +68,7 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -93,7 +93,7 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -118,7 +118,7 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -143,7 +143,7 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -168,7 +168,7 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -193,7 +193,7 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -218,7 +218,7 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -243,7 +243,7 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -259,17 +259,17 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "vmovapd %%ymm13, 768(%%rdx)\n\t"
                        "vmovapd %%ymm14, 800(%%rdx)\n\t"
                        "vmovapd %%ymm15, 832(%%rdx)\n\t"
-                       "addq $96, %%rdx    ; Matrix C cursor moved down=1, right=0 blocks\n\t"
-                       "addq $-3360, %%rdi    ; Matrix A cursor moved down=1, right=-1 blocks\n\t"
+                       "addq $96, %%rdx\n\t"
+                       "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_199\n\t"
-                       "addq $768, %%rdx    ; Matrix C cursor moved down=-48, right=3 cells\n\t"
-                       "addq $216, %%rsi    ; Matrix B cursor moved right 1 pattern-blocks\n\t"
-                       "addq $-384, %%rdi    ; Matrix A cursor moved down=-48, right=0 cells\n\t"
+                       "jl loop_top_1\n\t"
+                       "addq $768, %%rdx\n\t"
+                       "addq $216, %%rsi\n\t"
+                       "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_198\n\t"
+                       "jl loop_top_0\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -279,9 +279,9 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
 void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
   __asm__ __volatile__(
                        "mov $0, %%r13\n\t"
-                       "loop_top_200:\n\t"
+                       "loop_top_2:\n\t"
                        "mov $0, %%r12\n\t"
-                       "loop_top_201:\n\t"
+                       "loop_top_3:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -309,7 +309,7 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -334,7 +334,7 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -359,7 +359,7 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -384,7 +384,7 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -409,7 +409,7 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -434,7 +434,7 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -459,7 +459,7 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -484,7 +484,7 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -509,7 +509,7 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -525,17 +525,17 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "vmovapd %%ymm13, 768(%%rdx)\n\t"
                        "vmovapd %%ymm14, 800(%%rdx)\n\t"
                        "vmovapd %%ymm15, 832(%%rdx)\n\t"
-                       "addq $96, %%rdx    ; Matrix C cursor moved down=1, right=0 blocks\n\t"
-                       "addq $-3360, %%rdi    ; Matrix A cursor moved down=1, right=-1 blocks\n\t"
+                       "addq $96, %%rdx\n\t"
+                       "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_201\n\t"
-                       "addq $768, %%rdx    ; Matrix C cursor moved down=-48, right=3 cells\n\t"
-                       "addq $216, %%rsi    ; Matrix B cursor moved right 1 pattern-blocks\n\t"
-                       "addq $-384, %%rdi    ; Matrix A cursor moved down=-48, right=0 cells\n\t"
+                       "jl loop_top_3\n\t"
+                       "addq $768, %%rdx\n\t"
+                       "addq $216, %%rsi\n\t"
+                       "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_200\n\t"
+                       "jl loop_top_2\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -545,9 +545,9 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
 void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
   __asm__ __volatile__(
                        "mov $0, %%r13\n\t"
-                       "loop_top_202:\n\t"
+                       "loop_top_4:\n\t"
                        "mov $0, %%r12\n\t"
-                       "loop_top_203:\n\t"
+                       "loop_top_5:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -575,7 +575,7 @@ void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -600,7 +600,7 @@ void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -625,7 +625,7 @@ void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -650,7 +650,7 @@ void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -675,7 +675,7 @@ void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -700,7 +700,7 @@ void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -725,7 +725,7 @@ void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -750,7 +750,7 @@ void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -775,7 +775,7 @@ void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -791,17 +791,17 @@ void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
                        "vmovapd %%ymm13, 768(%%rdx)\n\t"
                        "vmovapd %%ymm14, 800(%%rdx)\n\t"
                        "vmovapd %%ymm15, 832(%%rdx)\n\t"
-                       "addq $96, %%rdx    ; Matrix C cursor moved down=1, right=0 blocks\n\t"
-                       "addq $-3360, %%rdi    ; Matrix A cursor moved down=1, right=-1 blocks\n\t"
+                       "addq $96, %%rdx\n\t"
+                       "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_203\n\t"
-                       "addq $768, %%rdx    ; Matrix C cursor moved down=-48, right=3 cells\n\t"
-                       "addq $216, %%rsi    ; Matrix B cursor moved right 1 pattern-blocks\n\t"
-                       "addq $-384, %%rdi    ; Matrix A cursor moved down=-48, right=0 cells\n\t"
+                       "jl loop_top_5\n\t"
+                       "addq $768, %%rdx\n\t"
+                       "addq $216, %%rsi\n\t"
+                       "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_202\n\t"
+                       "jl loop_top_4\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -811,9 +811,9 @@ void blocksparse_snb_nnz3 (const double* A, const double* B, double* C) {
 void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
   __asm__ __volatile__(
                        "mov $0, %%r13\n\t"
-                       "loop_top_204:\n\t"
+                       "loop_top_6:\n\t"
                        "mov $0, %%r12\n\t"
-                       "loop_top_205:\n\t"
+                       "loop_top_7:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -841,7 +841,7 @@ void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -866,7 +866,7 @@ void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -891,7 +891,7 @@ void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -916,7 +916,7 @@ void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -941,7 +941,7 @@ void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -966,7 +966,7 @@ void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -991,7 +991,7 @@ void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1016,7 +1016,7 @@ void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1041,7 +1041,7 @@ void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1057,17 +1057,17 @@ void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
                        "vmovapd %%ymm13, 768(%%rdx)\n\t"
                        "vmovapd %%ymm14, 800(%%rdx)\n\t"
                        "vmovapd %%ymm15, 832(%%rdx)\n\t"
-                       "addq $96, %%rdx    ; Matrix C cursor moved down=1, right=0 blocks\n\t"
-                       "addq $-3360, %%rdi    ; Matrix A cursor moved down=1, right=-1 blocks\n\t"
+                       "addq $96, %%rdx\n\t"
+                       "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_205\n\t"
-                       "addq $768, %%rdx    ; Matrix C cursor moved down=-48, right=3 cells\n\t"
-                       "addq $216, %%rsi    ; Matrix B cursor moved right 1 pattern-blocks\n\t"
-                       "addq $-384, %%rdi    ; Matrix A cursor moved down=-48, right=0 cells\n\t"
+                       "jl loop_top_7\n\t"
+                       "addq $768, %%rdx\n\t"
+                       "addq $216, %%rsi\n\t"
+                       "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_204\n\t"
+                       "jl loop_top_6\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -1077,9 +1077,9 @@ void blocksparse_snb_nnz4 (const double* A, const double* B, double* C) {
 void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
   __asm__ __volatile__(
                        "mov $0, %%r13\n\t"
-                       "loop_top_206:\n\t"
+                       "loop_top_8:\n\t"
                        "mov $0, %%r12\n\t"
-                       "loop_top_207:\n\t"
+                       "loop_top_9:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -1107,7 +1107,7 @@ void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1132,7 +1132,7 @@ void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1157,7 +1157,7 @@ void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1182,7 +1182,7 @@ void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1207,7 +1207,7 @@ void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1232,7 +1232,7 @@ void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1257,7 +1257,7 @@ void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1282,7 +1282,7 @@ void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1307,7 +1307,7 @@ void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1323,17 +1323,17 @@ void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
                        "vmovapd %%ymm13, 768(%%rdx)\n\t"
                        "vmovapd %%ymm14, 800(%%rdx)\n\t"
                        "vmovapd %%ymm15, 832(%%rdx)\n\t"
-                       "addq $96, %%rdx    ; Matrix C cursor moved down=1, right=0 blocks\n\t"
-                       "addq $-3360, %%rdi    ; Matrix A cursor moved down=1, right=-1 blocks\n\t"
+                       "addq $96, %%rdx\n\t"
+                       "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_207\n\t"
-                       "addq $768, %%rdx    ; Matrix C cursor moved down=-48, right=3 cells\n\t"
-                       "addq $216, %%rsi    ; Matrix B cursor moved right 1 pattern-blocks\n\t"
-                       "addq $-384, %%rdi    ; Matrix A cursor moved down=-48, right=0 cells\n\t"
+                       "jl loop_top_9\n\t"
+                       "addq $768, %%rdx\n\t"
+                       "addq $216, %%rsi\n\t"
+                       "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_206\n\t"
+                       "jl loop_top_8\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -1343,9 +1343,9 @@ void blocksparse_snb_nnz5 (const double* A, const double* B, double* C) {
 void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
   __asm__ __volatile__(
                        "mov $0, %%r13\n\t"
-                       "loop_top_208:\n\t"
+                       "loop_top_10:\n\t"
                        "mov $0, %%r12\n\t"
-                       "loop_top_209:\n\t"
+                       "loop_top_11:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -1373,7 +1373,7 @@ void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1398,7 +1398,7 @@ void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1423,7 +1423,7 @@ void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1448,7 +1448,7 @@ void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1473,7 +1473,7 @@ void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1498,7 +1498,7 @@ void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1523,7 +1523,7 @@ void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1548,7 +1548,7 @@ void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1573,7 +1573,7 @@ void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1589,17 +1589,17 @@ void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
                        "vmovapd %%ymm13, 768(%%rdx)\n\t"
                        "vmovapd %%ymm14, 800(%%rdx)\n\t"
                        "vmovapd %%ymm15, 832(%%rdx)\n\t"
-                       "addq $96, %%rdx    ; Matrix C cursor moved down=1, right=0 blocks\n\t"
-                       "addq $-3360, %%rdi    ; Matrix A cursor moved down=1, right=-1 blocks\n\t"
+                       "addq $96, %%rdx\n\t"
+                       "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_209\n\t"
-                       "addq $768, %%rdx    ; Matrix C cursor moved down=-48, right=3 cells\n\t"
-                       "addq $216, %%rsi    ; Matrix B cursor moved right 1 pattern-blocks\n\t"
-                       "addq $-384, %%rdi    ; Matrix A cursor moved down=-48, right=0 cells\n\t"
+                       "jl loop_top_11\n\t"
+                       "addq $768, %%rdx\n\t"
+                       "addq $216, %%rsi\n\t"
+                       "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_208\n\t"
+                       "jl loop_top_10\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -1609,9 +1609,9 @@ void blocksparse_snb_nnz6 (const double* A, const double* B, double* C) {
 void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
   __asm__ __volatile__(
                        "mov $0, %%r13\n\t"
-                       "loop_top_210:\n\t"
+                       "loop_top_12:\n\t"
                        "mov $0, %%r12\n\t"
-                       "loop_top_211:\n\t"
+                       "loop_top_13:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -1639,7 +1639,7 @@ void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1664,7 +1664,7 @@ void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1689,7 +1689,7 @@ void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1714,7 +1714,7 @@ void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1739,7 +1739,7 @@ void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1764,7 +1764,7 @@ void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1789,7 +1789,7 @@ void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1814,7 +1814,7 @@ void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1839,7 +1839,7 @@ void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1855,17 +1855,17 @@ void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
                        "vmovapd %%ymm13, 768(%%rdx)\n\t"
                        "vmovapd %%ymm14, 800(%%rdx)\n\t"
                        "vmovapd %%ymm15, 832(%%rdx)\n\t"
-                       "addq $96, %%rdx    ; Matrix C cursor moved down=1, right=0 blocks\n\t"
-                       "addq $-3360, %%rdi    ; Matrix A cursor moved down=1, right=-1 blocks\n\t"
+                       "addq $96, %%rdx\n\t"
+                       "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_211\n\t"
-                       "addq $768, %%rdx    ; Matrix C cursor moved down=-48, right=3 cells\n\t"
-                       "addq $216, %%rsi    ; Matrix B cursor moved right 1 pattern-blocks\n\t"
-                       "addq $-384, %%rdi    ; Matrix A cursor moved down=-48, right=0 cells\n\t"
+                       "jl loop_top_13\n\t"
+                       "addq $768, %%rdx\n\t"
+                       "addq $216, %%rsi\n\t"
+                       "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_210\n\t"
+                       "jl loop_top_12\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -1875,9 +1875,9 @@ void blocksparse_snb_nnz7 (const double* A, const double* B, double* C) {
 void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
   __asm__ __volatile__(
                        "mov $0, %%r13\n\t"
-                       "loop_top_212:\n\t"
+                       "loop_top_14:\n\t"
                        "mov $0, %%r12\n\t"
-                       "loop_top_213:\n\t"
+                       "loop_top_15:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -1905,7 +1905,7 @@ void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1930,7 +1930,7 @@ void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1955,7 +1955,7 @@ void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -1980,7 +1980,7 @@ void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2005,7 +2005,7 @@ void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2030,7 +2030,7 @@ void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2055,7 +2055,7 @@ void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2080,7 +2080,7 @@ void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2105,7 +2105,7 @@ void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2121,17 +2121,17 @@ void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
                        "vmovapd %%ymm13, 768(%%rdx)\n\t"
                        "vmovapd %%ymm14, 800(%%rdx)\n\t"
                        "vmovapd %%ymm15, 832(%%rdx)\n\t"
-                       "addq $96, %%rdx    ; Matrix C cursor moved down=1, right=0 blocks\n\t"
-                       "addq $-3360, %%rdi    ; Matrix A cursor moved down=1, right=-1 blocks\n\t"
+                       "addq $96, %%rdx\n\t"
+                       "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_213\n\t"
-                       "addq $768, %%rdx    ; Matrix C cursor moved down=-48, right=3 cells\n\t"
-                       "addq $216, %%rsi    ; Matrix B cursor moved right 1 pattern-blocks\n\t"
-                       "addq $-384, %%rdi    ; Matrix A cursor moved down=-48, right=0 cells\n\t"
+                       "jl loop_top_15\n\t"
+                       "addq $768, %%rdx\n\t"
+                       "addq $216, %%rsi\n\t"
+                       "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_212\n\t"
+                       "jl loop_top_14\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -2141,9 +2141,9 @@ void blocksparse_snb_nnz8 (const double* A, const double* B, double* C) {
 void blocksparse_snb_nnz9 (const double* A, const double* B, double* C) {
   __asm__ __volatile__(
                        "mov $0, %%r13\n\t"
-                       "loop_top_214:\n\t"
+                       "loop_top_16:\n\t"
                        "mov $0, %%r12\n\t"
-                       "loop_top_215:\n\t"
+                       "loop_top_17:\n\t"
                        "vmovapd 0(%%rdx), %%ymm7\n\t"
                        "vmovapd 32(%%rdx), %%ymm8\n\t"
                        "vmovapd 64(%%rdx), %%ymm9\n\t"
@@ -2171,7 +2171,7 @@ void blocksparse_snb_nnz9 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2196,7 +2196,7 @@ void blocksparse_snb_nnz9 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2221,7 +2221,7 @@ void blocksparse_snb_nnz9 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2246,7 +2246,7 @@ void blocksparse_snb_nnz9 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2271,7 +2271,7 @@ void blocksparse_snb_nnz9 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2296,7 +2296,7 @@ void blocksparse_snb_nnz9 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2321,7 +2321,7 @@ void blocksparse_snb_nnz9 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2346,7 +2346,7 @@ void blocksparse_snb_nnz9 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2371,7 +2371,7 @@ void blocksparse_snb_nnz9 (const double* A, const double* B, double* C) {
                        "vmulpd %%ymm3, %%ymm2, %%ymm5\n\t"
                        "vaddpd %%ymm5, %%ymm14, %%ymm14\n\t"
                        "vmovapd 64(%%rdi), %%ymm3\n\t"
-                       "addq $384, %%rdi    ; Matrix A cursor moved down=0, right=1 cells\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
@@ -2387,17 +2387,17 @@ void blocksparse_snb_nnz9 (const double* A, const double* B, double* C) {
                        "vmovapd %%ymm13, 768(%%rdx)\n\t"
                        "vmovapd %%ymm14, 800(%%rdx)\n\t"
                        "vmovapd %%ymm15, 832(%%rdx)\n\t"
-                       "addq $96, %%rdx    ; Matrix C cursor moved down=1, right=0 blocks\n\t"
-                       "addq $-3360, %%rdi    ; Matrix A cursor moved down=1, right=-1 blocks\n\t"
+                       "addq $96, %%rdx\n\t"
+                       "addq $-3360, %%rdi\n\t"
                        "addq $12, %%r12\n\t"
                        "cmpq $48, %%r12\n\t"
-                       "jl loop_top_215\n\t"
-                       "addq $768, %%rdx    ; Matrix C cursor moved down=-48, right=3 cells\n\t"
-                       "addq $216, %%rsi    ; Matrix B cursor moved right 1 pattern-blocks\n\t"
-                       "addq $-384, %%rdi    ; Matrix A cursor moved down=-48, right=0 cells\n\t"
+                       "jl loop_top_17\n\t"
+                       "addq $768, %%rdx\n\t"
+                       "addq $216, %%rsi\n\t"
+                       "addq $-384, %%rdi\n\t"
                        "addq $3, %%r13\n\t"
                        "cmpq $9, %%r13\n\t"
-                       "jl loop_top_214\n\t"
+                       "jl loop_top_16\n\t"
                        : : "m"(A), "m"(B), "m"(C) : "r12","r13","rdi","rdx","rsi","ymm0","ymm1","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7","ymm8","ymm9");
 };
 
@@ -2412,8 +2412,9 @@ int main(int argc, char ** argv) {
     struct colmajor A = zeros(48, 9);
     struct colmajor C_expected = zeros(48, 9);
     struct colmajor C_actual = zeros(48, 9);
-    struct sparse_csc B = create_sparse(9, 9);
-    fill_dense(A, 1, 2);
+    struct patternsparse B = create_patternsparse(9, 9, 3, 3);
+    struct colmajor B_dense = zeros(9,9);
+    fill(&A, 1, 2);
      
 
 
@@ -2423,10 +2424,10 @@ int main(int argc, char ** argv) {
     reset(&C_expected);
     reset(&C_actual);
     update_pattern(&B, 0, 0, 1);
-    fill(&B, 1, 2);
+    fill_sparse(&B, 1, 2);
     sparse2dense(&B, &B_dense);
 
-    gemm(A.values, B_dense.values, C_expected.values);
+    ddmm(&A, &B_dense, &C_expected);
     assert_equals(&C_expected, &C_actual);
 
     ticks_before = clock();
@@ -2447,10 +2448,10 @@ int main(int argc, char ** argv) {
     reset(&C_expected);
     reset(&C_actual);
     update_pattern(&B, 1, 1, 1);
-    fill(&B, 1, 2);
+    fill_sparse(&B, 1, 2);
     sparse2dense(&B, &B_dense);
 
-    gemm(A.values, B_dense.values, C_expected.values);
+    ddmm(&A, &B_dense, &C_expected);
     assert_equals(&C_expected, &C_actual);
 
     ticks_before = clock();
@@ -2471,10 +2472,10 @@ int main(int argc, char ** argv) {
     reset(&C_expected);
     reset(&C_actual);
     update_pattern(&B, 2, 2, 1);
-    fill(&B, 1, 2);
+    fill_sparse(&B, 1, 2);
     sparse2dense(&B, &B_dense);
 
-    gemm(A.values, B_dense.values, C_expected.values);
+    ddmm(&A, &B_dense, &C_expected);
     assert_equals(&C_expected, &C_actual);
 
     ticks_before = clock();
@@ -2495,10 +2496,10 @@ int main(int argc, char ** argv) {
     reset(&C_expected);
     reset(&C_actual);
     update_pattern(&B, 0, 1, 1);
-    fill(&B, 1, 2);
+    fill_sparse(&B, 1, 2);
     sparse2dense(&B, &B_dense);
 
-    gemm(A.values, B_dense.values, C_expected.values);
+    ddmm(&A, &B_dense, &C_expected);
     assert_equals(&C_expected, &C_actual);
 
     ticks_before = clock();
@@ -2519,10 +2520,10 @@ int main(int argc, char ** argv) {
     reset(&C_expected);
     reset(&C_actual);
     update_pattern(&B, 1, 2, 1);
-    fill(&B, 1, 2);
+    fill_sparse(&B, 1, 2);
     sparse2dense(&B, &B_dense);
 
-    gemm(A.values, B_dense.values, C_expected.values);
+    ddmm(&A, &B_dense, &C_expected);
     assert_equals(&C_expected, &C_actual);
 
     ticks_before = clock();
@@ -2543,10 +2544,10 @@ int main(int argc, char ** argv) {
     reset(&C_expected);
     reset(&C_actual);
     update_pattern(&B, 0, 2, 1);
-    fill(&B, 1, 2);
+    fill_sparse(&B, 1, 2);
     sparse2dense(&B, &B_dense);
 
-    gemm(A.values, B_dense.values, C_expected.values);
+    ddmm(&A, &B_dense, &C_expected);
     assert_equals(&C_expected, &C_actual);
 
     ticks_before = clock();
@@ -2567,10 +2568,10 @@ int main(int argc, char ** argv) {
     reset(&C_expected);
     reset(&C_actual);
     update_pattern(&B, 1, 0, 1);
-    fill(&B, 1, 2);
+    fill_sparse(&B, 1, 2);
     sparse2dense(&B, &B_dense);
 
-    gemm(A.values, B_dense.values, C_expected.values);
+    ddmm(&A, &B_dense, &C_expected);
     assert_equals(&C_expected, &C_actual);
 
     ticks_before = clock();
@@ -2591,10 +2592,10 @@ int main(int argc, char ** argv) {
     reset(&C_expected);
     reset(&C_actual);
     update_pattern(&B, 2, 1, 1);
-    fill(&B, 1, 2);
+    fill_sparse(&B, 1, 2);
     sparse2dense(&B, &B_dense);
 
-    gemm(A.values, B_dense.values, C_expected.values);
+    ddmm(&A, &B_dense, &C_expected);
     assert_equals(&C_expected, &C_actual);
 
     ticks_before = clock();
@@ -2615,10 +2616,10 @@ int main(int argc, char ** argv) {
     reset(&C_expected);
     reset(&C_actual);
     update_pattern(&B, 2, 0, 1);
-    fill(&B, 1, 2);
+    fill_sparse(&B, 1, 2);
     sparse2dense(&B, &B_dense);
 
-    gemm(A.values, B_dense.values, C_expected.values);
+    ddmm(&A, &B_dense, &C_expected);
     assert_equals(&C_expected, &C_actual);
 
     ticks_before = clock();

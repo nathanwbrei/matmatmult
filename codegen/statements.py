@@ -121,8 +121,8 @@ class AsmStatement:
             result += ", ".join(x.gen(env,syntax) for x in self.inputs)
             if self.output is not None:
                 result += ", " + self.output.gen(env,syntax)
-            if self.comment is not None:
-                result += "    ; " + self.comment
+            #if self.comment is not None:
+            #    result += "    ; " + self.comment
             return result
 
         elif syntax == Syntax.intel:

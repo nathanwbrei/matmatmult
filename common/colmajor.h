@@ -15,22 +15,24 @@ struct colmajor {
 };
 
 
+void reset(struct colmajor * dense) {
+  int size = dense->rows * dense->cols;
+  for (int i=0; i<size; i++) {
+    dense->values[i] = 0.0;
+  }
+}
+
+
 struct colmajor zeros(int rows, int cols) {
+
   struct colmajor result;
   result.rows = rows;
   result.cols = cols;
   result.values = malloc(result.rows * result.cols * sizeof(double));
-  reset(result);
+  reset(&result);
   return result;
 }
 
-
-inline void reset(struct colmajor * dense) {
-  int size = dense->rows * dense->cols;
-  for (int i=0; i<size; i++) {
-    dense.values[i] = 0.0;
-  }  
-}
 
 void fill(struct colmajor * matrix, double startval, double increment) {
 

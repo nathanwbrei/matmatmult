@@ -39,10 +39,10 @@ def make_code() -> str:
     reset(&C_expected);
     reset(&C_actual);
     update_pattern(&B, {p.pattern_update[0]}, {p.pattern_update[1]}, 1);
-    fill(&B, 1, 2);
+    fill_sparse(&B, 1, 2);
     sparse2dense(&B, &B_dense);
 
-    gemm(A.values, B_dense.values, C_expected.values);
+    ddmm(&A, &B_dense, &C_expected);
     assert_equals(&C_expected, &C_actual);
 
     ticks_before = clock();
@@ -63,8 +63,9 @@ def make_code() -> str:
     struct colmajor A = zeros(48, 9);
     struct colmajor C_expected = zeros(48, 9);
     struct colmajor C_actual = zeros(48, 9);
-    struct sparse_csc B = create_sparse(9, 9);
-    fill_dense(A, 1, 2);
+    struct patternsparse B = create_patternsparse(9, 9, 3, 3);
+    struct colmajor B_dense = zeros(9,9);
+    fill(&A, 1, 2);
     """
 
     return harness.make()

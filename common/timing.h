@@ -14,7 +14,7 @@
    shl rdx 4
    or rax rdx    ; To retrieve all 64 bits
 */
-inline uint64_t tsc()
+extern inline uint64_t tsc()
 {
   uint64_t t;
   __asm__ __volatile__ ("rdtsc" : "=A"(t));

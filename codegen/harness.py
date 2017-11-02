@@ -23,7 +23,7 @@ int main(int argc, char ** argv) {{
 #include<time.h>
 #include "../common/timing.h"
 #include "../common/colmajor.h"
-#include "../common/sparse.h"
+#include "../common/patternsparse.h"
 """
 
     setup = ""
