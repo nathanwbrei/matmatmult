@@ -13,10 +13,10 @@ def pattern_update(nnz):
                   if metapattern[r][c] == nnz][0]
 
 
-def param_space():
+def param_space(isa="avx256"):
     return [Parameters(description = f"blocksparse_snb_nnz{i}",
                        m = 48, n = 9, k = 9, lda = 48, ldb = 9, ldc = 48,
-                       instruction_sets = ["avx256"],
+                       instruction_sets = [isa],
                        vector_width = 4,
                        C_regs = [[ymm(7), ymm(10), ymm(13)],
                                  [ymm(8), ymm(11), ymm(14)],
@@ -43,16 +43,17 @@ def make_code() -> str:
     sparse2dense(&B, &B_dense);
 
     ddmm(&A, &B_dense, &C_expected);
+    //{p.description}(A.values, B.values, C_actual.values);
     assert_equals(&C_expected, &C_actual);
 
     ticks_before = clock();
     cycles_before = tsc();
-    for (int t=0; t<2000; t++)
+    for (int t=0; t<3000; t++)
         {p.description}(A.values, B.values, C_actual.values);
     ticks_after = clock();
     cycles_after = tsc();
 
-    printf("{p.description}, %lud, %ld\\n",
+    printf("{p.description}, %lu, %ld\\n",
         cycles_after - cycles_before,
         ticks_after - ticks_before );
     """
