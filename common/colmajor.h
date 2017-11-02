@@ -32,7 +32,7 @@ struct colmajor zeros(int rows, int cols) {
 
   // TODO: Get aligned malloc from libxsmm library
   uint64_t align = 8*sizeof(double);
-  result.origin = malloc(result.rows * result.cols * sizeof(double) + align);
+  result.origin = (double*) malloc(result.rows * result.cols * sizeof(double) + align);
   // printf("Original address=%lu\n", (uint64_t) result.origin);
   uint64_t offset = (((uint64_t)result.origin)+align) % align;
   // printf("Offset is: %lu\n", offset);

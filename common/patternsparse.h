@@ -22,8 +22,8 @@ struct patternsparse create_patternsparse(int rows, int cols, int pattern_rows, 
   result.nnz = 0;
   result.pattern_rows = pattern_rows;
   result.pattern_cols = pattern_cols;
-  result.values = malloc(rows*cols*sizeof(double));
-  result.pattern = malloc(pattern_rows*pattern_cols*sizeof(bool));
+  result.values = (double*) malloc(rows*cols*sizeof(double));
+  result.pattern = (bool*) malloc(pattern_rows*pattern_cols*sizeof(bool));
   return result;
 }
 

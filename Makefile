@@ -41,10 +41,10 @@ workbench: workbench/workbench.cpp workbench/gemms_libxsmm.c
 
 
 baseline: dense_x_blocksparse/baseline.c
-	gcc -g -mavx2 -std=c11 -O0 -o build/baseline dense_x_blocksparse/baseline.c
+	icpc -xCORE-AVX2 -std=c++11 -O3 -o build/baseline dense_x_blocksparse/baseline.c -lrt -DNDEBUG
 
 patternsparse: dense_x_blocksparse/exp.c
-	gcc -g -mavx2 -std=c11 -O0 -o build/dense_x_patternsparse dense_x_blocksparse/exp.c
+	icpc -xCORE-AVX2 -std=c++11 -O3 -o build/dense_x_patternsparse dense_x_blocksparse/exp.c -lrt -DNDEBUG
 
 matrix_tests: dense_x_blocksparse/harness.c dense_x_blocksparse/blocksparse.h
 	gcc -g -std=c11 -O0 -o build/matrix_tests common/matrix_tests.c

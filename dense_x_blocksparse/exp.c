@@ -1670,7 +1670,7 @@ int main(int argc, char ** argv) {
     clock_gettime(CLOCK_MONOTONIC, &start);
     //ticks_before = clock();
     //cycles_before = tsc();
-    for (int t=0; t<3000; t++)
+    for (int t=0; t<30000; t++)
         blocksparse_snb_nnz1(A.values, B.values, C_actual.values);
     //ticks_after = clock();
     //cycles_after = tsc();
@@ -1698,7 +1698,7 @@ int main(int argc, char ** argv) {
     clock_gettime(CLOCK_MONOTONIC, &start);
     //ticks_before = clock();
     //cycles_before = tsc();
-    for (int t=0; t<3000; t++)
+    for (int t=0; t<30000; t++)
         blocksparse_snb_nnz2(A.values, B.values, C_actual.values);
     //ticks_after = clock();
     //cycles_after = tsc();
@@ -1726,7 +1726,7 @@ int main(int argc, char ** argv) {
     clock_gettime(CLOCK_MONOTONIC, &start);
     //ticks_before = clock();
     //cycles_before = tsc();
-    for (int t=0; t<3000; t++)
+    for (int t=0; t<30000; t++)
         blocksparse_snb_nnz3(A.values, B.values, C_actual.values);
     //ticks_after = clock();
     //cycles_after = tsc();
@@ -1754,7 +1754,7 @@ int main(int argc, char ** argv) {
     clock_gettime(CLOCK_MONOTONIC, &start);
     //ticks_before = clock();
     //cycles_before = tsc();
-    for (int t=0; t<3000; t++)
+    for (int t=0; t<30000; t++)
         blocksparse_snb_nnz4(A.values, B.values, C_actual.values);
     //ticks_after = clock();
     //cycles_after = tsc();
@@ -1782,7 +1782,7 @@ int main(int argc, char ** argv) {
     clock_gettime(CLOCK_MONOTONIC, &start);
     //ticks_before = clock();
     //cycles_before = tsc();
-    for (int t=0; t<3000; t++)
+    for (int t=0; t<30000; t++)
         blocksparse_snb_nnz5(A.values, B.values, C_actual.values);
     //ticks_after = clock();
     //cycles_after = tsc();
@@ -1810,7 +1810,7 @@ int main(int argc, char ** argv) {
     clock_gettime(CLOCK_MONOTONIC, &start);
     //ticks_before = clock();
     //cycles_before = tsc();
-    for (int t=0; t<3000; t++)
+    for (int t=0; t<30000; t++)
         blocksparse_snb_nnz6(A.values, B.values, C_actual.values);
     //ticks_after = clock();
     //cycles_after = tsc();
@@ -1838,7 +1838,7 @@ int main(int argc, char ** argv) {
     clock_gettime(CLOCK_MONOTONIC, &start);
     //ticks_before = clock();
     //cycles_before = tsc();
-    for (int t=0; t<3000; t++)
+    for (int t=0; t<30000; t++)
         blocksparse_snb_nnz7(A.values, B.values, C_actual.values);
     //ticks_after = clock();
     //cycles_after = tsc();
@@ -1866,7 +1866,7 @@ int main(int argc, char ** argv) {
     clock_gettime(CLOCK_MONOTONIC, &start);
     //ticks_before = clock();
     //cycles_before = tsc();
-    for (int t=0; t<3000; t++)
+    for (int t=0; t<30000; t++)
         blocksparse_snb_nnz8(A.values, B.values, C_actual.values);
     //ticks_after = clock();
     //cycles_after = tsc();
@@ -1894,7 +1894,7 @@ int main(int argc, char ** argv) {
     clock_gettime(CLOCK_MONOTONIC, &start);
     //ticks_before = clock();
     //cycles_before = tsc();
-    for (int t=0; t<3000; t++)
+    for (int t=0; t<30000; t++)
         blocksparse_snb_nnz9(A.values, B.values, C_actual.values);
     //ticks_after = clock();
     //cycles_after = tsc();
