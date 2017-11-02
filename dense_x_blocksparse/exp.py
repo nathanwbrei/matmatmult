@@ -5,9 +5,13 @@
 from codegen.harness import *
 from codegen.libxsmm_standard import *
 
+metapattern = [[1,4,6],[7,2,5],[9,8,3]]
 
+def pattern(nnz):
+    return [[ x <= nnz for x in row]
+                       for row in metapattern]
+                       
 def pattern_update(nnz):
-    metapattern = [[1,4,6],[7,2,5],[9,8,3]]
     return [(r,c) for r in range(len(metapattern))
                   for c in range(len(metapattern[0]))
                   if metapattern[r][c] == nnz][0]
@@ -24,7 +28,8 @@ def param_space(isa="avx256"):
                        stream_reg = ymm(3),
                        bcast_regs = [ymm(0), ymm(1), ymm(2)],
                        temp_regs = [ymm(4), ymm(5), ymm(6)],
-                       pattern_update = pattern_update(i))
+                       pattern_update = pattern_update(i),
+                       sparsity_pattern = pattern(i))
 
             for i in range(1,10)]
 
@@ -81,6 +86,8 @@ def make():
     with open("dense_x_blocksparse/exp.c","w") as f:
         f.write(harness)
 
+
+make()
 
 
 
