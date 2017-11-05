@@ -37,12 +37,29 @@ void fill_sparse(struct patternsparse * mat, double start_value, double incremen
 
 void sparse2dense(struct patternsparse * in, struct colmajor * out) {
   reset(out);
-  // TODO: This.
+  int x = 0;
+  for (int j=0; j < out->cols; j++) {
+    for (int i=0; i < out->cols; i++) {
+      int pattern_row = i % in->pattern_rows;
+      int pattern_col = j % in->pattern_cols;
+      int pattern_idx = pattern_col*in->pattern_rows + pattern_row;
+      if (in->pattern[pattern_idx]) {
+        out->values[out->rows*j + i] = in->values[x];
+        x++;
+      }
+    }
+  }
 }
 
 void update_pattern(struct patternsparse * mat, int row, int col, bool val) {
-  mat->nnz += 1;
-  // TODO: This.
+  int x = col * mat->pattern_rows + row;
+  mat->pattern[x] = val;
+  if (val && !mat->pattern[x]){
+    mat->nnz += 1;
+  }
+  else if (!val && mat->pattern[x]){
+    mat->nnz -= 1;
+  }
 }
 
 
