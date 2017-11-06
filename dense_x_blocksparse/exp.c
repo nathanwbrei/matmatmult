@@ -38,8 +38,8 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
-                       "\n\t"
-                       "\n\t"
+                       "addq $384, %%rdi\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vbroadcastsd 8(%%rsi), %%ymm0\n\t"
                        "vmovapd 0(%%rdi), %%ymm3\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm4\n\t"
@@ -51,8 +51,8 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
-                       "\n\t"
-                       "\n\t"
+                       "addq $384, %%rdi\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vbroadcastsd 16(%%rsi), %%ymm0\n\t"
                        "vmovapd 0(%%rdi), %%ymm3\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm4\n\t"
@@ -64,8 +64,8 @@ void blocksparse_snb_nnz1 (const double* A, const double* B, double* C) {
                        "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm9, %%ymm9\n\t"
-                       "\n\t"
-                       "\n\t"
+                       "addq $384, %%rdi\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmovapd %%ymm7, 0(%%rdx)\n\t"
                        "vmovapd %%ymm8, 32(%%rdx)\n\t"
                        "vmovapd %%ymm9, 64(%%rdx)\n\t"
@@ -131,7 +131,7 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm12, %%ymm12\n\t"
-                       "\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vbroadcastsd 8(%%rsi), %%ymm0\n\t"
                        "vmovapd 0(%%rdi), %%ymm3\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm4\n\t"
@@ -154,7 +154,7 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm12, %%ymm12\n\t"
-                       "\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vbroadcastsd 16(%%rsi), %%ymm0\n\t"
                        "vmovapd 0(%%rdi), %%ymm3\n\t"
                        "vmulpd %%ymm3, %%ymm0, %%ymm4\n\t"
@@ -177,7 +177,7 @@ void blocksparse_snb_nnz2 (const double* A, const double* B, double* C) {
                        "addq $384, %%rdi\n\t"
                        "vmulpd %%ymm3, %%ymm1, %%ymm6\n\t"
                        "vaddpd %%ymm6, %%ymm12, %%ymm12\n\t"
-                       "\n\t"
+                       "addq $384, %%rdi\n\t"
                        "vmovapd %%ymm7, 0(%%rdx)\n\t"
                        "vmovapd %%ymm8, 32(%%rdx)\n\t"
                        "vmovapd %%ymm9, 64(%%rdx)\n\t"
@@ -1644,7 +1644,6 @@ int main(int argc, char ** argv) {
 
     clock_t ticks_before, ticks_after;
     uint64_t cycles_before, cycles_after;
-    struct timespec start, end;
     struct colmajor A = zeros(48, 9);
     struct colmajor C_expected = zeros(48, 9);
     struct colmajor C_actual = zeros(48, 9);
@@ -1664,22 +1663,19 @@ int main(int argc, char ** argv) {
     sparse2dense(&B, &B_dense);
 
     ddmm(&A, &B_dense, &C_expected);
-    //blocksparse_snb_nnz1(A.values, B.values, C_actual.values);
+    blocksparse_snb_nnz1(A.values, B.values, C_actual.values);
     assert_equals(&C_expected, &C_actual);
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    //ticks_before = clock();
-    //cycles_before = tsc();
+    ticks_before = clock();
+    cycles_before = tsc();
     for (int t=0; t<3000; t++)
         blocksparse_snb_nnz1(A.values, B.values, C_actual.values);
-    //ticks_after = clock();
-    //cycles_after = tsc();
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    ticks_after = clock();
+    cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz1, %lu, %ld, %lf\n",
+    printf("blocksparse_snb_nnz1, %lu, %ld\n",
         cycles_after - cycles_before,
-        ticks_after - ticks_before,
-        1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
+        ticks_after - ticks_before );
     
 
 
@@ -1692,22 +1688,19 @@ int main(int argc, char ** argv) {
     sparse2dense(&B, &B_dense);
 
     ddmm(&A, &B_dense, &C_expected);
-    //blocksparse_snb_nnz2(A.values, B.values, C_actual.values);
+    blocksparse_snb_nnz2(A.values, B.values, C_actual.values);
     assert_equals(&C_expected, &C_actual);
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    //ticks_before = clock();
-    //cycles_before = tsc();
+    ticks_before = clock();
+    cycles_before = tsc();
     for (int t=0; t<3000; t++)
         blocksparse_snb_nnz2(A.values, B.values, C_actual.values);
-    //ticks_after = clock();
-    //cycles_after = tsc();
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    ticks_after = clock();
+    cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz2, %lu, %ld, %lf\n",
+    printf("blocksparse_snb_nnz2, %lu, %ld\n",
         cycles_after - cycles_before,
-        ticks_after - ticks_before,
-        1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
+        ticks_after - ticks_before );
     
 
 
@@ -1720,22 +1713,19 @@ int main(int argc, char ** argv) {
     sparse2dense(&B, &B_dense);
 
     ddmm(&A, &B_dense, &C_expected);
-    //blocksparse_snb_nnz3(A.values, B.values, C_actual.values);
+    blocksparse_snb_nnz3(A.values, B.values, C_actual.values);
     assert_equals(&C_expected, &C_actual);
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    //ticks_before = clock();
-    //cycles_before = tsc();
+    ticks_before = clock();
+    cycles_before = tsc();
     for (int t=0; t<3000; t++)
         blocksparse_snb_nnz3(A.values, B.values, C_actual.values);
-    //ticks_after = clock();
-    //cycles_after = tsc();
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    ticks_after = clock();
+    cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz3, %lu, %ld, %lf\n",
+    printf("blocksparse_snb_nnz3, %lu, %ld\n",
         cycles_after - cycles_before,
-        ticks_after - ticks_before,
-        1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
+        ticks_after - ticks_before );
     
 
 
@@ -1748,22 +1738,19 @@ int main(int argc, char ** argv) {
     sparse2dense(&B, &B_dense);
 
     ddmm(&A, &B_dense, &C_expected);
-    //blocksparse_snb_nnz4(A.values, B.values, C_actual.values);
+    blocksparse_snb_nnz4(A.values, B.values, C_actual.values);
     assert_equals(&C_expected, &C_actual);
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    //ticks_before = clock();
-    //cycles_before = tsc();
+    ticks_before = clock();
+    cycles_before = tsc();
     for (int t=0; t<3000; t++)
         blocksparse_snb_nnz4(A.values, B.values, C_actual.values);
-    //ticks_after = clock();
-    //cycles_after = tsc();
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    ticks_after = clock();
+    cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz4, %lu, %ld, %lf\n",
+    printf("blocksparse_snb_nnz4, %lu, %ld\n",
         cycles_after - cycles_before,
-        ticks_after - ticks_before,
-        1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
+        ticks_after - ticks_before );
     
 
 
@@ -1776,22 +1763,19 @@ int main(int argc, char ** argv) {
     sparse2dense(&B, &B_dense);
 
     ddmm(&A, &B_dense, &C_expected);
-    //blocksparse_snb_nnz5(A.values, B.values, C_actual.values);
+    blocksparse_snb_nnz5(A.values, B.values, C_actual.values);
     assert_equals(&C_expected, &C_actual);
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    //ticks_before = clock();
-    //cycles_before = tsc();
+    ticks_before = clock();
+    cycles_before = tsc();
     for (int t=0; t<3000; t++)
         blocksparse_snb_nnz5(A.values, B.values, C_actual.values);
-    //ticks_after = clock();
-    //cycles_after = tsc();
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    ticks_after = clock();
+    cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz5, %lu, %ld, %lf\n",
+    printf("blocksparse_snb_nnz5, %lu, %ld\n",
         cycles_after - cycles_before,
-        ticks_after - ticks_before,
-        1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
+        ticks_after - ticks_before );
     
 
 
@@ -1804,22 +1788,19 @@ int main(int argc, char ** argv) {
     sparse2dense(&B, &B_dense);
 
     ddmm(&A, &B_dense, &C_expected);
-    //blocksparse_snb_nnz6(A.values, B.values, C_actual.values);
+    blocksparse_snb_nnz6(A.values, B.values, C_actual.values);
     assert_equals(&C_expected, &C_actual);
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    //ticks_before = clock();
-    //cycles_before = tsc();
+    ticks_before = clock();
+    cycles_before = tsc();
     for (int t=0; t<3000; t++)
         blocksparse_snb_nnz6(A.values, B.values, C_actual.values);
-    //ticks_after = clock();
-    //cycles_after = tsc();
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    ticks_after = clock();
+    cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz6, %lu, %ld, %lf\n",
+    printf("blocksparse_snb_nnz6, %lu, %ld\n",
         cycles_after - cycles_before,
-        ticks_after - ticks_before,
-        1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
+        ticks_after - ticks_before );
     
 
 
@@ -1832,22 +1813,19 @@ int main(int argc, char ** argv) {
     sparse2dense(&B, &B_dense);
 
     ddmm(&A, &B_dense, &C_expected);
-    //blocksparse_snb_nnz7(A.values, B.values, C_actual.values);
+    blocksparse_snb_nnz7(A.values, B.values, C_actual.values);
     assert_equals(&C_expected, &C_actual);
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    //ticks_before = clock();
-    //cycles_before = tsc();
+    ticks_before = clock();
+    cycles_before = tsc();
     for (int t=0; t<3000; t++)
         blocksparse_snb_nnz7(A.values, B.values, C_actual.values);
-    //ticks_after = clock();
-    //cycles_after = tsc();
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    ticks_after = clock();
+    cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz7, %lu, %ld, %lf\n",
+    printf("blocksparse_snb_nnz7, %lu, %ld\n",
         cycles_after - cycles_before,
-        ticks_after - ticks_before,
-        1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
+        ticks_after - ticks_before );
     
 
 
@@ -1860,22 +1838,19 @@ int main(int argc, char ** argv) {
     sparse2dense(&B, &B_dense);
 
     ddmm(&A, &B_dense, &C_expected);
-    //blocksparse_snb_nnz8(A.values, B.values, C_actual.values);
+    blocksparse_snb_nnz8(A.values, B.values, C_actual.values);
     assert_equals(&C_expected, &C_actual);
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    //ticks_before = clock();
-    //cycles_before = tsc();
+    ticks_before = clock();
+    cycles_before = tsc();
     for (int t=0; t<3000; t++)
         blocksparse_snb_nnz8(A.values, B.values, C_actual.values);
-    //ticks_after = clock();
-    //cycles_after = tsc();
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    ticks_after = clock();
+    cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz8, %lu, %ld, %lf\n",
+    printf("blocksparse_snb_nnz8, %lu, %ld\n",
         cycles_after - cycles_before,
-        ticks_after - ticks_before,
-        1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
+        ticks_after - ticks_before );
     
 
 
@@ -1888,22 +1863,19 @@ int main(int argc, char ** argv) {
     sparse2dense(&B, &B_dense);
 
     ddmm(&A, &B_dense, &C_expected);
-    //blocksparse_snb_nnz9(A.values, B.values, C_actual.values);
+    blocksparse_snb_nnz9(A.values, B.values, C_actual.values);
     assert_equals(&C_expected, &C_actual);
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    //ticks_before = clock();
-    //cycles_before = tsc();
+    ticks_before = clock();
+    cycles_before = tsc();
     for (int t=0; t<3000; t++)
         blocksparse_snb_nnz9(A.values, B.values, C_actual.values);
-    //ticks_after = clock();
-    //cycles_after = tsc();
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    ticks_after = clock();
+    cycles_after = tsc();
 
-    printf("blocksparse_snb_nnz9, %lu, %ld, %lf\n",
+    printf("blocksparse_snb_nnz9, %lu, %ld\n",
         cycles_after - cycles_before,
-        ticks_after - ticks_before,
-        1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
+        ticks_after - ticks_before );
     
 
  

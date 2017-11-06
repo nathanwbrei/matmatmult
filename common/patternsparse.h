@@ -22,14 +22,15 @@ struct patternsparse create_patternsparse(int rows, int cols, int pattern_rows, 
   result.nnz = 0;
   result.pattern_rows = pattern_rows;
   result.pattern_cols = pattern_cols;
-  result.values = malloc(rows*cols*sizeof(double));
-  result.pattern = malloc(pattern_rows*pattern_cols*sizeof(bool));
+  result.values = (double *) malloc(rows*cols*sizeof(double));
+  result.size = rows*cols;
+  result.pattern = (bool *) calloc(pattern_rows*pattern_cols, sizeof(bool));
   return result;
 }
 
 void fill_sparse(struct patternsparse * mat, double start_value, double increment) {
 
-  for (int i=0; i < mat->nnz; i++) {
+  for (int i=0; i < mat->size; i++) {
     mat->values[i] = start_value;
     start_value += increment;
   }
@@ -39,7 +40,7 @@ void sparse2dense(struct patternsparse * in, struct colmajor * out) {
   reset(out);
   int x = 0;
   for (int j=0; j < out->cols; j++) {
-    for (int i=0; i < out->cols; i++) {
+    for (int i=0; i < out->rows; i++) {
       int pattern_row = i % in->pattern_rows;
       int pattern_col = j % in->pattern_cols;
       int pattern_idx = pattern_col*in->pattern_rows + pattern_row;

@@ -118,6 +118,7 @@ def make_outer_product(x:int, p:Parameters) -> AsmBlock:
 
     if sum(pattern[x % pattern_rows]) == 0:
         # Entire row of B block is zero. Do nothing.
+        asm.include(A.move(right=1))
         return asm
 
     for j in range(0, block_cols):
