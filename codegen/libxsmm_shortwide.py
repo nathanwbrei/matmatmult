@@ -83,9 +83,9 @@ def block_inner_prod(p):
 
         for ikb in range(kb):       # inside this k-block
             for inb in range(nb):   # inside this n-block
-                asm.include(fma(B.addr(down = ikB*kb+ikb, right = inb),
-                                A_regs[ikb],
-                                C_regs[inb]))
+                asm.include(BcastFma(B.addr(down = ikB*kb+ikb, right = inb),
+                                     A_regs[ikb],
+                                     C_regs[inb]))
 
     # Account for remaining columns (which don't fill a block)
     for ikr in range(kr):

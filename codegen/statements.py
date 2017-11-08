@@ -186,5 +186,26 @@ class Jump(AsmStatement):
         return set()
 
 
+class BcastFma(AsmStatement):
+    def __init__(self, bcast_src:MemoryAddress, mult_src:Register, add_dest:Register):
+        self.bcast_src = bcast_src
+        self.mult_src = mult_src
+        self.add_dest = add_dest
+
+    def gen(self, env={}, syntax=Syntax.inline, depth=0):
+
+        b = self.bcast_src.gen(syntax)
+        m = self.mult_src.gen(syntax)
+        a = self.add_dest.gen(syntax)
+        indent = "  "*(depth-1)
+
+        if syntax == Syntax.pretty:
+            return f"{indent}bma {b} {m} -> {a}"
+        else:
+            return f"vfmadd231pd {b}%{{1to8%}}, {m}, {a}"
+
+    def outputs(self):
+        return {self.add_dest}
+
 
 
