@@ -140,6 +140,14 @@ class MatrixCursor:
         return asm
 
 
+    def has_entry(self, down:int=0, right:int=0, units:str="cells"):
+
+        if down < 0 or down >= self._rows or right < 0 or right >= self._cols:
+            raise Exception(f"Attempted to access {self._name}({down},{right}) which is out-of-bounds")
+
+        return True
+
+
 class SparseMatrixCursor:
     def __init__(self,
                  name: str,
@@ -162,6 +170,7 @@ class SparseMatrixCursor:
         pattern_cols = len(pattern[0])
         x = 0
 
+
         for j in range(cols):
             for i in range(rows):
                 if pattern[i % pattern_rows][j % pattern_cols]:
@@ -174,6 +183,7 @@ class SparseMatrixCursor:
         self._move_down_offset = nnz(pattern)
         self._move_right_offset = (rows//pattern_rows) * nnz(pattern)  # Complete blocks
         self._move_right_offset += nnz(pattern[0:rows%pattern_rows])   # Partial block
+
 
     def addr(self, down:int=0, right:int=0, units:str="cells") -> MemoryAddress:
         if units != "cells":
@@ -215,9 +225,18 @@ class SparseMatrixCursor:
         return AsmStatement("addq", [c(offset)], self._ptr_reg, comment=comment)
 
 
-    def elem_at(self, down:int=0, right:int=0, units:str="cells"):
+
+    def has_entry(self, down:int=0, right:int=0, units:str="cells"):
+
         if units != "cells":
-            raise Exception("Sparse elem_at() only supports absolute offsets in units of cells")
+            raise Exception("Sparse has_entry() only supports absolute offsets in units of cells")
+
+        if down < 0 or down >= self.rows or right < 0 or right >= self.cols:
+            raise Exception(f"Attempted to access {self._name}({down},{right}) which is out-of-bounds")
+
+        return self.lookup[down][right] != -1
+        # Hopefully this is equivalent to:
+        # return pattern[down % pattern_rows][right % pattern_cols]
 
 
 
