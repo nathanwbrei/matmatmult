@@ -32,8 +32,8 @@ class Parameters(NamedTuple):
 defaults = Parameters(
     m = 48, n = 9, k = 9,
     lda = 48, ldb = 9, ldc = 48,
-    A_regs = [zmm(x) for x in range(9, 27)],  # zmm9..zmm26
-    C_regs = [zmm(x) for x in range(0, 8)]    # zmm0..zmm7
+    A_regs = [zmm(x) for x in range(0, 8)],     # zmm0..zmm7
+    C_regs = [zmm(x) for x in range(23, 32)]    # zmm23..zmm31
     )
 
 
@@ -42,7 +42,7 @@ def make_gemm(p:Parameters) -> AsmBlock:
 
     m, n, k = p.m, p.n, p.k   # Number of cells in m,n,k -directions
     mb = 8                    # Number of cells in one m-block
-    nb = len(self.C_regs)     # Number of cells in one n-block
+    nb = len(p.C_regs)        # Number of cells in one n-block
 
     A,B,C = p.cursors()                   # Access matrices from memory
     A_regs, C_regs = p.A_regs, p.C_regs   # Access matrices from register blocks
@@ -51,9 +51,9 @@ def make_gemm(p:Parameters) -> AsmBlock:
     asm = AsmBlock(f"LibXSMM short-wide small on KNL for {m}x{n}x{k}").body([
         loop(n_reg, 0, n, nb).body([
             loop(m_reg, 0, m, mb).body([
-                C.load_register_block(C_regs),
+                C.load_register_block([C_regs]),  #TODO: Generalize to 2-D register blocks
                 block_inner_prod(p),
-                C.store_register_block(C_regs),
+                C.store_register_block([C_regs]),
                 A.move(down=1, units="blocks"),
                 C.move(down=1, units="blocks")
             ]),
@@ -68,8 +68,8 @@ def block_inner_prod(p):
 
     m, n, k = p.m, p.n, p.k   # Number of cells in m,n,k -directions
     mb = 8                    # Number of cells in one m-block
-    nb = len(self.C_regs)     # Number of cells in one n-block
-    kb = len(self.A_regs)     # Number of cells in one k-block
+    nb = len(p.C_regs)        # Number of cells in one n-block
+    kb = len(p.A_regs)        # Number of cells in one k-block
     kB = k // kb              # Number of complete k-blocks
     kr = k % kb               # Number of remaining cells in k-direction
 
@@ -79,7 +79,7 @@ def block_inner_prod(p):
 
     for ikB in range(kB):    # for each k-block
 
-        asm.include(A.load_register_block(A_regs, right=ikB, units="blocks"))
+        asm.include(A.load_register_block([A_regs], Displacement(right=ikB, units="blocks")))
 
         for ikb in range(kb):       # inside this k-block
             for inb in range(nb):   # inside this n-block
@@ -89,11 +89,13 @@ def block_inner_prod(p):
 
     # Account for remaining columns (which don't fill a block)
     for ikr in range(kr):
-        asm.stmt("vmovapd", [A.addr(right = kB*kb+ikr)], A_regs[ikr])
+        # TODO: Use load_register_block instead
+        asm.stmt("vmovapd", A.addr(right = kB*kb+ikr), A_regs[ikr])
+    #asm.include(A.load_register_block([A_regs], rows=kr, disp=Displacement(right=ikB, units="blocks"))
 
     for ikr in range(kr):
         for inb in range(nb):
-                asm.include(fma(B.addr(down = kB*kb+ikr, right = inb),
+                asm.include(BcastFma(B.addr(down = kB*kb+ikr, right = inb),
                                 A_regs[ikr],
                                 C_regs[inb]))
     return asm

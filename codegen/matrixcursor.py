@@ -78,7 +78,7 @@ class MatrixCursor:
 
         disp = Displacement(down, right, units)
         if displacement is not None:
-            disp.update(displacement)
+            disp += displacement
 
         offset = disp.right_cells*self._ld + disp.down_cells
         offset += disp.right_vecs*self._ld + disp.down_vecs*self._vector_width
@@ -118,7 +118,7 @@ class MatrixCursor:
             for ir in range(rows):
                 asm.stmt("vmovapd",
                          self.look(down=ir, right=ic, units="vectors", displacement=disp),
-                         registers[i][j])
+                         registers[ir][ic])
         return asm
 
 
@@ -190,7 +190,7 @@ class SparseMatrixCursor:
 
         disp = Displacement(down, right, units)
         if displacement is not None:
-            disp.update(displacement)
+            disp += displacement
 
         vr, vc = self._vector_width, 1
         br, bc = len(self.pattern), len(self.pattern[0])

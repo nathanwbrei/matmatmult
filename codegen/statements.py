@@ -194,9 +194,9 @@ class BcastFma(AsmStatement):
 
     def gen(self, env={}, syntax=Syntax.inline, depth=0):
 
-        b = self.bcast_src.gen(syntax)
-        m = self.mult_src.gen(syntax)
-        a = self.add_dest.gen(syntax)
+        b = self.bcast_src.gen(syntax=syntax)
+        m = self.mult_src.gen(syntax=syntax)
+        a = self.add_dest.gen(syntax=syntax)
         indent = "  "*(depth-1)
 
         if syntax == Syntax.pretty:
