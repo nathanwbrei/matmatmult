@@ -91,19 +91,17 @@ def block_inner_prod(p):
                                          C_regs[inb]))
 
     # Account for remaining columns (which don't fill a block)
-    for ikr in range(kr):
-        # TODO: Use load_register_block instead
-        asm.stmt("vmovapd", A.addr(right = kB*kb+ikr), A_regs[ikr])
-    #asm.include(A.load_register_block([A_regs], rows=kr, disp=Displacement(right=ikB, units="blocks"))
+    asm.include(A.load_register_block([A_regs], Displacement(right=kB, units="blocks"), cols=kr))
 
     for ikr in range(kr):
         for inb in range(nb):
             if B.has_entry(kB*kb+ikr, inb):
                 asm.include(BcastFma(B.look(down = kB*kb+ikr, right = inb),
-                                A_regs[ikr],
-                                C_regs[inb]))
+                                     A_regs[ikr],
+                                     C_regs[inb]))
     return asm
 
 
 
 
+print(make_gemm(defaults).gen(syntax=Syntax.pretty))
