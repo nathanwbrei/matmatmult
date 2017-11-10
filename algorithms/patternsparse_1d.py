@@ -3,9 +3,10 @@ from codegen.blocks import *
 from codegen.loop import *
 from codegen.matrixcursor import *
 
-from typing import NamedTuple
+from typing import Tuple, NamedTuple
 
 class Parameters(NamedTuple):
+    description: str
     m: int
     n: int
     k: int
@@ -15,6 +16,8 @@ class Parameters(NamedTuple):
     A_regs: List[Register]
     C_regs: List[Register]
     pattern: List[List[bool]]
+    pattern_update: Tuple[int,int] = None
+    vector_width: int = 8
 
     def cursors(self):
         scalar_bytes = 8
@@ -31,6 +34,7 @@ class Parameters(NamedTuple):
 
 
 defaults = Parameters(
+    description = "defaults",
     m = 48, n = 9, k = 9,
     lda = 48, ldb = 9, ldc = 48,
     A_regs = [zmm(x) for x in range(0, 8)],     # zmm0..zmm7
