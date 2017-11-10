@@ -21,9 +21,9 @@ int main(int argc, char ** argv) {{
     imports = """
 #include<stdio.h>
 #include<time.h>
-#include "../common/timing.h"
-#include "../common/colmajor.h"
-#include "../common/patternsparse.h"
+#include "../include/timing.h"
+#include "../include/colmajor.h"
+#include "../include/patternsparse.h"
 """
 
     setup = ""

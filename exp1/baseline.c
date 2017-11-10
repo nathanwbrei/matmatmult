@@ -2,10 +2,10 @@
 
 #include<stdio.h>
 #include<time.h>
-#include "../common/timing.h"
-#include "../common/colmajor.h"
-#include "../common/gemms_libxsmm.h"
-#include "../common/test.c"
+#include "../include/timing.h"
+#include "../include/colmajor.h"
+#include "../include/gemms_libxsmm.h"
+#include "../include/test.c"
 
 
 

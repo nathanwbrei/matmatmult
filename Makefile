@@ -2,6 +2,8 @@
 
 LDFLAGS_MACOS = -arch x86_64 -macosx_version_min 10.10 -lSystem -no_pie 
 
+.PHONY: exp1
+
 docker-image:
 	docker build -t thesis_dev_env .
 
@@ -39,12 +41,13 @@ workbench: workbench/workbench.cpp workbench/gemms_libxsmm.c
 		build/gemms_libxsmm.o \
 		build/gemms_goto.o
 
-
-baseline: dense_x_blocksparse/baseline.c
-	icpc -xCORE-AVX2 -std=c++11 -O3 -o build/baseline dense_x_blocksparse/baseline.c -lrt -DNDEBUG
-
-patternsparse: dense_x_blocksparse/exp.c
-	icpc -xCORE-AVX2 -std=c++11 -O3 -o build/dense_x_patternsparse dense_x_blocksparse/exp.c -lrt -DNDEBUG
-
 matrix_tests: dense_x_blocksparse/harness.c dense_x_blocksparse/blocksparse.h
 	gcc -g -std=c11 -O0 -o build/matrix_tests common/matrix_tests.c
+
+
+exp1:
+	#icpc -xCORE-AVX2 -std=c++11 -O3 -o build/baseline exp1/baseline.c -lrt -DNDEBUG
+	#icpc -xCORE-AVX2 -std=c++11 -O3 -o build/exp1 exp1/exp.c -lrt -DNDEBUG
+	g++ -mavx512vl -std=c++11 -O3 -o build/baseline exp1/baseline.c -lrt -DNDEBUG
+	g++ -mavx512vl -std=c++11 -O3 -o build/exp1 exp1/exp.c -lrt -DNDEBUG
+

@@ -3,14 +3,14 @@
 # On Sandy Bridge, run sparse B with different nnzs, compare performance against dense B
 
 from codegen.harness import *
-from codegen.libxsmm_standard import *
+from algorithms.patternsparse_2d import *
 
 metapattern = [[1,4,6],[7,2,5],[9,8,3]]
 
 def pattern(nnz):
     return [[ x <= nnz for x in row]
                        for row in metapattern]
-                       
+
 def pattern_update(nnz):
     return [(r,c) for r in range(len(metapattern))
                   for c in range(len(metapattern[0]))
@@ -75,7 +75,7 @@ def make_code() -> str:
 
 def make():
     harness = make_code()
-    with open("dense_x_blocksparse/exp.c","w") as f:
+    with open("exp1/exp.c","w") as f:
         f.write(harness)
 
 
