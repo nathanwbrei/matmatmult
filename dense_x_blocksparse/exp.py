@@ -51,21 +51,17 @@ def make_code() -> str:
     {p.description}(A.values, B.values, C_actual.values);
     assert_equals(&C_expected, &C_actual);
 
-    ticks_before = clock();
-    cycles_before = tsc();
+    clock_gettime(CLOCK_MONOTONIC, &start);
     for (int t=0; t<3000; t++)
         {p.description}(A.values, B.values, C_actual.values);
-    ticks_after = clock();
-    cycles_after = tsc();
+    clock_gettime(CLOCK_MONOTONIC, &end);
 
-    printf("{p.description}, %lu, %ld\\n",
-        cycles_after - cycles_before,
-        ticks_after - ticks_before );
+    printf("{p.description}, %lf\\n",
+        1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
     """
 
     harness.setup = """
-    clock_t ticks_before, ticks_after;
-    uint64_t cycles_before, cycles_after;
+    struct timespec start, end;
     struct colmajor A = zeros(48, 9);
     struct colmajor C_expected = zeros(48, 9);
     struct colmajor C_actual = zeros(48, 9);
