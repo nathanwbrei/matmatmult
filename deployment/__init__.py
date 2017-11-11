@@ -22,9 +22,11 @@ class RawResult:
         self._filename = filename
 
 class Experiment:
-    def __init__(self, name, rel_dir):
+    def __init__(self, name):
         self._name = name
-        self._rel_dir = rel_dir
+        self._rel_dir = name
+        self._executable = name
+        self._script = name + ".sh"
 
 class Status(Enum):
     submitted, queued, working, finished = range(4)
@@ -35,7 +37,7 @@ coolmuc3 = Cluster("knlcluster", "/home/hpc/pr63so/ga63qow2/experiments", "mpp3"
 
 
 def send(c: Cluster, filename: str) -> bool:
-    return subprocess.run(["scp", filename, cluster._host + ":" + cluster._basedir]).returncode == 0
+    return subprocess.run(["scp", filename, c._host + ":" + c._basedir]).returncode == 0
 
 def submit(c: Cluster, filename: str) -> Job:
     # salloc --nodes=1 --tasks-per-node=1
@@ -43,13 +45,21 @@ def submit(c: Cluster, filename: str) -> Job:
     pass
 
 def monitor(j: Job) -> Status:
+    result = subprocess.run(["ssh", j._cluster._host, "squeue",
+                           "--clusters="+j._cluster._slurmname])
     #squeue --clusters=mpp3
-    pass
+
+def cancel(j: Job) -> bool:
+    host = j._cluster._host
+    clustername = j._cluster._slurmname
+    result = subprocess.run(["ssh", host, "scancel", "--clusters="+clustername, j._id])
+
 
 def retrieve(job):
     filename = job._id + ".csv"
     inputpath = cluster._basedir + "/" + filename
     outputpath = job._rel_dir + "/output/" + filename
     return subprocess.run(["scp", inputpath, outputpath]).returncode == 0
+
 
 
