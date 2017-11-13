@@ -69,12 +69,9 @@ def monitor(j: Job) -> Status:
         return Status[status_str]
 
 
-def cancel(j: Job) -> bool:
+def cancel(j: Job) -> None:
     cmdstr = f"scancel -M {j.cluster.slurmname} {j.id}"
-    output = subprocess.run(["ssh", j.cluster.host, cmdstr],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    return output
+    output = subprocess.run(["ssh", j.cluster.host, cmdstr])
 
 
 def retrieve(job):
