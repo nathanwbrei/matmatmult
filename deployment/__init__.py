@@ -1,4 +1,4 @@
-
+import re
 from enum import Enum
 from datetime import datetime
 import subprocess
@@ -6,15 +6,16 @@ import subprocess
 class Cluster:
     def __init__(self, host, basedir, slurmname):
         self._host = host
+        self._uname = "ga63qow2"
         self._basedir = basedir
         self._slurmname = slurmname
 
 class Job:
-    def __init__(self, cluster, experiment):
+    def __init__(self, cluster, experiment, jobid):
         self._cluster = cluster
         self._experiment = experiment
         self._submitDate = datetime.now()
-        self._id = None
+        self._id = jobid
 
 class RawResult:
     def __init__(self, job, filename):
@@ -28,35 +29,58 @@ class Experiment:
         self._executable = name
         self._script = name + ".sh"
 
+    def outfilename(self, jobid):
+        return self._name+"."+jobid+".out"
+
+
 class Status(Enum):
-    submitted, queued, working, finished = range(4)
+    SUBMITTED, QUEUED, WORKING, FINISHED, UNKNOWN = range(4)
 
 
 coolmuc2 = Cluster("linuxcluster", "/home/hpc/pr63so/ga63qow2/experiments", "mpp2")
 coolmuc3 = Cluster("knlcluster", "/home/hpc/pr63so/ga63qow2/experiments", "mpp3")
+exp2 = Experiment("exp2")
 
 
 def send(c: Cluster, filename: str) -> bool:
-    return subprocess.run(["scp", filename, c._host + ":" + c._basedir]).returncode == 0
+    return subprocess.run(["scp", filename, c._host+":"+c._basedir]).returncode == 0
 
-def submit(c: Cluster, filename: str) -> Job:
-    # salloc --nodes=1 --tasks-per-node=1
-    # sbatch myjob.cmd => Submitted batch job ddddd.
-    pass
+
+def submit(c: Cluster, e: Experiment) -> Job:
+    cmdstr = f'sbatch {c._basedir}/{e._script}'
+    output = subprocess.run(["ssh", c._host, cmdstr],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    m = re.match("Submitted batch job (\d+)", output.stdout.decode())
+    if m is not None:
+        jobid = m.groups()[0]
+        return Job(c, e, jobid)
+    else:
+        print(output.stdout)
+        print(output.stderr)
+        return None
+
 
 def monitor(j: Job) -> Status:
-    result = subprocess.run(["ssh", j._cluster._host, "squeue",
-                           "--clusters="+j._cluster._slurmname])
-    #squeue --clusters=mpp3
+    cmdstr = f"squeue -o %T -h -u {j._cluster._uname} -j {j._id}"
+    output = subprocess.run(["ssh", j._cluster._host, cmdstr],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    status = r.stdout.decode()
+
+    return output
+
 
 def cancel(j: Job) -> bool:
-    host = j._cluster._host
-    clustername = j._cluster._slurmname
-    result = subprocess.run(["ssh", host, "scancel", "--clusters="+clustername, j._id])
+    cmdstr = f"scancel -M {j._cluster._slurmname} {j._id}"
+    output = subprocess.run(["ssh", j._cluster_host, cmdstr],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    return output
 
 
 def retrieve(job):
-    filename = job._id + ".csv"
+    filename = job._experiment.outfilename(job._id)
     inputpath = cluster._basedir + "/" + filename
     outputpath = job._rel_dir + "/output/" + filename
     return subprocess.run(["scp", inputpath, outputpath]).returncode == 0
