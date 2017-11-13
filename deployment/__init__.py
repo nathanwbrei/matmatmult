@@ -4,51 +4,47 @@ from datetime import datetime
 import subprocess
 
 class Cluster:
-    def __init__(self, host, basedir, slurmname):
-        self._host = host
-        self._uname = "ga63qow2"
-        self._basedir = basedir
-        self._slurmname = slurmname
+    def __init__(self, host, name, basedir, user="ga63qow2"):
+        self.host = host
+        self.name = name
+        self.basedir = basedir
+        self.user = user
 
 class Job:
     def __init__(self, cluster, experiment, jobid):
-        self._cluster = cluster
-        self._experiment = experiment
-        self._submitDate = datetime.now()
-        self._id = jobid
+        self.cluster = cluster
+        self.experiment = experiment
+        self.submitdate = datetime.now()
+        self.jobid = jobid
 
-class RawResult:
-    def __init__(self, job, filename):
-        self._job = job
-        self._filename = filename
+    def filename(self):
+        return self.experiment.name+"."+self.jobid+".out"
 
 class Experiment:
     def __init__(self, name):
-        self._name = name
-        self._rel_dir = name
-        self._executable = name
-        self._script = name + ".sh"
-
-    def outfilename(self, jobid):
-        return self._name+"."+jobid+".out"
+        self.name = name
+        self.reldir = name
+        self.executable = name
+        self.script = name + ".sh"
 
 
-class Status(Enum):
-    SUBMITTED, QUEUED, WORKING, FINISHED, UNKNOWN = range(4)
+Status = Enum('Status', ['PENDING','RUNNING','SUSPENDED','CANCELLED','COMPLETING',
+                         'COMPLETED','CONFIGURING','FAILED','TIMEOUT','PREEMPTED',
+                         'NODE_FAIL','SPECIAL_EXIT','ABSENT'])
 
 
-coolmuc2 = Cluster("linuxcluster", "/home/hpc/pr63so/ga63qow2/experiments", "mpp2")
-coolmuc3 = Cluster("knlcluster", "/home/hpc/pr63so/ga63qow2/experiments", "mpp3")
+coolmuc2 = Cluster("linuxcluster", "mpp2", "/home/hpc/pr63so/ga63qow2/experiments")
+coolmuc3 = Cluster("knlcluster", "mpp3", "/home/hpc/pr63so/ga63qow2/experiments")
 exp2 = Experiment("exp2")
 
 
 def send(c: Cluster, filename: str) -> bool:
-    return subprocess.run(["scp", filename, c._host+":"+c._basedir]).returncode == 0
+    return subprocess.run(["scp", filename, c.host+":"+c.basedir]).returncode == 0
 
 
 def submit(c: Cluster, e: Experiment) -> Job:
-    cmdstr = f'sbatch {c._basedir}/{e._script}'
-    output = subprocess.run(["ssh", c._host, cmdstr],
+    cmdstr = f'sbatch {c.basedir}/{e.script}'
+    output = subprocess.run(["ssh", c.host, cmdstr],
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
     m = re.match("Submitted batch job (\d+)", output.stdout.decode())
@@ -62,27 +58,29 @@ def submit(c: Cluster, e: Experiment) -> Job:
 
 
 def monitor(j: Job) -> Status:
-    cmdstr = f"squeue -o %T -h -u {j._cluster._uname} -j {j._id}"
-    output = subprocess.run(["ssh", j._cluster._host, cmdstr],
+    cmdstr = f"squeue -o %T -h -u {j.cluster.uname} -j {j.id}"
+    output = subprocess.run(["ssh", j.cluster.host, cmdstr],
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
-    status = r.stdout.decode()
-
-    return output
+    status_str = r.stdout.decode()
+    if status_str == "":
+        return Status.ABSENT
+    else:
+        return Status[status_str]
 
 
 def cancel(j: Job) -> bool:
-    cmdstr = f"scancel -M {j._cluster._slurmname} {j._id}"
-    output = subprocess.run(["ssh", j._cluster_host, cmdstr],
+    cmdstr = f"scancel -M {j.cluster.slurmname} {j.id}"
+    output = subprocess.run(["ssh", j.cluster.host, cmdstr],
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
     return output
 
 
 def retrieve(job):
-    filename = job._experiment.outfilename(job._id)
-    inputpath = cluster._basedir + "/" + filename
-    outputpath = job._rel_dir + "/output/" + filename
+    filename = job.experiment.outfilename(job.jobid)
+    inputpath = cluster.basedir + "/" + filename
+    outputpath = job.reldir + "/output/" + filename
     return subprocess.run(["scp", inputpath, outputpath]).returncode == 0
 
 
