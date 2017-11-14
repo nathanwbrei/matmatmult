@@ -45,6 +45,15 @@ class Displacement:
         result.right_blocks += self.right_blocks + other.right_blocks
         return result
 
+    def __neg__(self):
+        result = Displacement()
+        result.down_cells =  -self.down_cells
+        result.right_cells = -self.right_cells
+        result.down_vecs = -self.down_vecs
+        result.right_vecs = -self.right_vecs
+        result.down_blocks = -self.down_blocks
+        result.right_blocks = -self.right_blocks
+        return result
 
 
 

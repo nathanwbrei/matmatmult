@@ -89,34 +89,20 @@ class Cursor:
         c.down_cells += down_blocks * self.br
         c.right_cells += right_blocks * self.bc
 
-        # Find relative offset
-        offset = c.down_cells
-
-        # Search for first nonzero entry in block
+        # Find first nonzero entry in block
         for bci in range(bc):
             for bri in range(br):
-                cc = c + Coords(down=bri, right=bci)
-                if self.has_entry():
-                    pass
+                cc = Coords(down=bri, right=bci)
+                if self.has_entry(c+cc):
+                    return (self.move(c+cc), -c)
 
+        raise Exception("Unable to tab(): Block is completely empty!")
 
-        pass
-        # Figure out current block from coords by normalizing and divving
-        # Compute coords of next block (if it exists)
-        # search block column by column until finding a nonzero entry
-        #return self.move(c)
 
     def reset(self):
-        c = Coords()
-        c.down_cells   = -self._cursor.down_cells
-        c.right_cells  = -self._cursor.right_cells
-        c.down_vecs    = -self._cursor.down_vecs
-        c.right_vecs   = -self._cursor.right_vecs
-        c.down_blocks  = -self._cursor.down_blocks
-        c.right_blocks = -self._cursor.right_blocks
-        return self.move(c)
+        return self.move(-self._cursor)
 
-    # TODO: We will almost certainly want a two-part offset in order to do scale-index addressing
+
     def rel_offset(self, rel_coords: Coords) -> int:
         abs_coords = self._normalize(rel_coords + self._cursor)
         cursor_offset = self.abs_offset(self._cursor)
