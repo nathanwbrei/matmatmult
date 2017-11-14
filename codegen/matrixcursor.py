@@ -55,6 +55,10 @@ class Displacement:
         result.right_blocks = -self.right_blocks
         return result
 
+    def __repr__(self):
+        return f"(down={self.down_blocks}B,{self.down_vecs}V,{self.down_cells}C; " + \
+               f"right={self.right_blocks}B,{self.right_vecs}V,{self.right_cells}C)"
+
 
 
 class MatrixCursor:

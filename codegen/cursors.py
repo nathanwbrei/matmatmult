@@ -167,19 +167,19 @@ class PatternSparseCursor(Cursor):
 class BlockSparseCursor(Cursor):
     def __init__(self, name: str,
                  base_ptr: Register,
-                 block_matrix: Matrix,
+                 blocks: Matrix,
                  patterns: List[Matrix]) -> None:
 
-        topleftblock = block_matrix[0,0]
+        topleftblock = blocks[0,0]
         br, bc = patterns[topleftblock].shape
-        Br, Bc = block_matrix.shape
+        Br, Bc = blocks.shape
         rows, cols = br*Br, bc*Bc
 
         x = 0
         lookup = [[-1]*cols for i in range(rows)]
         for Bci in range(Bc):        # Iterate over blocks of columns
             for Bri in range(Br):    # Iterate over blocks of rows
-                pattern = patterns[block_matrix[Bri,Bci]]    # Pattern for current block
+                pattern = patterns[blocks[Bri,Bci]]    # Pattern for current block
                 for bci in range(bc):                        # Iterate over cols inside block
                     for bri in range(br):                    # Iterate over rows inside block
                         if pattern[bri,bci]:

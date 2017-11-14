@@ -157,6 +157,10 @@ class MemoryAddress(Operand):
                 return f"[{base_str} + {offset_str}]{bcast_str}"
 
 
+    def __repr__(self):
+        return self.gen(syntax=Syntax.pretty)
+
+
 def bcast(ma:MemoryAddress):
     ma.bcast = True
 
