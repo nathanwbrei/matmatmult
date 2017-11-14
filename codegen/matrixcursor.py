@@ -4,7 +4,7 @@ from codegen.blocks import *
 class Displacement:
     """ Displacement is a container for relative matrix coordinates.
     """
-    def __init__(self, down:int=0, right:int=0, units:str="cells"):
+    def __init__(self, down:int=0, right:int=0, units:str="cells") -> None:
         self.down_cells = 0
         self.right_cells = 0
         self.down_vecs = 0
@@ -155,7 +155,7 @@ class SparseMatrixCursor:
                  rows:int, cols:int,
                  pattern:List[List[bool]],
                  scalar_bytes:int,
-                 vector_width:int = 8):
+                 vector_width:int = 8) -> None:
         self._name = name
         self.rows = rows
         self.cols = cols

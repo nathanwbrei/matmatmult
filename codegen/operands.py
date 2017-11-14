@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import List, Dict
 
 
 AsmType = Enum('AsmType', ['unknown','i8','i16','i32','i64','f32','f64',
@@ -54,9 +54,9 @@ def c(n):
 
 
 class Label(Operand):
-    _interns = {}
-    _last = -1
-    def __init__(self, value):
+    _interns: Dict[str, int] = {}
+    _last: int = -1
+    def __init__(self, value: str) -> None:
         self.value = value
         self.type_info = AsmType.i64
         if value in Label._interns:

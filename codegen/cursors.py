@@ -11,10 +11,12 @@
 # handle this use case correctly.
 
 from typing import Tuple
+from scipy import matrix as Matrix
 from codegen.matrixcursor import Displacement as Coords
 from codegen.operands import *
+from codegen.statements import AsmStatement
 
-class MatrixCursor:
+class Cursor:
 
     _cursor : Coords = Coords()
 
@@ -26,7 +28,7 @@ class MatrixCursor:
                  base_ptr: Register, #idx_ptr: Register,
                  rows: int, cols: int,
                  block_rows: int, block_cols: int,
-                 lookup: List[List[int]]):
+                 lookup: List[List[int]]) -> None:
         self.name = name
         self._base_ptr = base_ptr
         # self._idx_ptr = idx_ptr
@@ -68,7 +70,7 @@ class MatrixCursor:
         return abs_offset
 
     def has_entry(self, rel_coords: Coords) -> bool:
-        abs_coords = self._normalize(coords + self._cursor)
+        abs_coords = self._normalize(rel_coords + self._cursor)
         offset = self.lookup[abs_coords.down_cells][abs_coords.right_cells]
         return offset != -1
 
@@ -80,26 +82,26 @@ class MatrixCursor:
 
 
 
-class DenseMatrixCursor(MatrixCursor):
+class DenseCursor(Cursor):
     def __init__(self, name: str,
                  base_ptr: Register,
                  rows: int, cols: int, ld: int,
-                 block_rows: int, block_cols: int):
+                 block_rows: int, block_cols: int) -> None:
 
         lookup = [[-1]*cols for i in range(rows)]
         for ci in range(cols):
             for ri in range(rows):
                 lookup[ri][ci] = ci*ld + ri
 
-        MatrixCursor.__init__(self, name, base_ptr, rows, cols,
+        Cursor.__init__(self, name, base_ptr, rows, cols,
                               block_rows, block_cols, lookup)
 
 
-class PatternSparseMatrixCursor(MatrixCursor):
+class PatternSparseCursor(Cursor):
     def __init__(self, name: str,
                  base_ptr: Register,
                  rows: int, cols: int,
-                 pattern: List[List[bool]]):
+                 pattern: List[List[bool]]) -> None:
 
         br = len(pattern)
         bc = len(pattern[0])
@@ -112,35 +114,32 @@ class PatternSparseMatrixCursor(MatrixCursor):
                     lookup[ri][ci] = x
                     x += 1
 
-        MatrixCursor.__init__(self, name, base_ptr, rows, cols, br, bc, lookup)
+        Cursor.__init__(self, name, base_ptr, rows, cols, br, bc, lookup)
 
 
-class BlockSparseMatrixCursor(MatrixCursor):
+class BlockSparseCursor(Cursor):
     def __init__(self, name: str,
                  base_ptr: Register,
-                 block_matrix: List[List[int]],
-                 patterns: List[List[List[bool]]]):
+                 block_matrix: Matrix,
+                 patterns: List[Matrix]) -> None:
 
-        topleftblock = block_matrix[0][0]
-        br = len(patterns[topleftblock])
-        bc = len(patterns[topleftblock][0])
-        Br = len(block_matrix)
-        Bc = len(block_matrix[0])
-        rows = br*Br
-        cols = bc*Bc
+        topleftblock = block_matrix[0,0]
+        br, bc = patterns[topleftblock].shape
+        Br, Bc = block_matrix.shape
+        rows, cols = br*Br, bc*Bc
 
         x = 0
         lookup = [[-1]*cols for i in range(rows)]
         for Bci in range(Bc):        # Iterate over blocks of columns
             for Bri in range(Br):    # Iterate over blocks of rows
-                pattern = patterns[block_matrix[Bri][Bci]]   # Pattern for current block
+                pattern = patterns[block_matrix[Bri,Bci]]    # Pattern for current block
                 for bci in range(bc):                        # Iterate over cols inside block
                     for bri in range(br):                    # Iterate over rows inside block
-                        if pattern[bri][bci]:
+                        if pattern[bri,bci]:
                             lookup[Bri*br + bri][Bci*bc + bci] = x
                             x += 1
 
-        MatrixCursor.__init__(self, name, base_ptr, rows, cols, br, bc, lookup)
+        Cursor.__init__(self, name, base_ptr, rows, cols, br, bc, lookup)
 
 
 
