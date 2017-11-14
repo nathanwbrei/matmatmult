@@ -41,19 +41,80 @@ class Cursor:
         self.lookup = lookup
 
     def look(self, coords: Coords) -> Tuple[MemoryAddress, str]:
+        """ Translates logical coordinates (relative to the cursor's current location)
+            into a memory address and helpful comment, which can be embedded in any
+            AsmStatement. Coords should ideally stay 'close by' the cursor, i.e.
+            inside the current block, because AVX512 displacement addressing generates
+            huge FMA instructions when the displacement > 128. If blocksize is large,
+            consider using scale-index addressing with multiple cursors. """
         offset = self.rel_offset(coords)
         addr = self._base_ptr + self._scalar_bytes*offset
         comment = f"{self.name} + {str(coords)}"
         return (addr, comment)
 
     def move(self, coords: Coords):
+        """ Move cursor an exact distance in logical units, and return
+            an assembly statement effecting this. If the matrix is sparse and
+            the entry is nonzero, this will throw an exception because there is
+            no physical address to point to. Can be used in Loops with dense and
+            sufficiently regular patternsparse matrices. For less regular sparse
+            matrices it is preferable to use tab().
+        """
         self._cursor += coords
         offset = self.rel_offset(coords)
         comment = f"{self.name} += {str(coords)} -> {str(self._cursor)}"
         return AsmStatement("addq", [c(offset)], self._base_ptr, comment=comment)
 
+    def tab(self, down_blocks: int = 0, right_blocks: int = 0):
+        """ Move cursor to the first nonzero entry of the block located
+            at (down_blocks,right_blocks) relative to the block in which
+            the cursor currently resides. This allows block traversal
+            of blocksparse matrices.
+
+            Returns a Tuple[AsmStatement, Coords]. The coords indicate where
+            the tab 'landed', i.e. the location of the cursor relative to the
+            logical start of the block. This allows the user to call
+            look() or has_entry() relative to the logical start of block:
+
+            stmt, coords_to_block_start = cursor.tab(down_blocks=1)
+            cursor.has_entry(coords_rel_to_block + coords_to_block_start)
+        """
+
+        # Find abs coords of current block
+        c = self._normalize(self._cursor)
+        c.down_cells = c.down_cells - (c.down_cells % self.br)
+        c.right_cells = c.right_cells - (c.down_cells % self.br)
+
+        # Find abs coords of destination block
+        c.down_cells += down_blocks * self.br
+        c.right_cells += right_blocks * self.bc
+
+        # Find relative offset
+        offset = c.down_cells
+
+        # Search for first nonzero entry in block
+        for bci in range(bc):
+            for bri in range(br):
+                cc = c + Coords(down=bri, right=bci)
+                if self.has_entry():
+                    pass
+
+
+        pass
+        # Figure out current block from coords by normalizing and divving
+        # Compute coords of next block (if it exists)
+        # search block column by column until finding a nonzero entry
+        #return self.move(c)
+
     def reset(self):
-        self._cursor = Coords()
+        c = Coords()
+        c.down_cells   = -self._cursor.down_cells
+        c.right_cells  = -self._cursor.right_cells
+        c.down_vecs    = -self._cursor.down_vecs
+        c.right_vecs   = -self._cursor.right_vecs
+        c.down_blocks  = -self._cursor.down_blocks
+        c.right_blocks = -self._cursor.right_blocks
+        return self.move(c)
 
     # TODO: We will almost certainly want a two-part offset in order to do scale-index addressing
     def rel_offset(self, rel_coords: Coords) -> int:
