@@ -85,16 +85,16 @@ class Cursor:
             Returns a Tuple[AsmStatement, Coords]. The coords indicate where
             the tab 'landed', i.e. the location of the cursor relative to the
             logical start of the block. This allows the user to call
-            look() or has_entry() relative to the logical start of block:
+            look() or has_nonzero_cell() relative to the logical start of block:
 
             stmt, coords_to_block_start = cursor.tab(down_blocks=1)
-            cursor.has_entry(coords_rel_to_block + coords_to_block_start)
+            cursor.has_nonzero_cell(coords_rel_to_block + coords_to_block_start)
         """
 
         # Find abs coords of current block
         c = self._normalize(self._cursor)
         c.down_cells = c.down_cells - (c.down_cells % self.br)
-        c.right_cells = c.right_cells - (c.down_cells % self.br)
+        c.right_cells = c.right_cells - (c.right_cells % self.bc)
 
         # Find abs coords of destination block
         c.down_cells += down_blocks * self.br
@@ -106,7 +106,7 @@ class Cursor:
             for bri in range(self.br):
                 dest_cell_rel_dest_block = Coords(down=bri, right=bci)
                 dest_cell_rel_src = dest_cell_rel_dest_block + dest_block_abs - self._cursor
-                if self.has_entry(dest_cell_rel_src):
+                if self.has_nonzero_cell(dest_cell_rel_src):
                     return (self.move(dest_cell_rel_src), -dest_cell_rel_dest_block)
 
         raise Exception("Unable to tab(): Block is completely empty!")
@@ -130,11 +130,35 @@ class Cursor:
             raise Exception(f"Entry {coords.down_cells},{coords.right_cells} does not exist!")
         return abs_offset
 
-    def has_entry(self, rel_coords: Coords) -> bool:
+
+    def has_nonzero_cell(self, rel_coords: Coords) -> bool:
         abs_coords = self._normalize(rel_coords + self._cursor)
         self._bounds_check(abs_coords)
         offset = self.lookup[abs_coords.down_cells][abs_coords.right_cells]
         return offset != -1
+
+    def has_nonzero_block(self, blocks_down: int, blocks_right: int) -> bool:
+
+        # Find abs coords of current block
+        dest_block_abs = self._normalize(self._cursor)
+        dest_block_abs.down_cells -= (c.down_cells % self.br)
+        dest_block_abs.right_cells -= (c.right_cells % self.bc)
+
+        # Find abs coords of destination block
+        dest_block_abs.down_cells += down_blocks * self.br
+        dest_block_abs.right_cells += right_blocks * self.bc
+
+        nonzero = False
+        for bci in range(self.bc):
+            for bri in range(self.br):
+
+                dest_cell_rel_dest_block = Coords(down=bri, right=bci)
+                dest_cell_rel_src = dest_cell_rel_dest_block + dest_block_abs - self._cursor
+                if self.has_nonzero_cell(dest_cell_rel_src):
+                    nonzero = True
+
+        return nonzero
+
 
     def _bounds_check(self, abs_coords: Coords) -> None:
         ri,ci = abs_coords.down_cells, abs_coords.right_cells
