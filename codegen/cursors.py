@@ -188,20 +188,20 @@ class DenseCursor(Cursor):
                               block_rows, block_cols, lookup)
 
 
-class PatternSparseCursor(Cursor):
+class TiledCursor(Cursor):
     def __init__(self, name: str,
                  base_ptr: Register,
                  rows: int, cols: int,
-                 pattern: List[List[bool]]) -> None:
+                 pattern: Matrix  # Matrix[bool]
+                ) -> None:
 
-        br = len(pattern)
-        bc = len(pattern[0])
+        br,bc = pattern.shape
         lookup = [[-1]*cols for i in range(rows)]
         x = 0
 
         for ci in range(cols):
             for ri in range(rows):
-                if pattern[ri % br][ci % bc]:
+                if pattern[ri % br, ci % bc]:
                     lookup[ri][ci] = x
                     x += 1
 
