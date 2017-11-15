@@ -62,7 +62,7 @@ class Register(Operand):
 
     def __init__(self, typeinfo:AsmType, value:str):
         self.typeinfo = typeinfo
-        self.value = value
+        self.value = str(value)
 
     def __add__(self, offset):
         if isinstance(offset, Constant):
@@ -72,9 +72,12 @@ class Register(Operand):
 
     def gen(self, syntax:Syntax=inline):
         if syntax is inline:
-            return "%%" + str(self.value)
+            return "%%" + self.value
         else:
-            return (self.value)
+            return self.value
+
+    def __repr__(self):
+        return self.value
 
 
 rax = Register(AsmType.i64, "rax")
