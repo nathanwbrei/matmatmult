@@ -25,13 +25,13 @@ class Cursor:
     _vc: int = 1              # Vector cols
 
     def __init__(self, name: str,
-                 base_ptr: Register, #idx_ptr: Register,
+                 base_ptr: Register,
                  rows: int, cols: int,
                  block_rows: int, block_cols: int,
                  lookup: List[List[int]]) -> None:
         self.name = name
         self._base_ptr = base_ptr
-        # self._idx_ptr = idx_ptr
+        self._index_ptr = None
         self.r = rows
         self.c = cols
         self.br = block_rows
@@ -47,12 +47,17 @@ class Cursor:
             inside the current block, because AVX512 displacement addressing generates
             huge FMA instructions when the displacement > 128. If blocksize is large,
             consider using scale-index addressing with multiple cursors. """
+
+        comment = f"{self.name} @ {str(coords)}"
         offset = self.rel_offset(coords)
-        addr = self._base_ptr + self._scalar_bytes*offset
-        comment = f"{self.name} + {str(coords)}"
+        if self._index_ptr is not None:
+            addr = MemoryAddress(self._base_ptr, self._index_ptr,
+                                 c(1), c(offset*self._scalar_bytes))
+        else:
+            addr = self._base_ptr + self._scalar_bytes*offset
         return (addr, comment)
 
-    def move(self, coords: Coords):
+    def move(self, coords: Coords, move_base_ptr=False):
         """ Move cursor an exact distance in logical units, and return
             an assembly statement effecting this. If the matrix is sparse and
             the entry is nonzero, this will throw an exception because there is
@@ -60,10 +65,16 @@ class Cursor:
             sufficiently regular patternsparse matrices. For less regular sparse
             matrices it is preferable to use tab().
         """
+
+        if move_base_ptr or (self._index_ptr is None):
+            ptr_to_move = self._base_ptr
+        else:
+            ptr_to_move = self._index_ptr
+
         offset = self.rel_offset(coords) * self._scalar_bytes
         comment = f"{self.name} += {str(coords)} -> {str(self._cursor)}"
         self._cursor += coords
-        return AsmStatement("addq", [c(offset)], self._base_ptr, comment=comment)
+        return AsmStatement("addq", [c(offset)], ptr_to_move, comment=comment)
 
     def tab(self, down_blocks: int = 0, right_blocks: int = 0):
         """ Move cursor to the first nonzero entry of the block located
