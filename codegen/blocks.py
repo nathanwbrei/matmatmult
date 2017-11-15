@@ -52,14 +52,14 @@ class AsmBlock:
         self.block = block
         return self
 
-    def gen(self, env={}, syntax:Syntax=Syntax.inline, depth=0):
+    def gen(self, syntax:Syntax=inline, depth=0):
 
         result = ""
-        if (syntax == Syntax.pretty):
+        if (syntax == pretty):
             if self.comment is not None:
                 result += "  " * depth + ";; " + self.comment + "\n"
 
-        result += "\n".join(s.gen(env,syntax,depth+1) for s in self.block)
+        result += "\n".join(s.gen(syntax,depth+1) for s in self.block)
         return result
 
     def show(self):

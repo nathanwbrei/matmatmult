@@ -42,14 +42,14 @@ class Loop(AsmBlock):
                     .include(Jump("jl", self.label, "b"))
 
 
-    def gen(self, env={}, syntax=Syntax.inline, depth=0):
+    def gen(self, syntax=inline, depth=0):
 
         outer = self.preamble()
         inner = AsmBlock("Loop body")
         inner.block.extend(self.block)
         outer.block.append(inner)
         outer.block.extend(self.postamble().block)
-        return outer.gen(env, syntax, depth)
+        return outer.gen(syntax, depth)
 
     def outputs(self):
         result = AsmBlock.outputs(self)

@@ -10,46 +10,29 @@ AsmType.__doc__ = """Enum of different concrete types, the useful subset of
     Each Operand has exactly one concrete type."""
 
 Syntax = Enum('Syntax', ['inline', 'intel', 'pretty'])
-
+inline = Syntax.inline
+intel = Syntax.intel
+pretty = Syntax.pretty
 
 
 class Operand:
-    """ Base class for different types of operands.
-        Any Operand may contain either a value or a symbol.
-        Contains mechanism for interning symbolic operands. """
-    # TODO: Do we really need symbolic operands?
-    symbols: List[int] = []
-    def __init__(self, type_info=AsmType.unknown, value=None):
-        self.type_info = type_info
-        self.value = value
-        if (value is None):
-            self.symbol = len(Operand.symbols)
-            Operand.symbols.append(self)
-        else:
-            self.symbol = None
-
-    def gen(self, env, syntax):
+    """ Base class for different types of operands. """
+    def gen(self, syntax:Syntax = inline):
         pass
 
-
 class Constant(Operand):
-    def gen(self, env={}, syntax:Syntax = Syntax.inline):
+    def __init__(self, value:int):
+        self.value = value
 
-        if self.value is not None:
-            base = str(self.value)
-        elif self.symbol in env:
-            base = env[self.symbol]
+    def gen(self, syntax:Syntax = inline):
+        if syntax == inline:
+            return "$" + str(self.value)
         else:
-            base = "?" + str(self.symbol)
-
-        if syntax == Syntax.inline:
-            return "$" + base
-        else:
-            return base
+            return str(self.value)
 
 def c(n):
     """Sugar for conveniently defining integer constants"""
-    return Constant(AsmType.i64, value=int(n))
+    return Constant(value=int(n))
 
 
 
@@ -58,7 +41,6 @@ class Label(Operand):
     _last: int = -1
     def __init__(self, value: str) -> None:
         self.value = value
-        self.type_info = AsmType.i64
         if value in Label._interns:
             self.ordinal = Label._interns[value]
         else:
@@ -66,7 +48,7 @@ class Label(Operand):
             Label._last += 1
             Label._interns[value] = self.ordinal
 
-    def gen(self, env={}, syntax=Syntax.inline):
+    def gen(self, syntax=inline):
         if syntax == Syntax.inline:
             return str(self.ordinal)
         else:
@@ -78,25 +60,21 @@ def l(label: str):
 
 class Register(Operand):
 
+    def __init__(self, typeinfo:AsmType, value:str):
+        self.typeinfo = typeinfo
+        self.value = value
+
     def __add__(self, offset):
         if isinstance(offset, Constant):
             return MemoryAddress(self, None, None, offset)
         elif isinstance(offset, int):
-            return MemoryAddress(self, None, None, Constant(AsmType.i64,offset))
+            return MemoryAddress(self, None, None, Constant(offset))
 
-    def gen(self, env={}, syntax:Syntax=Syntax.inline):
-
-        if self.value is not None:
-            base = str(self.value)
-        elif self.symbol in env:
-            base = env[self.symbol]
+    def gen(self, syntax:Syntax=inline):
+        if syntax is inline:
+            return "%%" + str(self.value)
         else:
-            base = "?" + str(self.symbol)
-
-        if syntax is Syntax.inline:
-            return "%%" + base
-        else:
-            return base
+            return (self.value)
 
 
 rax = Register(AsmType.i64, "rax")
@@ -128,30 +106,29 @@ class MemoryAddress(Operand):
         self.offset = offset
         self.alignment = alignment
         self.bcast = bcast
-        self.type_info = AsmType.unknown
 
 
-    def gen(self, env = {}, syntax: Syntax = Syntax.inline) -> str:
+    def gen(self, syntax: Syntax = inline) -> str:
 
-        base_str = self.base.gen(env, syntax)
-        offset_str = self.offset.gen(env, Syntax.intel)
+        base_str = self.base.gen(syntax)
+        offset_str = self.offset.gen(Syntax.intel)
         if not self.bcast:
             bcast_str = ""
-        elif syntax == Syntax.inline:
+        elif syntax == inline:
             bcast_str = "%{1to8%}"
         else:
             bcast_str = "x8"
 
         if self.index is not None and self.scale is not None:
-            index_str = self.index.gen(env, syntax)
-            scale_str = self.scale.gen(env, syntax.intel)
+            index_str = self.index.gen(syntax)
+            scale_str = self.scale.gen(intel)
 
-            if syntax == Syntax.inline:
+            if syntax == inline:
                 return f"{offset_str}({base_str}, {index_str}, {scale_str}){bcast_str}"
             else:
                 return f"[{base_str} + {index_str}*{scale_str} + {offset_str}]{bcast_str}"
         else:
-            if syntax == Syntax.inline:
+            if syntax == inline:
                 return f"{offset_str}({base_str}){bcast_str}"
             else:
                 return f"[{base_str} + {offset_str}]{bcast_str}"
@@ -160,9 +137,6 @@ class MemoryAddress(Operand):
     def __repr__(self):
         return self.gen(syntax=Syntax.pretty)
 
-
-def bcast(ma:MemoryAddress):
-    ma.bcast = True
 
 def mem(base, index, scale, offset):
     return MemoryAddress(base, index, scale, offset)

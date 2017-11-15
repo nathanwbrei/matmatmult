@@ -113,14 +113,14 @@ class AsmStatement:
     }
 
 
-    def gen(self, env={}, syntax:Syntax = Syntax.inline, depth=0):
+    def gen(self, syntax:Syntax = inline, depth=0):
 
         result = ""
         if syntax == Syntax.inline:
             result += self.operation + " "
-            result += ", ".join(x.gen(env,syntax) for x in self.inputs)
+            result += ", ".join(x.gen(syntax) for x in self.inputs)
             if self.output is not None:
-                result += ", " + self.output.gen(env,syntax)
+                result += ", " + self.output.gen(syntax)
             #if self.comment is not None:
             #    result += "    ; " + self.comment
             return result
@@ -128,8 +128,8 @@ class AsmStatement:
         elif syntax == Syntax.intel:
             result += self.intel_syntax.get(self.operation, self.operation) + " "
             if self.output is not None:
-                result += self.output.gen(env,syntax) + ", "
-            result += ", ".join(x.gen(env,syntax) for x in self.inputs)
+                result += self.output.gen(syntax) + ", "
+            result += ", ".join(x.gen(syntax) for x in self.inputs)
             if self.comment is not None:
                 result += "    ; " + self.comment
             return result
@@ -137,9 +137,9 @@ class AsmStatement:
         elif syntax == Syntax.pretty:
             result += '  '*(depth-1)
             result += self.pretty_syntax.get(self.operation, self.operation) + " "
-            result += ", ".join(x.gen(env,syntax) for x in self.inputs)
+            result += ", ".join(x.gen(syntax) for x in self.inputs)
             if self.output is not None:
-                result += " -> " + self.output.gen(env,syntax)
+                result += " -> " + self.output.gen(syntax)
             if self.comment is not None:
                 result += "    ; " + self.comment
             return result
@@ -158,11 +158,11 @@ class LabelDeclaration:
     def __init__(self, label:Label) -> None:
         self.label = label
 
-    def gen(self, env={}, syntax:Syntax=Syntax.inline, depth=0):
+    def gen(self, syntax:Syntax=Syntax.inline, depth=0):
         result = ""
         if (syntax == Syntax.pretty):
             result += "  "*(depth-1)
-        result += self.label.gen(env,syntax) + ":"
+        result += self.label.gen(syntax) + ":"
         return result
 
     def outputs(self):
@@ -175,7 +175,7 @@ class Jump(AsmStatement):
         self.label = Label(label)
         self.direction = direction
 
-    def gen(self, env={}, syntax=Syntax.inline, depth=0):
+    def gen(self, syntax=inline, depth=0):
         if syntax == Syntax.pretty:
             indent = "  "*(depth-1)
             return f"{indent}{self.op} {self.label.gen(syntax)} ({self.direction})"
@@ -192,7 +192,7 @@ class BcastFma(AsmStatement):
         self.mult_src = mult_src
         self.add_dest = add_dest
 
-    def gen(self, env={}, syntax=Syntax.inline, depth=0):
+    def gen(self, syntax=inline, depth=0):
 
         b = self.bcast_src.gen(syntax=syntax)
         m = self.mult_src.gen(syntax=syntax)
