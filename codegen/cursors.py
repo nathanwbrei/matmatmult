@@ -12,7 +12,7 @@
 
 from typing import Tuple
 from scipy import matrix as Matrix
-from codegen.matrixcursor import Displacement as Coords
+from codegen.coords import Coords
 from codegen.operands import *
 from codegen.statements import AsmStatement
 
@@ -88,13 +88,15 @@ class Cursor:
         # Find abs coords of destination block
         c.down_cells += down_blocks * self.br
         c.right_cells += right_blocks * self.bc
+        dest_block_abs = c
 
         # Find first nonzero entry in block
         for bci in range(self.bc):
             for bri in range(self.br):
-                cc = Coords(down=bri, right=bci)
-                if self.has_entry(c+cc):
-                    return (self.move(c+cc), -c)
+                dest_cell_rel_dest_block = Coords(down=bri, right=bci)
+                dest_cell_rel_src = dest_cell_rel_dest_block + dest_block_abs - self._cursor
+                if self.has_entry(dest_cell_rel_src):
+                    return (self.move(dest_cell_rel_src), -dest_cell_rel_dest_block)
 
         raise Exception("Unable to tab(): Block is completely empty!")
 
