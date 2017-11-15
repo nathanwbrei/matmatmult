@@ -60,9 +60,9 @@ class Cursor:
             sufficiently regular patternsparse matrices. For less regular sparse
             matrices it is preferable to use tab().
         """
-        self._cursor += coords
-        offset = self.rel_offset(coords)
+        offset = self.rel_offset(coords) * self._scalar_bytes
         comment = f"{self.name} += {str(coords)} -> {str(self._cursor)}"
+        self._cursor += coords
         return AsmStatement("addq", [c(offset)], self._base_ptr, comment=comment)
 
     def tab(self, down_blocks: int = 0, right_blocks: int = 0):
@@ -90,8 +90,8 @@ class Cursor:
         c.right_cells += right_blocks * self.bc
 
         # Find first nonzero entry in block
-        for bci in range(bc):
-            for bri in range(br):
+        for bci in range(self.bc):
+            for bri in range(self.br):
                 cc = Coords(down=bri, right=bci)
                 if self.has_entry(c+cc):
                     return (self.move(c+cc), -c)
@@ -111,6 +111,7 @@ class Cursor:
 
     def abs_offset(self, abs_coords: Coords) -> int:
         coords = self._normalize(abs_coords)
+        self._bounds_check(coords)
         abs_offset = self.lookup[coords.down_cells][coords.right_cells]
         if abs_offset == -1:
             raise Exception(f"Entry {coords.down_cells},{coords.right_cells} does not exist!")
@@ -118,8 +119,14 @@ class Cursor:
 
     def has_entry(self, rel_coords: Coords) -> bool:
         abs_coords = self._normalize(rel_coords + self._cursor)
+        self._bounds_check(abs_coords)
         offset = self.lookup[abs_coords.down_cells][abs_coords.right_cells]
         return offset != -1
+
+    def _bounds_check(self, abs_coords: Coords) -> None:
+        ri,ci = abs_coords.down_cells, abs_coords.right_cells
+        if ri>=self.r or ci>=self.c or ri<0 or ci<0:
+            raise Exception(f"Entry {ri},{ci} outside matrix!")
 
     def _normalize(self, c: Coords) -> Coords:
         """ Convert coord units to cells-only """

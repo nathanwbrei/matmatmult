@@ -59,6 +59,13 @@ class Displacement:
         return f"(down={self.down_blocks}B,{self.down_vecs}V,{self.down_cells}C; " + \
                f"right={self.right_blocks}B,{self.right_vecs}V,{self.right_cells}C)"
 
+    def __eq__(self, other):
+        return self.down_cells == other.down_cells and \
+            self.down_vecs == other.down_vecs and \
+            self.down_blocks == other.down_blocks and \
+            self.right_cells == other.right_cells and \
+            self.right_vecs == other.right_vecs and \
+            self.right_blocks == other.right_blocks
 
 
 class MatrixCursor:
