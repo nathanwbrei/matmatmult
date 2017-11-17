@@ -48,7 +48,7 @@ class Cursor:
             huge FMA instructions when the displacement > 128. If blocksize is large,
             consider using scale-index addressing with multiple cursors. """
 
-        comment = f"{self.name} @ {str(coords)}"
+        comment = f"{self.name}{str(coords)}"
         offset = self.rel_offset(coords)
         if self._index_ptr is not None:
             addr = MemoryAddress(self._base_ptr, self._index_ptr,
@@ -57,7 +57,7 @@ class Cursor:
             addr = self._base_ptr + self._scalar_bytes*offset
         return (addr, comment)
 
-    def move(self, coords: Coords, move_base_ptr=False):
+    def move(self, coords: Coords, move_base_ptr=False, iters=1):
         """ Move cursor an exact distance in logical units, and return
             an assembly statement effecting this. If the matrix is sparse and
             the entry is nonzero, this will throw an exception because there is
@@ -73,7 +73,8 @@ class Cursor:
 
         offset = self.rel_offset(coords) * self._scalar_bytes
         comment = f"{self.name} += {str(coords)} -> {str(self._cursor)}"
-        self._cursor += coords
+        for x in range(iters):
+            self._cursor += coords
         return AsmStatement("addq", [c(offset)], ptr_to_move, comment=comment)
 
     def tab(self, down_blocks: int = 0, right_blocks: int = 0):
@@ -141,12 +142,12 @@ class Cursor:
 
         # Find abs coords of current block
         dest_block_abs = self._normalize(self._cursor)
-        dest_block_abs.down_cells -= (c.down_cells % self.br)
-        dest_block_abs.right_cells -= (c.right_cells % self.bc)
+        dest_block_abs.down_cells -= (dest_block_abs.down_cells % self.br)
+        dest_block_abs.right_cells -= (dest_block_abs.right_cells % self.bc)
 
         # Find abs coords of destination block
-        dest_block_abs.down_cells += down_blocks * self.br
-        dest_block_abs.right_cells += right_blocks * self.bc
+        dest_block_abs.down_cells += blocks_down * self.br
+        dest_block_abs.right_cells += blocks_right * self.bc
 
         nonzero = False
         for bci in range(self.bc):
@@ -162,7 +163,8 @@ class Cursor:
 
     def _bounds_check(self, abs_coords: Coords) -> None:
         ri,ci = abs_coords.down_cells, abs_coords.right_cells
-        if ri>=self.r or ci>=self.c or ri<0 or ci<0:
+        r, c = len(self.lookup), len(self.lookup[0])
+        if ri >= r or ci >= c or ri < 0 or ci < 0:
             raise Exception(f"Entry {ri},{ci} outside matrix!")
 
     def _normalize(self, c: Coords) -> Coords:
@@ -179,9 +181,12 @@ class DenseCursor(Cursor):
                  rows: int, cols: int, ld: int,
                  block_rows: int, block_cols: int) -> None:
 
-        lookup = [[-1]*cols for i in range(rows)]
-        for ci in range(cols):
-            for ri in range(rows):
+        lookup = [[-1]*(cols+1) for i in range(rows+1)]
+        # Lookup is 1 cell bigger so that we can loop over blocks and let the pointer
+        # get "off the grid" on the last iteration.
+
+        for ci in range(cols+1):
+            for ri in range(rows+1):
                 lookup[ri][ci] = ci*ld + ri
 
         Cursor.__init__(self, name, base_ptr, rows, cols,
@@ -196,14 +201,16 @@ class TiledCursor(Cursor):
                 ) -> None:
 
         br,bc = pattern.shape
-        lookup = [[-1]*cols for i in range(rows)]
+        lookup = [[-1]*(cols+1) for i in range(rows+1)]
         x = 0
 
-        for ci in range(cols):
-            for ri in range(rows):
+        # Fringe uses wraparound strategy
+        for ci in range(cols+1):
+            for ri in range(rows+1):
                 if pattern[ri % br, ci % bc]:
                     lookup[ri][ci] = x
                     x += 1
+            x -= 1
 
         Cursor.__init__(self, name, base_ptr, rows, cols, br, bc, lookup)
 
@@ -220,7 +227,7 @@ class BlockSparseCursor(Cursor):
         rows, cols = br*Br, bc*Bc
 
         x = 0
-        lookup = [[-1]*cols for i in range(rows)]
+        lookup = [[-1]*(cols) for i in range(rows)]
         for Bci in range(Bc):        # Iterate over blocks of columns
             for Bri in range(Br):    # Iterate over blocks of rows
                 pattern = patterns[blocks[Bri,Bci]]    # Pattern for current block

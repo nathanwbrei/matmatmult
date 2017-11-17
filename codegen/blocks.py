@@ -12,7 +12,7 @@ class AsmBlock:
         self.parent = parent
 
 
-    def stmt(self, operation: str, *args) -> "AsmBlock":
+    def stmt(self, operation: str, *args, **kwargs) -> "AsmBlock":
 
         def parse(arg):
             if isinstance(arg, Operand) or arg is None:
@@ -22,17 +22,19 @@ class AsmBlock:
             elif isinstance(arg, str):
                 return Label(arg)
             elif isinstance(arg, tuple):
+                raise Exception("Not sure why I thought I wanted this.")
                 return arg[0]+arg[1]
             else:
                 raise Exception("Unable to interpret operand: " + arg)
 
         inputs = [parse(a) for a in args[:-1]]
         output = parse(args[-1])
-        self.block.append(AsmStatement(operation, inputs, output))
+        comment = kwargs.get("comment", None)
+        self.block.append(AsmStatement(operation, inputs, output, comment=comment))
         return self
 
 
-    def label(self, label: str) -> "AsmBlock":
+    def labeldecl(self, label: str) -> "AsmBlock":
         self.block.append(LabelDeclaration(Label(label)))
         return self
 
@@ -57,7 +59,7 @@ class AsmBlock:
         result = ""
         if (syntax == pretty):
             if self.comment is not None:
-                result += "  " * depth + ";; " + self.comment + "\n"
+                result += "  " * depth + "## " + self.comment + "\n"
 
         result += "\n".join(s.gen(syntax,depth+1) for s in self.block)
         return result

@@ -4,7 +4,7 @@ from codegen.blocks import *
 class Loop(AsmBlock):
     """ For now, unroll and optimize should only be used if the loop
     body does not depend on the iteration variable."""
-    _labels = []
+    _labels: List[str] = []
     def __init__(self, 
             iteration_var: Register, 
             initial_val: Constant, 
@@ -27,7 +27,7 @@ class Loop(AsmBlock):
 
         return AsmBlock(comment) \
                 .stmt("movq", self.initial_val, self.iteration_var) \
-                .label(self.label)
+                .labeldecl(self.label)
 
 
     def postamble(self):

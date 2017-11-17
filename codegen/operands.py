@@ -17,11 +17,11 @@ pretty = Syntax.pretty
 
 class Operand:
     """ Base class for different types of operands. """
-    def gen(self, syntax:Syntax = inline):
+    def gen(self, syntax:Syntax = inline) -> str:
         pass
 
 class Constant(Operand):
-    def __init__(self, value:int):
+    def __init__(self, value:int) -> None:
         self.value = value
 
     def gen(self, syntax:Syntax = inline):
@@ -60,7 +60,7 @@ def l(label: str):
 
 class Register(Operand):
 
-    def __init__(self, typeinfo:AsmType, value:str):
+    def __init__(self, typeinfo:AsmType, value:str) -> None:
         self.typeinfo = typeinfo
         self.value = str(value)
 
@@ -129,12 +129,12 @@ class MemoryAddress(Operand):
             if syntax == inline:
                 return f"{offset_str}({base_str}, {index_str}, {scale_str}){bcast_str}"
             else:
-                return f"[{base_str} + {index_str}*{scale_str} + {offset_str}]{bcast_str}"
+                return f"[{base_str}+{index_str}*{scale_str}+{offset_str}]{bcast_str}"
         else:
             if syntax == inline:
                 return f"{offset_str}({base_str}){bcast_str}"
             else:
-                return f"[{base_str} + {offset_str}]{bcast_str}"
+                return f"[{base_str}+{offset_str}]{bcast_str}"
 
 
     def __repr__(self):

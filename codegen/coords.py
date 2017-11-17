@@ -73,6 +73,26 @@ class Coords:
             self.right_blocks == other.right_blocks
 
     def __repr__(self):
-        return f"(down={self.down_blocks}B,{self.down_vecs}V,{self.down_cells}C; " + \
-               f"right={self.right_blocks}B,{self.right_vecs}V,{self.right_cells}C)"
 
+        down = []
+        if self.down_blocks != 0:
+            down.append(f"{self.down_blocks}b")
+        if self.down_vecs != 0:
+            down.append(f"{self.down_vecs}v")
+        if self.down_cells != 0:
+            down.append(f"{self.down_cells}c")
+
+        right = []
+        if self.right_blocks != 0:
+            right.append(f"{self.right_blocks}b")
+        if self.right_vecs != 0:
+            right.append(f"{self.right_vecs}v")
+        if self.right_cells != 0:
+            right.append(f"{self.right_cells}c")
+
+        downstr = ",".join(down)
+        rightstr = ",".join(right)
+        return f"(down={downstr}; right={rightstr})"
+
+
+down1block = Coords(down=1,units="blocks")

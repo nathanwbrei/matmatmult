@@ -141,7 +141,7 @@ class AsmStatement:
             if self.output is not None:
                 result += " -> " + self.output.gen(syntax)
             if self.comment is not None:
-                result += "    ; " + self.comment
+                result += "    # " + self.comment
             return result
 
         else:
@@ -187,10 +187,16 @@ class Jump(AsmStatement):
 
 
 class BcastFma(AsmStatement):
-    def __init__(self, bcast_src:MemoryAddress, mult_src:Register, add_dest:Register):
+    def __init__(self,
+                 bcast_src: MemoryAddress,
+                 mult_src: Register,
+                 add_dest: Register,
+                 comment: str = None
+                ) -> None:
         self.bcast_src = bcast_src
         self.mult_src = mult_src
         self.add_dest = add_dest
+        self.comment = comment
 
     def gen(self, syntax=inline, depth=0):
 
@@ -200,7 +206,7 @@ class BcastFma(AsmStatement):
         indent = "  "*(depth-1)
 
         if syntax == Syntax.pretty:
-            return f"{indent}bma {b} {m} -> {a}"
+            return f"{indent}bma {b} {m} -> {a}    # {self.comment}"
         else:
             return f"vfmadd231pd {b}%{{1to8%}}, {m}, {a}"
 

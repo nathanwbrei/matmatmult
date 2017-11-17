@@ -20,8 +20,9 @@ class Parameters(NamedTuple):
     pattern_update: Tuple[int,int] = None
 
     def cursors(self):
-        nb = len(self.C_regs)
-        kb = len(self.A_regs)
+        _, kb = self.A_regs.shape
+        mb, nb = self.C_regs.shape
+        mb *= 8
         A = DenseCursor("A", rdi, self.m, self.k, self.lda, 8, kb)
         B = TiledCursor("B", rsi, self.k, self.n, self.pattern)
         C = DenseCursor("C", rdx, self.m, self.n, self.ldc, mb, nb)
@@ -58,12 +59,12 @@ def make_gemm(p:Parameters) -> AsmBlock:
                 block_inner_prod(p),
                 store_register_block(C, C_regs, C_mask),
 
-                A.move(down=1, units="blocks"),  # TODO: Use tab() instead
-                C.move(down=1, units="blocks")
+                A.move(down1block, iters=m//mb),
+                C.move(down1block, iters=m//mb),
             ]),
-            A.move(down=-m, units="cells"),
-            B.move(right=1, units="blocks"),
-            C.move(down=-m, right=nb, units="cells"),
+            A.move(Coords(down=-m, units="cells")),
+            B.move(Coords(right=1, units="blocks"), iters=n//nb),
+            C.move(Coords(down=-m, right=nb, units="cells")),
         ])
     ])
     return asm
@@ -73,8 +74,8 @@ def block_inner_prod(p):
 
     m, n, k = p.m, p.n, p.k   # Number of cells in m,n,k -directions
     mb = 8                    # Number of cells in one m-block
-    nb = len(p.C_regs)        # Number of cells in one n-block
-    kb = len(p.A_regs)        # Number of cells in one k-block
+    nb = p.C_regs.shape[1]    # Number of cells in one n-block
+    kb = p.A_regs.shape[1]    # Number of cells in one k-block
     kB = k // kb              # Number of complete k-blocks
     kr = k % kb               # Number of remaining cells in k-direction
 
@@ -87,15 +88,16 @@ def block_inner_prod(p):
 
     for ikB in range(kB):    # for each k-block
 
-        block_disp = Coords(right=ikB, units="blocks")
-        asm.include(load_register_block(A, A_regs, A_mask, block_disp))
+        to_A_block = Coords(right=ikB, units="blocks")
+        to_B_block = Coords(down=ikB, units="blocks")
+        asm.include(load_register_block(A, A_regs, A_mask, to_A_block))
 
         for ikb in range(kb):       # inside this k-block
             for inb in range(nb):   # inside this n-block
-                if B.has_nonzero_cell(ikB*kb+ikb, inb):
-                    asm.include(BcastFma(B.look(down = ikB*kb+ikb, right = inb),
-                                         A_regs[ikb],
-                                         C_regs[inb]))
+                to_cell = to_B_block + Coords(down=ikb, right=inb)
+                if B.has_nonzero_cell(to_cell):
+                    B_cell, comment = B.look(to_cell)
+                    asm.include(BcastFma(B_cell, A_regs[0,ikb], C_regs[0,inb], comment=comment))
 
     # Account for remaining columns (which don't fill a block)
     asm.include(load_register_block(A, A_regs, A_mask_partial,
@@ -103,13 +105,13 @@ def block_inner_prod(p):
 
     for ikr in range(kr):
         for inb in range(nb):
-            if B.has_entry(kB*kb+ikr, inb):
-                asm.include(BcastFma(B.look(down = kB*kb+ikr, right = inb),
-                                     A_regs[ikr],
-                                     C_regs[inb]))
+            to_fringe_cell = Coords(down=kB*kb+ikr, right=inb)
+            if B.has_nonzero_cell(to_fringe_cell):
+                B_cell, comment = B.look(to_fringe_cell)
+                asm.include(BcastFma(B_cell, A_regs[0,ikr], C_regs[0,inb], comment=comment))
     return asm
 
 
 
-
-print(make_gemm(defaults).gen(syntax=Syntax.pretty))
+default_alg = make_gemm(defaults)
+print(default_alg.gen(pretty))
