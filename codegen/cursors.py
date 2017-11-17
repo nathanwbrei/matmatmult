@@ -91,26 +91,32 @@ class Cursor:
             stmt, coords_to_block_start = cursor.tab(down_blocks=1)
             cursor.has_nonzero_cell(coords_rel_to_block + coords_to_block_start)
         """
+        lbs = self.to_logical_blockstart(down, right)
+        pbs = self.to_physical_blockstart(down, right)
+        return (self.move(pbs), lbs-pbs)
 
+
+    def to_logical_blockstart(self, down_blocks=0, right_blocks=0) -> Coords:
         # Find abs coords of current block
         c = self._normalize(self._cursor)
-        c.down_cells = c.down_cells - (c.down_cells % self.br)
-        c.right_cells = c.right_cells - (c.right_cells % self.bc)
+        c.down_cells -= c.down_cells % self.br
+        c.right_cells -= c.right_cells % self.bc
 
         # Find abs coords of destination block
         c.down_cells += down_blocks * self.br
         c.right_cells += right_blocks * self.bc
-        dest_block_abs = c
+        return c - self._cursor
 
+    def to_physical_blockstart(self, down_blocks=0, right_blocks=0) -> Coords:
+        lbs = self.to_logical_blockstart(down, right)
         # Find first nonzero entry in block
         for bci in range(self.bc):
             for bri in range(self.br):
-                dest_cell_rel_dest_block = Coords(down=bri, right=bci)
-                dest_cell_rel_src = dest_cell_rel_dest_block + dest_block_abs - self._cursor
-                if self.has_nonzero_cell(dest_cell_rel_src):
-                    return (self.move(dest_cell_rel_src), -dest_cell_rel_dest_block)
+                pbs = Coords(down=bri, right=bci) + lbs
+                if self.has_nonzero_cell(pbs):
+                    return pbs
 
-        raise Exception("Unable to tab(): Block is completely empty!")
+        raise Exception("No physical blockstart: Block is completely empty!")
 
 
     def reset(self):
@@ -140,22 +146,12 @@ class Cursor:
 
     def has_nonzero_block(self, blocks_down: int, blocks_right: int) -> bool:
 
-        # Find abs coords of current block
-        dest_block_abs = self._normalize(self._cursor)
-        dest_block_abs.down_cells -= (dest_block_abs.down_cells % self.br)
-        dest_block_abs.right_cells -= (dest_block_abs.right_cells % self.bc)
-
-        # Find abs coords of destination block
-        dest_block_abs.down_cells += blocks_down * self.br
-        dest_block_abs.right_cells += blocks_right * self.bc
-
+        lbs = self.to_logical_blockstart(blocks_down, blocks_right)
         nonzero = False
         for bci in range(self.bc):
             for bri in range(self.br):
-
-                dest_cell_rel_dest_block = Coords(down=bri, right=bci)
-                dest_cell_rel_src = dest_cell_rel_dest_block + dest_block_abs - self._cursor
-                if self.has_nonzero_cell(dest_cell_rel_src):
+                to_cell = Coords(down=bri, right=bci) + lbs
+                if self.has_nonzero_cell(to_cell):
                     nonzero = True
 
         return nonzero
