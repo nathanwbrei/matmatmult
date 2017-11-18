@@ -91,9 +91,10 @@ class Cursor:
             stmt, coords_to_block_start = cursor.tab(down_blocks=1)
             cursor.has_nonzero_cell(coords_rel_to_block + coords_to_block_start)
         """
-        lbs = self.to_logical_blockstart(down, right)
-        pbs = self.to_physical_blockstart(down, right)
+        lbs = self.to_logical_blockstart(down_blocks, right_blocks)
+        pbs = self.to_physical_blockstart(down_blocks, right_blocks)
         return (self.move(pbs), lbs-pbs)
+
 
 
     def to_logical_blockstart(self, down_blocks=0, right_blocks=0) -> Coords:
@@ -108,7 +109,7 @@ class Cursor:
         return c - self._cursor
 
     def to_physical_blockstart(self, down_blocks=0, right_blocks=0) -> Coords:
-        lbs = self.to_logical_blockstart(down, right)
+        lbs = self.to_logical_blockstart(down_blocks, right_blocks)
         # Find first nonzero entry in block
         for bci in range(self.bc):
             for bri in range(self.br):
@@ -223,7 +224,7 @@ class BlockSparseCursor(Cursor):
         rows, cols = br*Br, bc*Bc
 
         x = 0
-        lookup = [[-1]*(cols) for i in range(rows)]
+        lookup = [[-1]*(cols+1) for i in range(rows+1)]
         for Bci in range(Bc):        # Iterate over blocks of columns
             for Bri in range(Br):    # Iterate over blocks of rows
                 pattern = patterns[blocks[Bri,Bci]]    # Pattern for current block
