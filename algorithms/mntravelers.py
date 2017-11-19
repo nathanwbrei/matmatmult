@@ -1,32 +1,11 @@
 from scipy import matrix
 
 from algorithms.ktravelers import KTraveler
+from algorithms.parameters import Parameters
 
 from codegen.blocks import *
 from codegen.cursors import *
 from codegen.loop import *
-
-
-
-class Parameters():
-
-    def __init__(self, name: str,
-                 Bm: int, Bn: int,
-                 blocks: List[List[int]],
-                 patterns: List[List[List[int]]]
-                ) -> None:
-
-        self.name = name
-        self.Bm = Bm
-        self.Bn = Bn
-        self.blocks = blocks
-        self.patterns = patterns
-        self.reset()
-
-    def reset(self):
-        self.A = DenseCursor("A", rdi, 48, 9, 48, 8, 3)
-        self.B = BlockSparseCursor("B", rsi, self.blocks, self.patterns)
-        self.C = DenseCursor("C", rdx, 48, 9, 48, 8, 3)
 
 
 class MNTraveler(AsmBlock):
@@ -110,6 +89,8 @@ def make_mnt_loop(p:Parameters, ktraveler:KTraveler) -> MNTraveler:
                 ktraveler(p, "Get_from_registers"),
                 p.A.move(down1block, iters=p.Bm),
                 p.C.move(down1block, iters=p.Bm),
+                # TODO: Might be able to achieve A,C moves simultaneously with
+                # loop updates by using scale-index addressing.
             ]),
             p.A.move(Coords(down=-p.Bm, units="blocks"), iters=p.Bn),
             #B.move(Coords(right=1, units="blocks"), iters=Bn),

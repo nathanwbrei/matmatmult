@@ -1,32 +1,8 @@
+from codegen.blocks import *
+from codegen.coords import *
 
-
-
-
-
-class MNTraveler(AsmBlock):
-    """ BlockTraversal is responsible for visiting successive blocks of C.
-        There should be a looped version and possibly a partially unrolled version,
-        though the latter is not a priority.
-        The iteration variables index into a lookup table to retrieve the B panel offsets.
-        BT moves the A,B,C cursors to the start of their panel before calling PIP.
-    """
-    pass
-
-class KTraveler(AsmBlock):
-    """ PanelInnerProduct
-        There will exist a Dense version for TiledSparse, a Indexed version which is the
-        most likely useful, and a completely Unrolled version which may only be used with
-        UnrolledBlockTraversal.
-        Some care should be taken to handle all-zero blocks efficiently.
-        PIP expects the A,B,C cursors to point at the top of the requisite panels.
-        PIP expects a pointer to the current Bni, which it will not modify
-        PIP is responsible for loading and storing the C block.
-        PIP passes the coords of the next K-block to its corresponding BMM.
-        BMMs are either unrolled or indexed to get their 
-        PIP resets the A,B,C cursors to the top of the requisite panels before it finishes.
-    """
-    pass
-
+from algorithms.parameters import *
+from algorithms.registerblocks import *
 
 class MatMult(AsmBlock):
     """ BlockMatMult performs the actual multiplication of two blocks.
@@ -39,43 +15,47 @@ class MatMult(AsmBlock):
     mb = 8
     def __init__(self,
                  name: str,
-                 A_regs: Matrix,
-                 C_regs: Matrix,
-                 A_cursor: Cursor,
-                 B_cursor: Cursor,
-                 A_start: Coords,      # Cursor does not necessarily point at start of block!
-                 A_end: Coords,
-                 B_start: Coords,
-                 B_end: Coords
+                 p: Parameters,
+                 # In case the cursor is not already pointing at the physical blockstart,
+                 # this is how we get it there:
+                 to_A_pbs: Coords = Coords(0,0),
+                 to_B_pbs: Coords = Coords(0,0),
+                 to_C_pbs: Coords = Coords(0,0)
                 ) -> None:
 
-        nb = p.C_regs.shape[1]    # Number of cells in one n-block
-        kb = p.A_regs.shape[1]    # Number of cells in one k-block
-        kr = k % kb               # Number of remaining cells in k-direction
+        #bm,bk = A.block_at(to_A_pbs).shape   # TODO: What is the right abstraction for this?
+        #bkA,bn = B.block_at(to_B_pbs).shape
+        #assert(bk == bkA)
+        bm,bk = p.A.br, p.A.bc
+        assert(bm % 8 == 0)
 
-        A_mask = emptyrows(A_regs, p.pattern) # Avoid unnecessary load/stores
-        A_mask_partial = A_mask & submatrix(A_regs, rows=1, cols=kr)  #TODO: Handle 2d case
+        A_mask = None #emptyrows(p.A_regs, p.B.block_at(to_B_pbs).pattern)
 
         self.comment = "Block inner product"
+        self.include(load_register_block(p.A, p.A_regs, A_mask, to_A_pbs))
 
-        self.include(load_register_block(A, A_regs, A_mask, to_A_block))
-
-        for ikb in range(kb):       # inside this k-block
-            for inb in range(nb):   # inside this n-block
-                to_cell = to_B_block + Coords(down=ikb, right=inb)
-                if B.has_nonzero_cell(to_cell):
-                    B_cell, comment = B.look(to_cell)
-                    asm.include(BcastFma(B_cell, A_regs[0,ikb], C_regs[0,inb], comment=comment))
-        pass
-    pass
+        for Vmi in range(bm//8):
+            for bki in range(bk):       # inside this k-block
+                for bni in range(bn):   # inside this n-block
+                    to_cell = Coords(down=bki, right=bni)
+                    if B.has_nonzero_cell(to_cell):
+                        B_cell_addr, comment = B.look(to_cell)
+                        self.include(BcastFma(B_cell_addr,
+                                              p.A_regs[Vmi//8,bki],
+                                              p.C_regs[Vmi//8,bni],
+                                              comment=comment))
 
 
 class MatMultLookups(AsmBlock):
     """ Create a sequence of subroutines which perform a matmult using the current
         matrix cursor and then return an address preferably in a register.
         Also create an index of outer pattern ->
-        Options: Pass outer sparsity pattern. 
-
+        Options: Pass outer sparsity pattern.
     """
+
+    def __init__(self, patterns: List[List[bool]]):
+        pass
+
+
 
 

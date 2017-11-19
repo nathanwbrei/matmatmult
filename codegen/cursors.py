@@ -77,7 +77,7 @@ class Cursor:
             self._cursor += coords
         return AsmStatement("addq", [c(offset)], ptr_to_move, comment=comment)
 
-    def tab(self, down_blocks: int = 0, right_blocks: int = 0):
+    def tab(self, down_blocks: int = 0, right_blocks: int = 0, iters=1):
         """ Move cursor to the first nonzero entry of the block located
             at (down_blocks,right_blocks) relative to the block in which
             the cursor currently resides. This allows block traversal
@@ -93,6 +93,13 @@ class Cursor:
         """
         lbs = self.to_logical_blockstart(down_blocks, right_blocks)
         pbs = self.to_physical_blockstart(down_blocks, right_blocks)
+        return (self.move(pbs,iters), lbs-pbs)
+
+
+    def tab_abs(self, down_blocks: int = 0, right_blocks: int = 0):
+        """ TODO: Reorganize cursor functions"""
+        lbs = self.to_logical_blockstart(down_blocks, right_blocks) + self._cursor
+        pbs = self.to_physical_blockstart(down_blocks, right_blocks) + self._cursor
         return (self.move(pbs), lbs-pbs)
 
 

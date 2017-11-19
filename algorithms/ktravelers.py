@@ -1,6 +1,10 @@
 from codegen.blocks import *
 from codegen.cursors import *
 
+from algorithms.mntravelers import *
+from algorithms.matmults import *
+from algorithms.parameters import *
+
 
 class KTraveler(AsmBlock):
     """ KTraveler:
@@ -18,84 +22,45 @@ class KTraveler(AsmBlock):
     pass
 
 
-def dummy_ktraveler(p, Bni):
+def make_dummy_ktraveler(p, Bni):
     return AsmBlock(f"For n={Bni}, for all k, do some work").body([
         AsmStatement("noop", [rax], rax)
     ])
 
-def denseKTraveler(A_cursor: Cursor,
-                   B_cursor: Cursor,
-                   C_cursor: Cursor,
-                   C_regs: Matrix
-                  ) -> KTraveler:
-    # Needs: Single KTraveler
-    # For block in cursor.tab()
-    # Move B cursor to start of block
-    # Insert matmult in loop (don't call)
-
-    C_mask = emptycols(C_regs, p.pattern) # Mask unnecessary loads/stores
-    load_register_block(C, C_regs, C_mask),
-    block_inner_prod(p),
-    store_register_block(C, C_regs, C_mask),
-
-    A.move(down1block, iters=m//mb),
-    C.move(down1block, iters=m//mb),
 
 
-def unrolledDenseKTraveler(A_cursor: Cursor,
-                           B_cursor: Cursor,
-                           C_cursor: Cursor,
-                           I_cursor: Cursor,
-                           C_regs: Matrix,
-                           block_ptrs: Matrix,
-                           # block_ptr: Register,
-                          ) -> KTraveler:
-    # Needs: KTraveler generator over cursors
-    # For block in cursor.tab()
-    # Generate multiple matmults with different offsets given by loop
-    pass
+def make_kt_loop_dense(p: Parameters, Bni: int, rgemm: MatMult):
+    """ Use case: Tiledsparse. Requires:
+        Every block has a physical blockstart
+        Every block has a constant offset
 
-def indexedKTraveler(A_cursor: Cursor,
-                     B_cursor: Cursor,
-                     C_cursor: Cursor,
-                     I_cursor: Cursor,
-                     C_regs: Matrix,
-                    ) -> KTraveler:
-    # Inside asmloop:
-    # Look up function ptr
-    # Push return address to register somewhere
-    # Jump to func ptr
-    # Look up offset
-    # Move B
-    # Move index
-    pass
-
-
-def unrolledIndexedKTraveler(A_cursor: Cursor,
-                             B_cursor: Cursor,
-                             C_cursor: Cursor,
-                             I_cursor: Cursor,
-                             C_regs: Matrix,
-                            ) -> KTraveler:
-    # Inside asmloop:
-    # Look up function ptr
-    # Push return address to register somewhere
-    # Jump to func ptr
-    # Look up offset
-    # Move B
-    # Move index
-    pass
-
-class MatMult(AsmBlock):
-    """ BlockMatMult performs the actual multiplication of two blocks.
-        This will probably always be completely unrolled.
-        BlockMatMult is responsible for loading and unloading the A block,
-        It does not assume that the A or B cursors point to the start of the block.
-        Instead, the coordinates to the start of the block are passed separately.
-        It does not update any of the cursors.
+        In the trickier case, loop_sparse, we will use r13:=Bni*kb and loop over r14:=Bki
+           in order to index into B_blocks to get offsets and jump locations.
     """
-    pass
+    asm = AsmBlock("KT loop dense " + p.name)
+    # TODO: load C, taking into account the nonzero cols of B
+    mov_stmt, lbs = B.tab_abs(0, Bni)
+    asm.include(mov_stmt)
+    asm.include(loop(r(14), 0, p.Bk, 1).body([
+        make_rgemm(p), # A, B, C are already pointing to the start of the correct panel
+        A.tab(0,1,iters=p.Bk)[0],
+        B.tab(1,0,iters=p.Bk)[0]
+    ]))
+    # TODO: store C, taking into account the nonzero cols of B
+    return asm
 
 
-
-
+def make_kt_unroll(p: Parameters, Bni: int, rgemm: MatMult):
+    """ Use case: SparseSparse.
+        Requirements: None
+        Choices: Move once or move on every block? For now, move on each (prep for jumping version)
+    """
+    asm = AsmBlock("KT unrolled " + p.name)
+    # TODO: load C, taking into account the nonzero cols of B
+    for Bki in range(p.Bk):
+        if p.B.has_nonzero_block(Bki, Bni):
+            mov_stmt, to_logical_blockstart = B.tab_abs(Bki, Bni)
+            asm.include(mov_stmt)
+            asm.include(rgemm(p)) #TODO: rgemm() interface probably not enough
+    # TODO: store C, taking into account the nonzero cols of B
+    return asm
