@@ -1,7 +1,7 @@
 from typing import cast
 
 from codegen.blocks import *
-from codegen.coords import NewCoords as Coords
+from codegen.coords import Coords
 
 from algorithms.parameters import *
 from algorithms.registerblocks import *

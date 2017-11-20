@@ -1,7 +1,7 @@
 
 from typing import Tuple, List, NamedTuple, cast
 
-from codegen.coords import NewCoords as Coords
+from codegen.coords import Coords 
 from codegen.matrix import Matrix
 from codegen.operands import *
 from codegen.statements import AsmStatement
@@ -40,11 +40,24 @@ class Cursor:
         self._base_ptr = base_ptr                # Attaches the cursor to pointers in memory
         self._index_ptr = index_ptr
         self._scale = 1
-        self._src_cell = Coords(absolute=True)   # Logical absolute cell location of cursor
-        self._src_block = Coords(absolute=True)  # Logical absolute block location of cursor
         self._lost: bool = False                 # In case the cursor is moved off-grid
         self._scalar_bytes: int = 8              # Used for calulating addrs. single=4, double=8
+        self._src_cell = Coords(absolute=True)   # Logical absolute cell location of cursor
+        self._src_block = Coords(absolute=True)  # Logical absolute block location of cursor
 
+        # Set cursor to valid starting value
+        found = False
+        for Bci in range(self.Bc):
+            for Bri in range(self.Br):
+                to_block = Coords(Bri, Bci, True)
+                if self.has_nonzero_block(to_block):
+                    pbs = self._cells_to_physical_block(to_block)
+                    self._src_cell = pbs
+                    self._src_block = to_block
+                    found = True
+                    break
+            if found:
+                break
 
 
 
@@ -122,7 +135,7 @@ class Cursor:
         self._bounds_check(c)
         offset = cast(int, self._offsets[c.down, c.right])
         if (offset == -1):
-            raise Exception(f"Entry at block {str(block)},{str(cell)} does not exist!")
+            raise Exception(f"Entry at block {str(block)}, cell {str(cell)} does not exist!")
         return offset
 
 
@@ -206,11 +219,11 @@ class Cursor:
     def _cells_to_physical_block(self, block: Coords) -> Coords:  # Absolute cell coords
 
         lbs = self._cells_to_logical_block(block)
+        br,bc,idx,pat = self.block(block)
 
-        #TODO: This won't work with a fringe. Need to use block-specific bc, br
         # Find first nonzero entry in block
-        for bci in range(self.bc):
-            for bri in range(self.br):
+        for bci in range(bc):
+            for bri in range(br):
                 pbs = Coords(down=bri, right=bci) + lbs
                 if self.has_nonzero_cell(block=Coords(), cell=pbs):
                     return pbs

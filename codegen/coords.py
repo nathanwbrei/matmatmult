@@ -7,21 +7,21 @@ from typing import NamedTuple
 # We are including a {relative|absolute} flag in order to reduce the number of methods.
 
 
-class NewCoords(NamedTuple):
+class Coords(NamedTuple):
     down:     int  = 0
     right:    int  = 0
     absolute: bool = False
 
     def __add__(self, other):
         absolute = self.absolute | other.absolute
-        return CellCoords(self.down+other.down, self.right+other.right, absolute)
+        return Coords(self.down+other.down, self.right+other.right, absolute)
 
     def __sub__(self, other):
         absolute = self.absolute | other.absolute
-        return CellCoords(self.down-other.down, self.right-other.right, absolute)
+        return Coords(self.down-other.down, self.right-other.right, absolute)
 
     def __neg__(self, other):
-        return CellCoords(-self.down, -self.right, self.absolute)
+        return Coords(-self.down, -self.right, self.absolute)
 
     def __eq__(self, other):
         return self.down == other.down and \
@@ -38,7 +38,7 @@ class NewCoords(NamedTuple):
 
 
 
-class Coords:
+class OldCoords:
     """ Coords is a container for relative logical matrix coordinates.
     """
     def __init__(self, down:int=0, right:int=0, units:str="cells") -> None:
@@ -52,7 +52,7 @@ class Coords:
 
 
     def go(self, down:int=0, right:int=0, units:str="cells"):
-        return self + Coords(down, right, units)
+        return self + OldCoords(down, right, units)
 
 
     def update(self, down:int=0, right:int=0, units:str="cells"):
@@ -72,8 +72,8 @@ class Coords:
             raise Exception("Units must be cells, vectors, or blocks")
 
 
-    def __add__(self, other:"Coords"):
-        result = Coords()
+    def __add__(self, other:"OldCoords"):
+        result = OldCoords()
         result.down_cells += self.down_cells + other.down_cells
         result.right_cells += self.right_cells + other.right_cells
         result.down_vecs += self.down_vecs + other.down_vecs
@@ -83,7 +83,7 @@ class Coords:
         return result
 
     def __neg__(self):
-        result = Coords()
+        result = OldCoords()
         result.down_cells =  -self.down_cells
         result.right_cells = -self.right_cells
         result.down_vecs = -self.down_vecs
@@ -93,7 +93,7 @@ class Coords:
         return result
 
     def __sub__(lhs,rhs):
-        result = Coords()
+        result = OldCoords()
         result.down_cells =  lhs.down_cells - rhs.down_cells
         result.right_cells = lhs.right_cells - rhs.right_cells
         result.down_vecs = lhs.down_vecs - rhs.down_vecs
@@ -133,4 +133,4 @@ class Coords:
         return f"(down={downstr}; right={rightstr})"
 
 
-down1block = Coords(down=1,units="blocks")
+down1block = OldCoords(down=1,units="blocks")

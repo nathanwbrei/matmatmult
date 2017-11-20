@@ -1,5 +1,5 @@
 from codegen.blocks import *
-from codegen.coords import NewCoords as Coords
+from codegen.coords import Coords
 from codegen.cursors import *
 from codegen.matrix import *
 
