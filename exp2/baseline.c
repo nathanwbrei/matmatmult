@@ -68,7 +68,7 @@ int main(int argc, char ** argv) {
     }
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    printf("libxsmm_dense_hsw, %lf\n",
+    printf("libxsmm_dense_knl, %lf\n",
            1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
 
 

@@ -1,4 +1,0 @@
-#!/bin/bash
-touch workbench/workbench.cpp
-./linux make workbench
-./linux build/workbench $@ 

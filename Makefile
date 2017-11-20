@@ -48,12 +48,12 @@ matrix_tests: dense_x_blocksparse/harness.c dense_x_blocksparse/blocksparse.h
 exp1:
 	#icpc -xCORE-AVX2 -std=c++11 -O3 -o build/baseline exp1/baseline.c -lrt -DNDEBUG
 	#icpc -xCORE-AVX2 -std=c++11 -O3 -o build/exp1 exp1/exp.c -lrt -DNDEBUG
-	g++ -mavx512vl -std=c++11 -O3 -o build/baseline exp1/baseline.c -lrt -DNDEBUG
-	g++ -mavx512vl -std=c++11 -O3 -o build/exp1 exp1/exp.c -lrt -DNDEBUG
+	g++ -mavx2 -std=c++11 -O3 -o build/baseline exp1/baseline.c -lrt -DNDEBUG
+	g++ -mavx2 -std=c++11 -O3 -o build/exp1 exp1/exp.c -lrt -DNDEBUG
 
 
 exp2:
 	#icpc -xCORE-AVX2 -std=c++11 -O3 -o build/baseline exp1/baseline.c -lrt -DNDEBUG
 	#icpc -xCORE-AVX2 -std=c++11 -O3 -o build/exp1 exp1/exp.c -lrt -DNDEBUG
-	g++ -mavx512vl -std=c++11 -O3 -o build/baseline exp2/baseline.c -lrt -DNDEBUG
-	g++ -mavx512vl -std=c++11 -O3 -o build/exp2 exp2/exp.c -lrt -DNDEBUG
+	g++ -mavx512f -std=c++11 -O3 -o build/baseline exp2/baseline.c -lrt -DNDEBUG
+	g++ -mavx512f -std=c++11 -O3 -o build/exp2 exp2/exp2.c -lrt -DNDEBUG
