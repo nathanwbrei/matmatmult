@@ -1,5 +1,6 @@
 from codegen.blocks import *
 from codegen.cursors import *
+from codegen.loop import *
 
 from algorithms.mntravelers import *
 from algorithms.matmults import *
@@ -29,7 +30,7 @@ def make_dummy_ktraveler(p, Bni):
 
 
 
-def make_kt_loop_dense(p: Parameters, Bni: int, rgemm: MatMult):
+def make_kt_loop_dense(p: Parameters, Bni: int) -> AsmBlock:
     """ Use case: Tiledsparse. Requires:
         Every block has a physical blockstart
         Every block has a constant offset
@@ -42,7 +43,7 @@ def make_kt_loop_dense(p: Parameters, Bni: int, rgemm: MatMult):
     # TODO: load C, taking into account the nonzero cols of B
     asm.include(p.B.move(Coords(down=0, right=Bni, absolute=True)))
     asm.include(loop(r(14), 0, Bk, 1).body([
-        make_rgemm(p), # A, B, C are already pointing to the start of the correct panel
+        MatMult(p), # A, B, C are already pointing to the start of the correct panel
         p.A.move(Coords(right=1), iters=Bk),
         p.B.move(Coords(down=1), iters=Bk)
     ]))
@@ -50,7 +51,7 @@ def make_kt_loop_dense(p: Parameters, Bni: int, rgemm: MatMult):
     return asm
 
 
-def make_kt_unroll(p: Parameters, Bni: int, rgemm: MatMult):
+def make_kt_unroll(p: Parameters, Bni: int) -> AsmBlock:
     """ Use case: SparseSparse.
         Requirements: None
         Choices: Move once or move on every block? For now, move on each (prep for jumping version)
@@ -58,11 +59,11 @@ def make_kt_unroll(p: Parameters, Bni: int, rgemm: MatMult):
     Bk = p.k//p.bk
     asm = AsmBlock("KT unrolled " + p.name)
     # TODO: load C, taking into account the nonzero cols of B
-    for Bki in range(p.Bk):
+    for Bki in range(Bk):
         to_block = Coords(down=Bki, right=Bni, absolute=True)
         if p.B.has_nonzero_block(to_block):
             asm.include(p.B.move(to_block))
-            asm.include(rgemm(p))
+            asm.include(MatMult(p))
     # TODO: store C, taking into account the nonzero cols of B
     return asm
 

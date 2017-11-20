@@ -29,7 +29,7 @@ class MNTraveler(AsmBlock):
     """
 
 
-def make_mnt_unroll_mn(p:Parameters, ktraveler: KTraveler) -> AsmBlock:
+def make_mnt_unroll_mn(p:Parameters, make_ktraveler) -> AsmBlock:
 
     Bm, Bn = p.m//p.bm, p.n//p.bn
     asm = AsmBlock(f"MNTraveler unrolled over m,n for {p.name}")
@@ -37,7 +37,7 @@ def make_mnt_unroll_mn(p:Parameters, ktraveler: KTraveler) -> AsmBlock:
     for Bni in range(Bn):
         for Bmi in range(Bm):
 
-            asm.include(ktraveler(p, Bni))
+            asm.include(make_ktraveler(p, Bni))
 
             if Bmi != Bm-1:
                 asm.include(p.A.move(Coords(down=1)))
@@ -50,7 +50,7 @@ def make_mnt_unroll_mn(p:Parameters, ktraveler: KTraveler) -> AsmBlock:
     return asm
 
 
-def make_mnt_unroll_n(p:Parameters, ktraveler:KTraveler) -> AsmBlock:
+def make_mnt_unroll_n(p:Parameters, make_ktraveler) -> AsmBlock:
 
     Bm, Bn = p.m//p.bm, p.n//p.bn
     asm = AsmBlock(f"MNTraveler unrolled over n for {p.name}")
@@ -58,7 +58,7 @@ def make_mnt_unroll_n(p:Parameters, ktraveler:KTraveler) -> AsmBlock:
 
         asm.include(loop(r(12), 0, Bm, 1).body([
 
-            ktraveler(p, Bni),
+            make_ktraveler(p, Bni),
             p.A.move(Coords(down=1), iters=Bm),
             p.C.move(Coords(down=1), iters=Bm),
         ]))
@@ -70,14 +70,14 @@ def make_mnt_unroll_n(p:Parameters, ktraveler:KTraveler) -> AsmBlock:
     return asm
 
 
-def make_mnt_loop(p:Parameters, ktraveler:KTraveler) -> AsmBlock:
+def make_mnt_loop(p:Parameters, make_ktraveler) -> AsmBlock:
 
     Bm, Bn = p.m//p.bm, p.n//p.bn
     asm = AsmBlock(f"MNTraveler looped for {p.name}").body([
         loop(r(13), 0, Bn*p.bn, p.bn).body([
             loop(r(12), 0, Bm, 1).body([
 
-                ktraveler(p, "Get_from_registers"),
+                make_ktraveler(p, "Get_from_registers"),
                 p.A.move(Coords(down=1), iters=Bm),
                 p.C.move(Coords(down=1), iters=Bm),
                 # TODO: Might be able to achieve A,C moves simultaneously with
