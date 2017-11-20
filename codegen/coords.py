@@ -1,3 +1,37 @@
+from typing import NamedTuple
+
+# The relationship between blocks and cells has become too complicated to
+# safely bake into a coordinate system. The semantics has been moved to the
+# cursor movement commands. A NewCoords object may represent a logical cell,
+# a logical block start, or a physical block start depending on context.
+# We are including a {relative|absolute} flag in order to reduce the number of methods.
+
+
+class NewCoords(NamedTuple):
+    down:     int  = 0
+    right:    int  = 0
+    absolute: bool = False
+
+    def __add__(self, other):
+        absolute = self.absolute | other.absolute
+        return CellCoords(self.down+other.down, self.right+other.right, absolute)
+
+    def __sub__(self, other):
+        absolute = self.absolute | other.absolute
+        return CellCoords(self.down-other.down, self.right-other.right, absolute)
+
+    def __neg__(self, other):
+        return CellCoords(-self.down, -self.right, self.absolute)
+
+    def __eq__(self, other):
+        return self.down == other.down and \
+               self.right == other.right and \
+               self.absolute == other.absolute
+
+    def __repr__(self):
+        return f"(down={self.down}, right={self.right})"
+
+
 
 
 class Coords:
