@@ -220,16 +220,33 @@ class TiledCursor(Cursor):
 
 
 class BlockSparseCursor(Cursor):
-    def __init__(self, name: str,
+    def __init__(self,
+                 name: str,
                  base_ptr: Register,
+                 rows: int,
+                 cols: int,
+                 block_rows: int,
+                 block_cols: int,
                  blocks: Matrix,
                  patterns: List[Matrix]) -> None:
 
-        topleftblock = blocks[0,0]
-        br, bc = patterns[topleftblock].shape
-        Br, Bc = blocks.shape
-        rows, cols = br*Br, bc*Bc
+        # The reported blocksizes are the truth
+        br, bc = block_rows, block_cols
+        Br, Bc = rows//br, cols//bc
 
+        # The block patterns that are passed in need to conform with the truth,
+        # not the other way around.
+        topleftblock = blocks[0,0]
+        brp, bcp = patterns[topleftblock].shape
+        Brp, Bcp = blocks.shape
+        print(f"brp={brp}, br={br}")
+        assert(brp==br)
+        assert(bcp==bc)
+        assert(Br==Brp)
+        assert(Bc==Bcp)
+
+        # This enforces a constant blocksize (excluding fringes), which
+        # makes a lot of things easier
         x = 0
         lookup = [[-1]*(cols+1) for i in range(rows+1)]
         for Bci in range(Bc):        # Iterate over blocks of columns
@@ -240,6 +257,8 @@ class BlockSparseCursor(Cursor):
                         if pattern[bri,bci]:
                             lookup[Bri*br + bri][Bci*bc + bci] = x
                             x += 1
+
+        # TODO: Handle fringes correctly.
 
         Cursor.__init__(self, name, base_ptr, rows, cols, br, bc, lookup)
 

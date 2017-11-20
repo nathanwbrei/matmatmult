@@ -2,50 +2,28 @@
 from codegen.blocks import *
 from codegen.loop import *
 from codegen.cursors import *
-from codegen.registerblocks import *
+from algorithms.registerblocks import *
 
 from scipy import matrix as Matrix, full
 from typing import Tuple, NamedTuple
+from algorithms.parameters import Parameters
 
-class Parameters(NamedTuple):
-    description: str
-    m: int
-    n: int
-    k: int
-    lda: int
-    ldc: int
-    A_regs: Matrix  # Matrix[Register]
-    C_regs: Matrix  # Matrix[Register]
-    pattern: Matrix # Matrix[bool]
-    pattern_update: Tuple[int,int] = None
-
-    def cursors(self):
-        _, kb = self.A_regs.shape
-        mb, nb = self.C_regs.shape
-        mb *= 8
-        A = DenseCursor("A", rdi, self.m, self.k, self.lda, 8, kb)
-        B = TiledCursor("B", rsi, self.k, self.n, self.pattern)
-        C = DenseCursor("C", rdx, self.m, self.n, self.ldc, mb, nb)
-        return (A,B,C)
-
-
-defaults = Parameters(
-    description = "defaults",
+defaults = Parameters.from_tiledsparse(
+    name = "defaults",
     m = 48, n = 9, k = 9,
-    lda = 48, ldc = 48,
-    A_regs = Matrix([zmm(x) for x in range(0, 8)]),     # zmm0..zmm7
-    C_regs = Matrix([zmm(x) for x in range(23, 32)]),   # zmm23..zmm31
-    pattern = Matrix(full((1,9), True, dtype=bool))     # Constrained st cols=nb=len(C_regs)
+    A_regs = Matrix([[zmm(x) for x in range(0, 8)]]),     # zmm0..zmm7
+    C_regs = Matrix([[zmm(x) for x in range(23, 32)]]),   # zmm23..zmm31
+    pattern = Matrix(full((8,9), True, dtype=bool))     # Constrained st cols=nb=len(C_regs)
     )
 
 
 def make_gemm(p:Parameters) -> AsmBlock:
 
-    m, n, k = p.m, p.n, p.k   # Number of cells in m,n,k -directions
+    m,n,k = p.C.r,p.C.c,p.A.c # Number of cells in m,n,k -directions
     mb = 8                    # Number of cells in one m-block
     nb = len(p.C_regs)        # Number of cells in one n-block
 
-    A,B,C = p.cursors()                   # Access matrices from memory
+    A,B,C = p.A, p.B, p.C
     A_regs, C_regs = p.A_regs, p.C_regs   # Access matrices from register blocks
     m_reg, n_reg = r(12), r(13)           # Iteration variables
 
@@ -72,14 +50,14 @@ def make_gemm(p:Parameters) -> AsmBlock:
 
 def block_inner_prod(p):
 
-    m, n, k = p.m, p.n, p.k   # Number of cells in m,n,k -directions
+    m, n, k = p.C.r, p.C.c, p.A.c   # Number of cells in m,n,k -directions
     mb = 8                    # Number of cells in one m-block
     nb = p.C_regs.shape[1]    # Number of cells in one n-block
     kb = p.A_regs.shape[1]    # Number of cells in one k-block
     kB = k // kb              # Number of complete k-blocks
     kr = k % kb               # Number of remaining cells in k-direction
 
-    A,B,C = p.cursors()                   # Access matrices from memory
+    A,B,C = p.A, p.B, p.C                 # Access matrices from memory
     A_regs, C_regs = p.A_regs, p.C_regs   # Access matrices from register blocks
     A_mask = emptyrows(A_regs, p.pattern) # Avoid unnecessary load/stores
     A_mask_partial = A_mask & submatrix(A_regs, rows=1, cols=kr)  #TODO: Handle 2d case

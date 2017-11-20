@@ -1,4 +1,5 @@
 from algorithms.parameters import Parameters
+from codegen.operands import *
 from scipy import matrix
 
 
@@ -48,10 +49,12 @@ blocks_bsc = matrix(
      [1, 1, 0, 1, 1]])
 
 
-defaults = Parameters(name = "Star 48x9x9 ",
-                      Bm = 6,
-                      Bn = 3,
-                      blocks = blocks_full, # TODO: Vary this
-                      patterns = pattern_index)
+defaults = Parameters.from_sparsesparse(
+    name = "Star 48x9x9 ",
+    m = 40, n = 15, k = 9,
+    A_regs = matrix([[zmm(r+5*c) for c in range(3)] for r in range(5)]),
+    C_regs = matrix([[zmm(r+5*c+15) for c in range(3)] for r in range(5)]),
+    blocks = blocks_full, # TODO: Vary this
+    pattern_index = pattern_index)
 
 
