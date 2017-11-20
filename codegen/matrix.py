@@ -4,7 +4,7 @@
 # Lists of lists are too cumbersome, and scipy does not understand typing.
 # Also don't want to introduce a hard dependence on scipy if not necessary.
 
-from typing import TypeVar, Generic, Union
+from typing import TypeVar, Generic, Union, Tuple
 from scipy import full, matrix # type: ignore
 
 T = TypeVar('T')
@@ -30,6 +30,9 @@ class Matrix(Generic[T]):
             return Matrix(result)
         else:
             return result
+
+    def __setitem__(self, cell:Tuple[int,int], value:T):
+        self._underlying[cell] = value
 
     def any(self, axis=None, out=None):
         return self._underlying.any(axis, out)

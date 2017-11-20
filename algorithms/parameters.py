@@ -15,9 +15,8 @@ class Parameters(NamedTuple):
     A: Cursor
     B: Cursor
     C: Cursor
-    A_regs: Matrix
-    C_regs: Matrix
-    pattern: List[List[bool]] = None # TODO: Make this part of cursor
+    A_regs: Matrix[Register]
+    C_regs: Matrix[Register]
 
     def reset(self):
         self.A.reset()
@@ -31,10 +30,10 @@ class Parameters(NamedTuple):
                           m: int,
                           n: int,
                           k: int,
-                          A_regs: Matrix,   # Constrains ld, bm, bk
-                          C_regs: Matrix,   # Constrains bm, bn
-                          blocks: List[List[int]],                # These two are required to be
-                          pattern_index: List[List[List[int]]]    # compatible with k,n,bk,bn
+                          A_regs: Matrix[Register],           # Constrains ld, bm, bk
+                          C_regs: Matrix[Register],           # Constrains bm, bn
+                          blocks: Matrix[int],                # These two are required to be
+                          pattern_index: List[Matrix[bool]]   # compatible with k,n,bk,bn
                          ) -> "Parameters":
 
         bma, bk = A_regs.shape
@@ -57,9 +56,9 @@ class Parameters(NamedTuple):
                          m: int,
                          n: int,
                          k: int,
-                         A_regs: Matrix,  # Constrains ld, bm, bk
-                         C_regs: Matrix,  # Constrains bm, bn
-                         pattern: Matrix, # Constrains bk,bn
+                         A_regs: Matrix[Register],  # Constrains ld, bm, bk
+                         C_regs: Matrix[Register],  # Constrains bm, bn
+                         pattern: Matrix[bool],     # Constrains bk,bn
                          pattern_update: Tuple[int,int] = None
                         ) -> "Parameters":
 
@@ -76,5 +75,5 @@ class Parameters(NamedTuple):
         B = TiledCursor("B", rsi, k, n, pattern)
         C = DenseCursor("C", rdx, m, n, ld, bm, bn)
 
-        return cls(name, m, n, k, ld, bm, bn, bk, A, B, C, A_regs, C_regs, pattern)
+        return cls(name, m, n, k, ld, bm, bn, bk, A, B, C, A_regs, C_regs)
 

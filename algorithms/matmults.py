@@ -1,5 +1,5 @@
 from codegen.blocks import *
-from codegen.coords import *
+from codegen.coords import NewCoords as Coords
 
 from algorithms.parameters import *
 from algorithms.registerblocks import *

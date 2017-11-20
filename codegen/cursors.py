@@ -251,7 +251,7 @@ class TiledCursor(Cursor):
                 ) -> None:
 
         br,bc = pattern.shape
-        Br,Bc = r//br, c//bc
+        Br,Bc = rows//br, cols//bc
         blocks = Matrix.full(Br,Bc,0)
         offsets = Matrix.full(rows+1,cols+1,-1)
         x = 0

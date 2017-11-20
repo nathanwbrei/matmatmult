@@ -37,14 +37,14 @@ def make_kt_loop_dense(p: Parameters, Bni: int, rgemm: MatMult):
         In the trickier case, loop_sparse, we will use r13:=Bni*kb and loop over r14:=Bki
            in order to index into B_blocks to get offsets and jump locations.
     """
+    Bk = p.k//p.bk
     asm = AsmBlock("KT loop dense " + p.name)
     # TODO: load C, taking into account the nonzero cols of B
-    mov_stmt, lbs = B.tab_abs(0, Bni)
-    asm.include(mov_stmt)
-    asm.include(loop(r(14), 0, p.Bk, 1).body([
+    asm.include(p.B.move(Coords(down=0, right=Bni, absolute=True)))
+    asm.include(loop(r(14), 0, Bk, 1).body([
         make_rgemm(p), # A, B, C are already pointing to the start of the correct panel
-        A.tab(0,1,iters=p.Bk)[0],
-        B.tab(1,0,iters=p.Bk)[0]
+        p.A.move(Coords(right=1), iters=Bk),
+        p.B.move(Coords(down=1), iters=Bk)
     ]))
     # TODO: store C, taking into account the nonzero cols of B
     return asm
@@ -55,12 +55,17 @@ def make_kt_unroll(p: Parameters, Bni: int, rgemm: MatMult):
         Requirements: None
         Choices: Move once or move on every block? For now, move on each (prep for jumping version)
     """
+    Bk = p.k//p.bk
     asm = AsmBlock("KT unrolled " + p.name)
     # TODO: load C, taking into account the nonzero cols of B
     for Bki in range(p.Bk):
-        if p.B.has_nonzero_block(Bki, Bni):
-            mov_stmt, to_logical_blockstart = B.tab_abs(Bki, Bni)
-            asm.include(mov_stmt)
-            asm.include(rgemm(p)) #TODO: rgemm() interface probably not enough
+        to_block = Coords(down=Bki, right=Bni, absolute=True)
+        if p.B.has_nonzero_block(to_block):
+            asm.include(p.B.move(to_block))
+            asm.include(rgemm(p))
     # TODO: store C, taking into account the nonzero cols of B
     return asm
+
+
+
+
