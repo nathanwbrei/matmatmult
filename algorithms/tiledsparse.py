@@ -1,10 +1,10 @@
 
+from algorithms.registerblocks import *
 from codegen.blocks import *
 from codegen.loop import *
 from codegen.cursors import *
-from algorithms.registerblocks import *
+from codegen.matrix import *
 
-from scipy import matrix as Matrix, full
 from typing import Tuple, NamedTuple
 from algorithms.parameters import Parameters
 
@@ -13,7 +13,7 @@ defaults = Parameters.from_tiledsparse(
     m = 48, n = 9, k = 9,
     A_regs = Matrix([[zmm(x) for x in range(0, 8)]]),     # zmm0..zmm7
     C_regs = Matrix([[zmm(x) for x in range(23, 32)]]),   # zmm23..zmm31
-    pattern = Matrix(full((8,9), True, dtype=bool))     # Constrained st cols=nb=len(C_regs)
+    pattern = Matrix.full(8,9,True)     # Constrained st cols=nb=len(C_regs)
     )
 
 

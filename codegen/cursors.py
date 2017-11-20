@@ -1,181 +1,225 @@
 
-# This is eventually intended to be a replacement to MatrixCursor.
-# Unlike previous versions, it maintains internal state regarding
-# where the cursor is located. This allows us to have one generic
-# representation regardless of sparsity scheme. More importantly, it
-# allows us to handle sparse-block-sparse matrices, which we currently cannot.
-# The downside is that it is unsuitable for calling move()
-# inside loops. However, calling move() inside loops was already
-# not going to work when we move to scale-index addressing. Instead,
-# we will eventually wrap the Matrix in a ForEachLoop which will
-# handle this use case correctly.
+from typing import Tuple, List, NamedTuple, cast
 
-from typing import Tuple
-from scipy import matrix as Matrix
-from codegen.coords import Coords
+from codegen.coords import NewCoords as Coords
+from codegen.matrix import Matrix
 from codegen.operands import *
 from codegen.statements import AsmStatement
 
+class BlockInfo(NamedTuple):
+    br: int                 # Cell rows in block
+    bc: int                 # Cell cols in block
+    pattern_index: int      # Pattern location in index
+    pattern: Matrix[bool]   # The pattern itself
+
 class Cursor:
 
-    _cursor : Coords = Coords()
-
-    _scalar_bytes: int = 8    # Used for calulating addrs. single=4, double=8
-    _vr: int = 8              # Vector rows
-    _vc: int = 1              # Vector cols
-
-    def __init__(self, name: str,
+    def __init__(self,
+                 name: str,
                  base_ptr: Register,
-                 rows: int, cols: int,
-                 block_rows: int, block_cols: int,
-                 lookup: List[List[int]]) -> None:
+                 index_ptr: Register,
+                 rows: int,
+                 cols: int,
+                 block_rows: int,
+                 block_cols: int,
+                 offsets: Matrix[int],           # Pattern indices of each block
+                 blocks: Matrix[int],            # Patterns themselves
+                 patterns: List[Matrix[bool]]    # Memory offsets of each cell
+    ) -> None:
+
         self.name = name
-        self._base_ptr = base_ptr
-        self._index_ptr = None
-        self.r = rows
-        self.c = cols
-        self.br = block_rows
-        self.bc = block_cols
+        self.r = rows                            # The dimension information r,c,br,bc,Br,Bc
+        self.c = cols                            # is the final arbiter of truth. The information
+        self.br = block_rows                     # in _offsets, _blocks, _patterns must be
+        self.bc = block_cols                     # consistent with this.
         self.Br = rows // block_rows
         self.Bc = cols // block_cols
-        self.lookup = lookup
+        self._offsets = offsets
+        self._blocks = blocks
+        self._patterns = patterns
+        self._base_ptr = base_ptr                # Attaches the cursor to pointers in memory
+        self._index_ptr = index_ptr
+        self._scale = 1
+        self._src_cell = Coords(absolute=True)   # Logical absolute cell location of cursor
+        self._src_block = Coords(absolute=True)  # Logical absolute block location of cursor
+        self._lost: bool = False                 # In case the cursor is moved off-grid
+        self._scalar_bytes: int = 8              # Used for calulating addrs. single=4, double=8
 
-    def look(self, coords: Coords) -> Tuple[MemoryAddress, str]:
-        """ Translates logical coordinates (relative to the cursor's current location)
-            into a memory address and helpful comment, which can be embedded in any
-            AsmStatement. Coords should ideally stay 'close by' the cursor, i.e.
-            inside the current block, because AVX512 displacement addressing generates
-            huge FMA instructions when the displacement > 128. If blocksize is large,
-            consider using scale-index addressing with multiple cursors. """
 
-        comment = f"{self.name}{str(coords)}"
-        offset = self.rel_offset(coords)
+
+
+
+    def look(self, block: Coords, cell: Coords) -> Tuple[MemoryAddress, str]:
+        if (cell.absolute and block.down!=0 and block.right!=0):
+            raise AssertionError("Cells may only be absolute if no logical block specified")
+
+        comment = f"{self.name} @ block{str(block)}, cell{str(cell)}"
+        if block.absolute:
+            dest_block_abs = block
+        else:
+            dest_block_abs = self._src_block + block
+
+        dest_cell_abs = self._cells_to_logical_block(dest_block_abs) + cell
+        src_offset_abs = self.offset(cell = self._src_cell)
+        dest_offset_abs = self.offset(cell = dest_cell_abs)
+
+        offset = dest_offset_abs - src_offset_abs
         if self._index_ptr is not None:
             addr = MemoryAddress(self._base_ptr, self._index_ptr,
-                                 c(1), c(offset*self._scalar_bytes))
+                                 c(self._scale), c(offset*self._scalar_bytes))
         else:
             addr = self._base_ptr + self._scalar_bytes*offset
         return (addr, comment)
 
-    def move(self, coords: Coords, move_base_ptr=False, iters=1):
-        """ Move cursor an exact distance in logical units, and return
-            an assembly statement effecting this. If the matrix is sparse and
-            the entry is nonzero, this will throw an exception because there is
-            no physical address to point to. Can be used in Loops with dense and
-            sufficiently regular patternsparse matrices. For less regular sparse
-            matrices it is preferable to use tab().
-        """
 
+
+
+    def move(self, block: Coords, move_base_ptr=False, iters=1) -> AsmStatement:
+
+        comment = f"Move {self.name} to {str(block)}"
         if move_base_ptr or (self._index_ptr is None):
             ptr_to_move = self._base_ptr
         else:
             ptr_to_move = self._index_ptr
 
-        offset = self.rel_offset(coords) * self._scalar_bytes
-        comment = f"{self.name} += {str(coords)} -> {str(self._cursor)}"
-        for x in range(iters):
-            self._cursor += coords
-        return AsmStatement("addq", [c(offset)], ptr_to_move, comment=comment)
+        if block.absolute:
+            dest_block_abs = block
+        else:
+            dest_block_abs = self._src_block + block
 
-    def tab(self, down_blocks: int = 0, right_blocks: int = 0, iters=1):
-        """ Move cursor to the first nonzero entry of the block located
-            at (down_blocks,right_blocks) relative to the block in which
-            the cursor currently resides. This allows block traversal
-            of blocksparse matrices.
+        dest_cell_abs = self._cells_to_physical_block(dest_block_abs)
+        src_offset_abs = self.offset(cell = self._src_cell)
+        dest_offset_abs = self.offset(cell = dest_cell_abs)
 
-            Returns a Tuple[AsmStatement, Coords]. The coords indicate where
-            the tab 'landed', i.e. the location of the cursor relative to the
-            logical start of the block. This allows the user to call
-            look() or has_nonzero_cell() relative to the logical start of block:
-
-            stmt, coords_to_block_start = cursor.tab(down_blocks=1)
-            cursor.has_nonzero_cell(coords_rel_to_block + coords_to_block_start)
-        """
-        lbs = self.to_logical_blockstart(down_blocks, right_blocks)
-        pbs = self.to_physical_blockstart(down_blocks, right_blocks)
-        return (self.move(pbs,iters), lbs-pbs)
+        if block.absolute:
+            self._src_cell = dest_cell_abs
+            self._src_block = dest_block_abs
+            return AsmStatement("movq", [c(dest_offset_abs)], ptr_to_move, comment=comment)
+        else:
+            dest_offset_rel = dest_offset_abs - src_offset_abs
+            dest_cell_rel = dest_cell_abs - self._src_cell
+            for x in range(iters):
+                self._src_cell += dest_cell_rel
+                self._src_block += block
+            return AsmStatement("addq", [c(dest_offset_rel * self._scalar_bytes)],
+                                ptr_to_move, comment=comment)
 
 
-    def tab_abs(self, down_blocks: int = 0, right_blocks: int = 0):
-        """ TODO: Reorganize cursor functions"""
-        lbs = self.to_logical_blockstart(down_blocks, right_blocks) + self._cursor
-        pbs = self.to_physical_blockstart(down_blocks, right_blocks) + self._cursor
-        return (self.move(pbs), lbs-pbs)
-
-
-
-    def to_logical_blockstart(self, down_blocks=0, right_blocks=0) -> Coords:
-        # Find abs coords of current block
-        c = self._normalize(self._cursor)
-        c.down_cells -= c.down_cells % self.br
-        c.right_cells -= c.right_cells % self.bc
-
-        # Find abs coords of destination block
-        c.down_cells += down_blocks * self.br
-        c.right_cells += right_blocks * self.bc
-        return c - self._cursor
-
-    def to_physical_blockstart(self, down_blocks=0, right_blocks=0) -> Coords:
-        lbs = self.to_logical_blockstart(down_blocks, right_blocks)
-        # Find first nonzero entry in block
-        for bci in range(self.bc):
-            for bri in range(self.br):
-                pbs = Coords(down=bri, right=bci) + lbs
-                if self.has_nonzero_cell(pbs):
-                    return pbs
-
-        raise Exception("No physical blockstart: Block is completely empty!")
 
 
     def reset(self):
-        return self.move(-self._cursor)
+        return self.move(-self._src_cell)
 
 
-    def rel_offset(self, rel_coords: Coords) -> int:
-        abs_coords = self._normalize(rel_coords + self._cursor)
-        cursor_offset = self.abs_offset(self._cursor)
-        coords_offset = self.abs_offset(abs_coords)
-        return coords_offset - cursor_offset
-
-    def abs_offset(self, abs_coords: Coords) -> int:
-        coords = self._normalize(abs_coords)
-        self._bounds_check(coords)
-        abs_offset = self.lookup[coords.down_cells][coords.right_cells]
-        if abs_offset == -1:
-            raise Exception(f"Entry {coords.down_cells},{coords.right_cells} does not exist!")
-        return abs_offset
 
 
-    def has_nonzero_cell(self, rel_coords: Coords) -> bool:
-        abs_coords = self._normalize(rel_coords + self._cursor)
-        self._bounds_check(abs_coords)
-        offset = self.lookup[abs_coords.down_cells][abs_coords.right_cells]
-        return offset != -1
+    def offset(self, block: Coords = Coords(), cell: Coords = Coords()) -> int:
 
-    def has_nonzero_block(self, blocks_down: int, blocks_right: int) -> bool:
+        if (cell.absolute and block.down!=0 and block.right!=0):
+            raise AssertionError("Cells may only be absolute if no logical block specified")
 
-        lbs = self.to_logical_blockstart(blocks_down, blocks_right)
+        c = self._cells_to_logical_block(block) + cell
+        self._bounds_check(c)
+        offset = cast(int, self._offsets[c.down, c.right])
+        if (offset == -1):
+            raise Exception(f"Entry at block {str(block)},{str(cell)} does not exist!")
+        return offset
+
+
+
+
+    def has_nonzero_block(self, block: Coords) -> bool:
         nonzero = False
         for bci in range(self.bc):
             for bri in range(self.br):
-                to_cell = Coords(down=bri, right=bci) + lbs
-                if self.has_nonzero_cell(to_cell):
+                cell = Coords(down=bri, right=bci)
+                if self.has_nonzero_cell(block, cell):
                     nonzero = True
 
         return nonzero
 
 
-    def _bounds_check(self, abs_coords: Coords) -> None:
-        ri,ci = abs_coords.down_cells, abs_coords.right_cells
-        r, c = len(self.lookup), len(self.lookup[0])
+
+    def has_nonzero_cell(self, block: Coords, cell: Coords) -> bool:
+        if (cell.absolute and block.down!=0 and block.right!=0):
+            raise Exception("Cells may only be absolute if no logical block specified")
+        if block.absolute:
+            dest_block_abs = block
+        else:
+            dest_block_abs = block + self._src_block
+
+        dest_cell_abs = cell + Coords(dest_block_abs.down * self.br,
+                                      dest_block_abs.right * self.bc,
+                                      absolute = True )
+
+        self._bounds_check(dest_cell_abs)
+        offset = self._offsets[dest_cell_abs.down, dest_cell_abs.right]
+        return offset != -1
+
+
+
+    def block(self, block: Coords) -> BlockInfo:
+        if block.absolute:
+            block_abs = block
+        else:
+            block_abs = block + self._src_block
+
+        if block_abs.down != self.Br - 1:
+            br = self.br
+        else:
+            br = self.r - block_abs.down*self.br
+
+        if block_abs.right != self.Bc - 1:
+            bc = self.bc
+        else:
+            bc = self.c - block_abs.right*self.bc
+
+        index = self._blocks[block_abs.down, block_abs.right]
+        index = cast(int, index)
+        pattern = self._patterns[index][0:br, 0:bc]
+        pattern = cast(Matrix[bool], pattern)
+        return BlockInfo(br, bc, index, pattern)
+
+
+
+    def _bounds_check(self, abs_cells: Coords) -> None:
+        ri,ci = abs_cells.down, abs_cells.right
+        r, c = self._offsets.shape
         if ri >= r or ci >= c or ri < 0 or ci < 0:
             raise Exception(f"Entry {ri},{ci} outside matrix!")
 
-    def _normalize(self, c: Coords) -> Coords:
-        """ Convert coord units to cells-only """
-        down = c.down_cells + c.down_vecs*self._vr + c.down_blocks*self.br
-        right = c.right_cells + c.right_vecs*self._vc + c.right_blocks*self.bc
-        return Coords(down=down, right=right, units="cells")
+
+
+    def _cells_to_logical_block(self, block: Coords) -> Coords:   # Absolute cell coords
+
+        if block.absolute:
+            dest_block_abs = block
+        else:
+            dest_block_abs = block + self._src_block
+
+        return Coords(down = dest_block_abs.down * self.br,
+                      right = dest_block_abs.right * self.bc,
+                      absolute = True)
+
+
+
+    def _cells_to_physical_block(self, block: Coords) -> Coords:  # Absolute cell coords
+
+        lbs = self._cells_to_logical_block(block)
+
+        #TODO: This won't work with a fringe. Need to use block-specific bc, br
+        # Find first nonzero entry in block
+        for bci in range(self.bc):
+            for bri in range(self.br):
+                pbs = Coords(down=bri, right=bci) + lbs
+                if self.has_nonzero_cell(block=Coords(), cell=pbs):
+                    return pbs
+
+        raise Exception("No physical blockstart: Block is completely empty!")
+
+
+
+
 
 
 
@@ -185,38 +229,42 @@ class DenseCursor(Cursor):
                  rows: int, cols: int, ld: int,
                  block_rows: int, block_cols: int) -> None:
 
-        lookup = [[-1]*(cols+1) for i in range(rows+1)]
+        offsets = Matrix.full(rows+1,cols+1,-1)
+        blocks = Matrix.full(rows//block_rows, rows//block_cols, 0)
+        pattern = Matrix.full(block_rows, block_cols, True)
+
         # Lookup is 1 cell bigger so that we can loop over blocks and let the pointer
         # get "off the grid" on the last iteration.
-
         for ci in range(cols+1):
             for ri in range(rows+1):
-                lookup[ri][ci] = ci*ld + ri
+                offsets[ri, ci] = ci*ld + ri
 
-        Cursor.__init__(self, name, base_ptr, rows, cols,
-                              block_rows, block_cols, lookup)
+        Cursor.__init__(self, name, base_ptr, None, rows, cols,
+                              block_rows, block_cols, offsets, blocks, [pattern])
 
 
 class TiledCursor(Cursor):
     def __init__(self, name: str,
                  base_ptr: Register,
                  rows: int, cols: int,
-                 pattern: Matrix  # Matrix[bool]
+                 pattern: Matrix[bool]
                 ) -> None:
 
         br,bc = pattern.shape
-        lookup = [[-1]*(cols+1) for i in range(rows+1)]
+        Br,Bc = r//br, c//bc
+        blocks = Matrix.full(Br,Bc,0)
+        offsets = Matrix.full(rows+1,cols+1,-1)
         x = 0
 
         # Fringe uses wraparound strategy
         for ci in range(cols+1):
             for ri in range(rows+1):
                 if pattern[ri % br, ci % bc]:
-                    lookup[ri][ci] = x
+                    offsets[ri, ci] = x
                     x += 1
             x -= 1
 
-        Cursor.__init__(self, name, base_ptr, rows, cols, br, bc, lookup)
+        Cursor.__init__(self, name, base_ptr, None, rows, cols, br, bc, offsets, blocks, [pattern])
 
 
 class BlockSparseCursor(Cursor):
@@ -227,8 +275,8 @@ class BlockSparseCursor(Cursor):
                  cols: int,
                  block_rows: int,
                  block_cols: int,
-                 blocks: Matrix,
-                 patterns: List[Matrix]) -> None:
+                 blocks: Matrix[int],
+                 patterns: List[Matrix[bool]]) -> None:
 
         # The reported blocksizes are the truth
         br, bc = block_rows, block_cols
@@ -237,9 +285,9 @@ class BlockSparseCursor(Cursor):
         # The block patterns that are passed in need to conform with the truth,
         # not the other way around.
         topleftblock = blocks[0,0]
+        topleftblock = cast(int, topleftblock)
         brp, bcp = patterns[topleftblock].shape
         Brp, Bcp = blocks.shape
-        print(f"brp={brp}, br={br}")
         assert(brp==br)
         assert(bcp==bc)
         assert(Br==Brp)
@@ -248,19 +296,20 @@ class BlockSparseCursor(Cursor):
         # This enforces a constant blocksize (excluding fringes), which
         # makes a lot of things easier
         x = 0
-        lookup = [[-1]*(cols+1) for i in range(rows+1)]
+        lookup = Matrix.full(rows+1, cols+1, -1)
         for Bci in range(Bc):        # Iterate over blocks of columns
             for Bri in range(Br):    # Iterate over blocks of rows
-                pattern = patterns[blocks[Bri,Bci]]    # Pattern for current block
+                index = cast(int, blocks[Bri, Bci])
+                pattern = patterns[index]                    # Pattern for current block
                 for bci in range(bc):                        # Iterate over cols inside block
                     for bri in range(br):                    # Iterate over rows inside block
                         if pattern[bri,bci]:
-                            lookup[Bri*br + bri][Bci*bc + bci] = x
+                            lookup[Bri*br + bri, Bci*bc + bci] = x
                             x += 1
 
         # TODO: Handle fringes correctly.
 
-        Cursor.__init__(self, name, base_ptr, rows, cols, br, bc, lookup)
+        Cursor.__init__(self, name, base_ptr, None, rows, cols, br, bc, lookup, blocks, patterns)
 
 
 

@@ -24,7 +24,7 @@ class Matrix(Generic[T]):
     def __repr__(self):
         return self._underlying.__repr__()
 
-    def __getitem__(self, t) -> Union[T, Matrix[T]]:
+    def __getitem__(self, t) -> Union[T, "Matrix[T]"]:
         result = self._underlying[t]
         if isinstance(result, matrix):
             return Matrix(result)
