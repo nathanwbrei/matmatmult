@@ -29,7 +29,11 @@ class NewCoords(NamedTuple):
                self.absolute == other.absolute
 
     def __repr__(self):
-        return f"(down={self.down}, right={self.right})"
+        if self.absolute:
+            absolute = ", absolute"
+        else:
+            absolute = ""
+        return f"(down={self.down}, right={self.right}{absolute})"
 
 
 
