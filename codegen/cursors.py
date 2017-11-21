@@ -33,8 +33,10 @@ class Cursor:
         self.c = cols                            # is the final arbiter of truth. The information
         self.br = block_rows                     # in _offsets, _blocks, _patterns must be
         self.bc = block_cols                     # consistent with this.
-        self.Br = (rows // block_rows) + (rows % block_rows != 0)
-        self.Bc = (cols // block_cols) + (cols % block_cols != 0)
+        self.Br = (rows // block_rows)           # Br and Bc are the number of _complete_ blocks
+        self.Bc = (cols // block_cols)           # Test for fringe blocks separately
+        self.right_fringe = cols % block_cols != 0
+        self.bottom_fringe = rows % block_rows != 0
         self._offsets = offsets
         self._blocks = blocks
         self._patterns = patterns
@@ -174,7 +176,7 @@ class Cursor:
 
 
 
-    def block(self, block: Coords) -> BlockInfo:
+    def block(self, block: Coords = Coords()) -> BlockInfo:
         if block.absolute:
             block_abs = block
         else:

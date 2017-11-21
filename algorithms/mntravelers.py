@@ -76,13 +76,13 @@ def make_mnt_unroll_n(p:Parameters, make_ktraveler, outer_regular=True) -> AsmBl
 
 def make_mnt_loop(p:Parameters, make_ktraveler, outer_regular=True) -> AsmBlock:
 
-    Bm = (p.m // p.bm) + (p.m % p.bm != 0)
-    Bn = (p.n // p.bn) + (p.n % p.bn != 0)
+    Bm = (p.m // p.bm)
+    Bn = (p.n // p.bn)
     if outer_regular:
-        move_B = AsmBlock("Moving B, because it is outer-dense")
+        move_B = AsmBlock("Moving B, because it is outer-regular and we are looped.")
         move_B.include(p.B.move(Coords(right=1), iters=1)),
     else:
-        move_B = AsmBlock("Not moving B, because it is outer-sparse")
+        move_B = AsmBlock("Not moving B, because it is outer-regular, so kt has to do a lookup")
 
     asm = AsmBlock(f"MNTraveler looped for {p.name}").body([
         loop(r(13), 0, Bn*p.bn, p.bn).body([
@@ -99,6 +99,20 @@ def make_mnt_loop(p:Parameters, make_ktraveler, outer_regular=True) -> AsmBlock:
             move_B
         ])
     ])
+    print(f"A is pointing at {p.A._src_block}")
+    print(f"B is pointing at {p.B._src_block}")
+    print(f"C is pointing at {p.C._src_block}")
+
+    if p.B.bottom_fringe:
+        fringe_asm = AsmBlock(f"Loop over right-hand fringe").body([
+            loop(r(12), 0, Bm, 1).body([  # Right-hand fringe. #TODO: Cursors need to be set correctly.
+
+                make_ktraveler(p, None),
+                p.A.move(Coords(down=1), iters=Bm),
+                p.C.move(Coords(down=1), iters=Bm),
+            ])
+        ])
+        asm.include(fringe_asm)
     return asm
 
 

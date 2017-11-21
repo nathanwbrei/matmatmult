@@ -65,13 +65,18 @@ def make_kt_unroll(p: Parameters, Bni: int) -> AsmBlock:
 
     Bk = (p.k // p.bk) + (p.k % p.bk != 0)
     asm = AsmBlock("KT unrolled " + p.name)
-    # TODO: load C, taking into account the nonzero cols of B
+    asm.include(load_register_block(p.C, p.C_regs, C_mask(p.C_regs, p.C, p.B)))
+
     for Bki in range(0,Bk):
-        to_block = to_B_panel + Coords(down=Bki)
+        to_block = to_B_panel + Coords(down=Bki) # TODO: Fuse addressing
         if p.B.has_nonzero_block(to_block):
+
             asm.include(p.B.move(to_block))
+            asm.include(load_register_block(p.A, p.A_regs, A_mask(p.A_regs, p.C, p.B)))
             asm.include(MatMult(p))
-    # TODO: store C, taking into account the nonzero cols of B
+            asm.include(store_register_block(p.A, p.A_regs, A_mask(p.A_regs, p.C, p.B)))
+
+    asm.include(store_register_block(C, C_regs, C_mask(p.C_regs, p.C, p.B)))
     return asm
 
 
