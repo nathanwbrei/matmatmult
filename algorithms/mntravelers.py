@@ -84,6 +84,9 @@ def make_mnt_loop(p:Parameters, make_ktraveler, outer_regular=True) -> AsmBlock:
     else:
         move_B = AsmBlock("Not moving B, because it is outer-regular, so kt has to do a lookup")
 
+    # Undo the state change on B cursor
+    p.B.reset()
+
     asm = AsmBlock(f"MNTraveler looped for {p.name}").body([
         loop(r(13), 0, Bn*p.bn, p.bn).body([
             loop(r(12), 0, Bm, 1).body([

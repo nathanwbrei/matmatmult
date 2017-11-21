@@ -126,7 +126,7 @@ class Cursor:
 
 
     def reset(self):
-        return self.move(self._origin_cell-self._src_cell)
+        return self.move(self._origin_block-self._src_block)
 
 
 
@@ -249,7 +249,7 @@ class DenseCursor(Cursor):
         offsets = Matrix.full(rows+1,cols+1,-1)
         Br = (rows // block_rows) + (rows % block_rows != 0)
         Bc = (cols // block_cols) + (cols % block_cols != 0)
-        blocks = Matrix.full(Br, Bc, 0)
+        blocks = Matrix.full(Br+1, Bc+1, 0)
         pattern = Matrix.full(block_rows, block_cols, True)
 
         # Lookup is 1 cell bigger so that we can loop over blocks and let the pointer
@@ -270,16 +270,16 @@ class TiledCursor(Cursor):
                 ) -> None:
 
         br,bc = pattern.shape
-        Br = (rows // br) + (rows % br != 0)
-        Bc = (cols // bc) + (cols % bc != 0)
-        blocks = Matrix.full(Br,Bc,0)
-        offsets = Matrix.full((Br+1)*br,(Bc+1)*bc,-1)
+        Brf = (rows // br) + (rows % br != 0)
+        Bcf = (cols // bc) + (cols % bc != 0)
+        blocks = Matrix.full(Brf+1, Bcf+1,0)
+        offsets = Matrix.full((Brf+1)*br, (Bcf+1)*bc, -1)
 
         # TODO: This is ugly. Consider overloading offset() instead.
         x = 0
         nnz = pattern.nnz()
-        for Bci in range(Bc+1):
-            for Bri in range(Br+1):
+        for Bci in range(Bcf+1):
+            for Bri in range(Brf+1):
                 for bci in range(bc):
                     for bri in range(br):
                         if pattern[bri,bci]:

@@ -72,11 +72,11 @@ def make_kt_unroll(p: Parameters, Bni: int) -> AsmBlock:
         if p.B.has_nonzero_block(to_block):
 
             asm.include(p.B.move(to_block))
-            asm.include(load_register_block(p.A, p.A_regs, A_mask(p.A_regs, p.C, p.B)))
+            asm.include(load_register_block(p.A, p.A_regs, A_mask(p.A_regs, p.A, p.B)))
             asm.include(MatMult(p))
-            asm.include(store_register_block(p.A, p.A_regs, A_mask(p.A_regs, p.C, p.B)))
+            asm.include(store_register_block(p.A, p.A_regs, A_mask(p.A_regs, p.A, p.B)))
 
-    asm.include(store_register_block(C, C_regs, C_mask(p.C_regs, p.C, p.B)))
+    asm.include(store_register_block(p.C, p.C_regs, C_mask(p.C_regs, p.C, p.B)))
     return asm
 
 

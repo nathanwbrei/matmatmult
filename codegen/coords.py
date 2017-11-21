@@ -20,7 +20,7 @@ class Coords(NamedTuple):
         return Coords(self.down+other.down, self.right+other.right, absolute)
 
     def __sub__(self, other):
-        absolute = self.absolute | other.absolute
+        absolute = self.absolute != other.absolute  # TODO: What is the math behind this?
         return Coords(self.down-other.down, self.right-other.right, absolute)
 
     def __neg__(self, other):

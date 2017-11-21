@@ -41,7 +41,10 @@ class Parameters(NamedTuple):
         assert(bma==bmc)
 
         bm = 8*bma
-        ld = m + bm - (m % bm)
+        if m % 8 == 0:
+            ld = m
+        else:
+            ld = m + bm - (m % bm)
 
         A = DenseCursor("A", rdi, m, k, ld, bm, bk)
         B = BlockSparseCursor("B", rsi, k, n, bk, bn, blocks, pattern_index)
@@ -69,7 +72,10 @@ class Parameters(NamedTuple):
             raise AssertionError(f"pattern.shape: expected {(bk,bn)}, got {pattern.shape}")
 
         bm = 8*bma
-        ld = m + bm - (m % bm)
+        if m % 8 == 0:
+            ld = m
+        else:
+            ld = m + bm - (m % bm)
 
         A = DenseCursor("A", rdi, m, k, ld, bm, bk)
         B = TiledCursor("B", rsi, k, n, pattern)

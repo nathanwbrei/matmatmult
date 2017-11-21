@@ -56,7 +56,7 @@ def C_mask(C_regs: Matrix[Register], C: Cursor, B: Cursor, tiled=True):
     if tiled:
         # Mask out registers not used in current block, including zero-cols of B
         for Vci in range(C_bc):
-            if B_patt[:,Vci].any(axis=0):
+            if B_pat[:,Vci].any(axis=0):
                 mask[:,Vci] = True
     else:
         mask[:,0:Vci] = True
@@ -76,7 +76,7 @@ def A_mask(A_regs: Matrix[Register], A: Cursor, B: Cursor):
 
     # Mask out registers not used in current block, including zero-rows of B
     for Vci in range(A_bc):
-        if pattern[Vci,:].any(axis=1):
+        if B_pat[Vci,:].any(axis=1):
             mask[:,Vci] = True
 
     return mask
