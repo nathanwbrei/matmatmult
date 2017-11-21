@@ -12,6 +12,9 @@ class Coords(NamedTuple):
     right:    int  = 0
     absolute: bool = False
 
+    def copy(self):
+        return Coords(self.down, self.right, self.absolute)
+    
     def __add__(self, other):
         absolute = self.absolute | other.absolute
         return Coords(self.down+other.down, self.right+other.right, absolute)

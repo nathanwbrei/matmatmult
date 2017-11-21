@@ -29,7 +29,7 @@ class MNTraveler(AsmBlock):
     """
 
 
-def make_mnt_unroll_mn(p:Parameters, make_ktraveler) -> AsmBlock:
+def make_mnt_unroll_mn(p:Parameters, make_ktraveler, outer_regular=True) -> AsmBlock:
 
     Bm, Bn = p.m//p.bm, p.n//p.bn
     asm = AsmBlock(f"MNTraveler unrolled over m,n for {p.name}")
@@ -46,11 +46,13 @@ def make_mnt_unroll_mn(p:Parameters, make_ktraveler) -> AsmBlock:
         if Bni != Bn-1:
             asm.include(p.A.move(Coords(down=0, absolute=True)))
             asm.include(p.C.move(Coords(down=0, right=Bni, absolute=True)))
+            if outer_regular:
+                asm.include(p.B.move(Coords(right=1)))
 
     return asm
 
 
-def make_mnt_unroll_n(p:Parameters, make_ktraveler) -> AsmBlock:
+def make_mnt_unroll_n(p:Parameters, make_ktraveler, outer_regular=True) -> AsmBlock:
 
     Bm, Bn = p.m//p.bm, p.n//p.bn
     asm = AsmBlock(f"MNTraveler unrolled over n for {p.name}")
@@ -66,25 +68,35 @@ def make_mnt_unroll_n(p:Parameters, make_ktraveler) -> AsmBlock:
         if Bni != Bn-1:
             asm.include(p.A.move(Coords(down=0, absolute=True)))
             asm.include(p.C.move(Coords(down=0, right=Bni, absolute=True)))
+            if outer_regular:
+                asm.include(p.B.move(Coords(right=1)))
 
     return asm
 
 
-def make_mnt_loop(p:Parameters, make_ktraveler) -> AsmBlock:
+def make_mnt_loop(p:Parameters, make_ktraveler, outer_regular=True) -> AsmBlock:
 
-    Bm, Bn = p.m//p.bm, p.n//p.bn
+    Bm = (p.m // p.bm) + (p.m % p.bm != 0)
+    Bn = (p.n // p.bn) + (p.n % p.bn != 0)
+    if outer_regular:
+        move_B = AsmBlock("Moving B, because it is outer-dense")
+        move_B.include(p.B.move(Coords(right=1), iters=1)),
+    else:
+        move_B = AsmBlock("Not moving B, because it is outer-sparse")
+
     asm = AsmBlock(f"MNTraveler looped for {p.name}").body([
         loop(r(13), 0, Bn*p.bn, p.bn).body([
             loop(r(12), 0, Bm, 1).body([
 
-                make_ktraveler(p, "Get_from_registers"),
+                make_ktraveler(p, None),
                 p.A.move(Coords(down=1), iters=Bm),
                 p.C.move(Coords(down=1), iters=Bm),
                 # TODO: Might be able to achieve A,C moves simultaneously with
                 # loop updates by using scale-index addressing.
             ]),
-            p.A.move(Coords(down=-Bm), iters=Bn),
-            p.C.move(Coords(down=-Bm, right=1), iters=Bn),
+            p.A.move(Coords(down=-Bm)),
+            p.C.move(Coords(down=-Bm, right=1)),
+            move_B
         ])
     ])
     return asm

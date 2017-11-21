@@ -24,6 +24,7 @@ class MatMult(AsmBlock):
                  to_C: Coords = Coords()
                 ) -> None:
 
+        AsmBlock.__init__(self)
         bm,bk,aidx,apattern = p.A.block(to_A)
         bk,bn,bidx,pattern  = p.B.block(to_B)
         assert(bm % 8 == 0)

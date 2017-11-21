@@ -35,10 +35,14 @@ class Matrix(Generic[T]):
         self._underlying[cell] = value
 
     def __or__(self, other):
-        return self._underlying | other._underlying
+        return Matrix(self._underlying | other._underlying)
 
     def any(self, axis=None, out=None):
         return self._underlying.any(axis, out)
+
+    def nnz(self) -> int:
+        return sum(self[r,c] != 0 for r in range(self.rows)
+                                  for c in range(self.cols))
 
 
 

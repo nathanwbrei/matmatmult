@@ -1,4 +1,5 @@
 
+
 from typing import Tuple, List, NamedTuple, cast
 
 from codegen.coords import Coords 
@@ -32,8 +33,8 @@ class Cursor:
         self.c = cols                            # is the final arbiter of truth. The information
         self.br = block_rows                     # in _offsets, _blocks, _patterns must be
         self.bc = block_cols                     # consistent with this.
-        self.Br = rows // block_rows
-        self.Bc = cols // block_cols
+        self.Br = (rows // block_rows) + (rows % block_rows != 0)
+        self.Bc = (cols // block_cols) + (cols % block_cols != 0)
         self._offsets = offsets
         self._blocks = blocks
         self._patterns = patterns
@@ -54,6 +55,8 @@ class Cursor:
                     pbs = self._cells_to_physical_block(to_block)
                     self._src_cell = pbs
                     self._src_block = to_block
+                    self._origin_cell = pbs.copy()
+                    self._origin_block = to_block.copy()
                     found = True
                     break
             if found:
@@ -81,7 +84,7 @@ class Cursor:
             addr = MemoryAddress(self._base_ptr, self._index_ptr,
                                  c(self._scale), c(offset*self._scalar_bytes))
         else:
-            addr = self._base_ptr + self._scalar_bytes*offset
+            addr = MemoryAddress(self._base_ptr, None, None, self._scalar_bytes*offset)
         return (addr, comment)
 
 
@@ -121,19 +124,18 @@ class Cursor:
 
 
     def reset(self):
-        return self.move(-self._src_cell)
+        return self.move(self._origin_cell-self._src_cell)
 
 
 
 
-    def offset(self, block: Coords = Coords(), cell: Coords = Coords()) -> int:
+    def offset(self, cell: Coords = Coords()) -> int:
 
-        if (cell.absolute and block.down!=0 and block.right!=0):
-            raise AssertionError("Cells may only be absolute if no logical block specified")
+        if not cell.absolute:
+            raise Exception("Cell coords need to be absolute in order to calculate offset")
 
-        c = self._cells_to_logical_block(block) + cell
-        self._bounds_check(c)
-        offset = cast(int, self._offsets[c.down, c.right])
+        self._bounds_check(cell)
+        offset = cast(int, self._offsets[cell.down, cell.right])
         if (offset == -1):
             raise Exception(f"Entry at block {str(block)}, cell {str(cell)} does not exist!")
         return offset
@@ -143,8 +145,9 @@ class Cursor:
 
     def has_nonzero_block(self, block: Coords) -> bool:
         nonzero = False
-        for bci in range(self.bc):
-            for bri in range(self.br):
+        br,bc,idx,pat = self.block(block)
+        for bci in range(bc):
+            for bri in range(br):
                 cell = Coords(down=bri, right=bci)
                 if self.has_nonzero_cell(block, cell):
                     nonzero = True
@@ -177,12 +180,12 @@ class Cursor:
         else:
             block_abs = block + self._src_block
 
-        if block_abs.down != self.Br - 1:
+        if block_abs.down != self.Br-1:
             br = self.br
         else:
             br = self.r - block_abs.down*self.br
 
-        if block_abs.right != self.Bc - 1:
+        if block_abs.right != self.Bc-1:
             bc = self.bc
         else:
             bc = self.c - block_abs.right*self.bc
@@ -235,7 +238,6 @@ class Cursor:
 
 
 
-
 class DenseCursor(Cursor):
     def __init__(self, name: str,
                  base_ptr: Register,
@@ -243,7 +245,9 @@ class DenseCursor(Cursor):
                  block_rows: int, block_cols: int) -> None:
 
         offsets = Matrix.full(rows+1,cols+1,-1)
-        blocks = Matrix.full(rows//block_rows, rows//block_cols, 0)
+        Br = (rows // block_rows) + (rows % block_rows != 0)
+        Bc = (cols // block_cols) + (cols % block_cols != 0)
+        blocks = Matrix.full(Br, Bc, 0)
         pattern = Matrix.full(block_rows, block_cols, True)
 
         # Lookup is 1 cell bigger so that we can loop over blocks and let the pointer
@@ -264,18 +268,22 @@ class TiledCursor(Cursor):
                 ) -> None:
 
         br,bc = pattern.shape
-        Br,Bc = rows//br, cols//bc
+        Br = (rows // br) + (rows % br != 0)
+        Bc = (cols // bc) + (cols % bc != 0)
         blocks = Matrix.full(Br,Bc,0)
-        offsets = Matrix.full(rows+1,cols+1,-1)
-        x = 0
+        offsets = Matrix.full((Br+1)*br,(Bc+1)*bc,-1)
 
-        # Fringe uses wraparound strategy
-        for ci in range(cols+1):
-            for ri in range(rows+1):
-                if pattern[ri % br, ci % bc]:
-                    offsets[ri, ci] = x
-                    x += 1
-            x -= 1
+        # TODO: This is ugly. Consider overloading offset() instead.
+        x = 0
+        nnz = pattern.nnz()
+        for Bci in range(Bc+1):
+            for Bri in range(Br+1):
+                for bci in range(bc):
+                    for bri in range(br):
+                        if pattern[bri,bci]:
+                            offsets[Bri*br + bri, Bci*bc + bci] = x
+                            x += 1
+            x -= nnz
 
         Cursor.__init__(self, name, base_ptr, None, rows, cols, br, bc, offsets, blocks, [pattern])
 

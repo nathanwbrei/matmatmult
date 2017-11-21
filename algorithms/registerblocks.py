@@ -67,7 +67,6 @@ def emptyrows(registers: Matrix[Register], pattern: Matrix[bool]):
         Use this for A when B is sparse."""
     rows, cols = registers.shape
     mask = Matrix.full(rows, cols, True)
-    cols *= 8  # Vector height
     pattern_rows = pattern.shape[0]
 
     for ci in range(cols):

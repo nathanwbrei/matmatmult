@@ -99,43 +99,32 @@ class MemoryAddress(Operand):
     def __init__(self,
                  base: Register,
                  index: Register,
-                 scale: Constant,
-                 offset: Constant,
-                 alignment: int = None,
-                 bcast: bool = False) -> None:
+                 scale: int,
+                 disp: int) -> None:
         self.base = base
         self.index = index
         self.scale = scale
-        self.offset = offset
-        self.alignment = alignment
-        self.bcast = bcast
+        self.disp = disp
 
 
     def gen(self, syntax: Syntax = inline) -> str:
 
         base_str = self.base.gen(syntax)
-        offset_str = self.offset.gen(Syntax.intel)
-        if not self.bcast:
-            bcast_str = ""
-        elif syntax == inline:
-            bcast_str = "%{1to8%}"
-        else:
-            bcast_str = "x8"
+        offset_str = str(self.disp)
 
         if self.index is not None and self.scale is not None:
             index_str = self.index.gen(syntax)
-            scale_str = self.scale.gen(intel)
+            scale_str = str(scale)
 
             if syntax == inline:
-                return f"{offset_str}({base_str}, {index_str}, {scale_str}){bcast_str}"
+                return f"{offset_str}({base_str}, {index_str}, {scale_str})"
             else:
-                return f"[{base_str}+{index_str}*{scale_str}+{offset_str}]{bcast_str}"
+                return f"[{base_str}+{index_str}*{scale_str}+{offset_str}]"
         else:
             if syntax == inline:
-                return f"{offset_str}({base_str}){bcast_str}"
+                return f"{offset_str}({base_str})"
             else:
-                return f"[{base_str}+{offset_str}]{bcast_str}"
-
+                return f"[{base_str}+{offset_str}]"
 
     def __repr__(self):
         return self.gen(syntax=Syntax.pretty)
