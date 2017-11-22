@@ -65,7 +65,7 @@ void print_matrix(struct colmajor * matrix) {
   int rows = matrix->rows;
   for (int row = 0; row < rows; row++) {
     for (int col = 0; col < cols; col++) {
-      printf("%f\t", matrix->values[row + col*rows]);
+      printf("%10.2f ", matrix->values[row + col*rows]);
     }
     printf("\n");
   }

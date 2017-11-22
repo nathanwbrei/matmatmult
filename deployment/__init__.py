@@ -10,6 +10,10 @@ def run(e: Experiment, c: Cluster = coolmuc3):
     make_script(e,c)
     make_executable(e)
 
+    output_dir = e.reldir + "/output"
+    if not path.exists(output_dir):
+        os.mkdir(output_dir)
+
     send(e.reldir+"/"+e.script, c)
     send("build/"+e.executable, c)
     j = submit(e, c)

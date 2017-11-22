@@ -155,7 +155,6 @@ int main(int argc, char ** argv) {
     update_pattern(&B, 8, 14, 1);
     fill_sparse(&B, 1, 2);
     sparse2dense(&B, &B_dense);
-
     print_matrix(&B_dense);
      
 
@@ -169,7 +168,7 @@ int main(int argc, char ** argv) {
     assert_equals(&C_expected, &C_actual);
 
     clock_gettime(CLOCK_MONOTONIC, &start);
-    for (int t=0; t<3000; t++)
+    for (int t=0; t<100000; t++)
       seissol_star_knl(A.values, B.values, C_actual.values);
     clock_gettime(CLOCK_MONOTONIC, &end);
 
@@ -187,15 +186,12 @@ int main(int argc, char ** argv) {
     assert_equals(&C_expected, &C_actual);
 
     clock_gettime(CLOCK_MONOTONIC, &start);
-    for (int t=0; t<3000; t++)
+    for (int t=0; t<100000; t++)
         StarTiledFull(A.values, B.values, C_actual.values);
     clock_gettime(CLOCK_MONOTONIC, &end);
 
     printf("StarTiledFull, %lf\n",
         1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
-    
-
- 
 
 
 
