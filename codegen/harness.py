@@ -49,7 +49,7 @@ int main(int argc, char ** argv) {{
         printf("{test_name}, %d, %d\\n",
           cycles_after - cycles_before,
           ticks_after - ticks_before);
-    """.format(test_name=p.description)
+    """.format(test_name=p.name)
 
 
 
@@ -61,7 +61,7 @@ int main(int argc, char ** argv) {{
         for param in self.params:
             # Generate asm for each alg variant, wrapped in a C fn
             alg_asm = self.alg_builder(param)
-            alg_c = make_cfunc(param.description, alg_asm, True)
+            alg_c = make_cfunc(param.name, alg_asm, True)
             algdefs += alg_c + "\n\n"
 
             # Generate the code which calls this

@@ -14,7 +14,7 @@ class Parameters(NamedTuple):
 
 defaults = Parameters(48,9,9,48,9,48,"gemms.h","default_gemms","knl")
 
-path_to_libxsmm = "../../libxsmm/bin/libxsmm_gemm_generator"
+path_to_libxsmm = "../libxsmm/bin/libxsmm_gemm_generator"
 
 def make_gemm(p: Parameters):
     result = subprocess.run([path_to_libxsmm, "dense", p.filename, p.funcname,
