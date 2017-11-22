@@ -17,11 +17,8 @@ class MatMult(AsmBlock):
     mb = 8
     def __init__(self,
                  p: Parameters,
-                 # In case the cursor is not already pointing at the physical blockstart,
-                 # this is how we get it there:
                  to_A: Coords = Coords(),
                  to_B: Coords = Coords(),
-                 to_C: Coords = Coords()
                 ) -> None:
 
         AsmBlock.__init__(self)
@@ -31,7 +28,7 @@ class MatMult(AsmBlock):
 
         A_mask = emptyrows(p.A_regs, pattern)
 
-        self.comment = "Block inner product B{to_B}"
+        self.comment = "Block matrix multiplication"
         self.include(load_register_block(p.A, p.A_regs, A_mask, to_A))
 
         for Vmi in range(bm//8):

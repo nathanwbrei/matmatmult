@@ -182,12 +182,12 @@ class Cursor:
         else:
             block_abs = block + self._src_block
 
-        if block_abs.down != self.Br-1:
+        if block_abs.down != self.Br:
             br = self.br
         else:
             br = self.r - block_abs.down*self.br
 
-        if block_abs.right != self.Bc-1:
+        if block_abs.right != self.Bc:
             bc = self.bc
         else:
             bc = self.c - block_abs.right*self.bc
@@ -224,7 +224,9 @@ class Cursor:
     def _cells_to_physical_block(self, block: Coords) -> Coords:  # Absolute cell coords
 
         lbs = self._cells_to_logical_block(block)
-        br,bc,idx,pat = self.block(block)
+        # No longer assuming blocks can be whatever size
+        #br,bc,idx,pat = self.block(block)
+        br,bc = self.br, self.bc
 
         # Find first nonzero entry in block
         for bci in range(bc):
