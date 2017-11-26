@@ -54,6 +54,10 @@ class Label(Operand):
         else:
             return str(self.value)
 
+    @property
+    def inline(self):
+        return self.ordinal
+
 def l(label: str):
     return Label(label)
 
@@ -69,6 +73,10 @@ class Register(Operand):
             return MemoryAddress(self, None, None, offset)
         elif isinstance(offset, int):
             return MemoryAddress(self, None, None, Constant(offset))
+
+    @property
+    def inline(self):
+        return "%%" + self.value
 
     def gen(self, syntax:Syntax=inline):
         if syntax is inline:
@@ -114,7 +122,7 @@ class MemoryAddress(Operand):
 
         if self.index is not None and self.scale is not None:
             index_str = self.index.gen(syntax)
-            scale_str = str(scale)
+            scale_str = str(self.scale)
 
             if syntax == inline:
                 return f"{offset_str}({base_str}, {index_str}, {scale_str})"
