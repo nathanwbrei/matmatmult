@@ -74,10 +74,6 @@ class Register(Operand):
         elif isinstance(offset, int):
             return MemoryAddress(self, None, None, Constant(offset))
 
-    @property
-    def inline(self):
-        return "%%" + self.value
-
     def gen(self, syntax:Syntax=inline):
         if syntax is inline:
             return "%%" + self.value
@@ -87,6 +83,9 @@ class Register(Operand):
     def __repr__(self):
         return self.value
 
+    @property
+    def inline(self):
+        return "%%" + self.value
 
 rax = Register(AsmType.i64, "rax")
 rbx = Register(AsmType.i64, "rbx")

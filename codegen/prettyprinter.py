@@ -1,5 +1,6 @@
 from typing import List
 from codegen.ast import *
+from codegen.visitors import Visitor
 
 
 class PrettyPrinter(Visitor):

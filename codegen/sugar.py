@@ -1,9 +1,12 @@
+from typing import Union
+
 from codegen.ast import *
+from codegen.operands import *
 
 # Convenient statement constructors
-def add(src: Operand, dest: Operand):
+def add(src: Union[Operand, int], dest: Register):
     stmt = AddStmt()
-    stmt.src = src
+    stmt.src = src if isinstance(src, Operand) else c(src)
     stmt.dest = dest
     return stmt
 
@@ -12,35 +15,45 @@ def label(name: str):
     stmt.label = Label(name)
     return stmt
 
-def fma(bcast_src: Operand, mult_src: Operand, add_dest: Operand):
+def fma(bcast_src: MemoryAddress, mult_src: Register, add_dest: Register):
     stmt = FmaStmt()
     stmt.bcast_src = bcast_src
     stmt.mult_src = mult_src
     stmt.add_dest = add_dest
     return stmt
 
-def cmp(lhs: Operand, rhs: Operand):
+def cmp(lhs: Union[Operand, int], rhs: Union[Operand, int]):
     stmt = CmpStmt()
-    stmt.lhs = lhs
-    stmt.rhs = rhs
+    stmt.lhs = lhs if isinstance(lhs, Operand) else c(lhs)
+    stmt.rhs = rhs if isinstance(rhs, Operand) else c(rhs)
     return stmt
 
 def jump(label: str, backwards: bool):
     stmt = JumpStmt()
-    stmt.label = label
+    stmt.label = Label(label)
     stmt.backwards = backwards
     return stmt
 
+def mov(src: Union[Operand, int], dest: Operand):
+    stmt = MovStmt()
+    stmt.src = src if isinstance(src, Operand) else c(src)
+    stmt.dest = dest
+    return stmt
+
+def data(value: Union[Operand, int], asmType=AsmType.i64):
+    stmt = DataStmt()
+    stmt.value = value if isinstance(value, Operand) else c(value)
+    stmt.asmType = asmType
+    return stmt
 
 
 # Fluent interface
 class BlockBuilder(Block):
 
-    def __init__(self, description: str, parent: "BlockBuilder" = None):
+    def __init__(self, description: str, parent: "BlockBuilder" = None) -> None:
         self.parent = parent
         self.comment = description
         self.contents = []
-        self.block.description = description
 
     def add(self, stmt: AsmStmt):
         self.contents.append(stmt)
@@ -57,9 +70,9 @@ class BlockBuilder(Block):
 
 
 # S-expression interface
-def block(description: str, *args: List[AsmStmt]):
+def block(description: str, *args: AsmStmt):
     b = BlockBuilder(description)
-    b.contents = args
+    b.contents = list(args)
     return b
 
 

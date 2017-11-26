@@ -1,10 +1,21 @@
 
-from typing import List
-from codegen.operands import Operand, Label
+from typing import List, TYPE_CHECKING
+from codegen.operands import Operand, Label, Register, AsmType, MemoryAddress
+
+if TYPE_CHECKING:
+    from codegen.visitors import Visitor
 
 
 class AsmStmt:
-    comment : str = None
+    comment: str = None
+    implied_inputs: List[Register] = []
+    implied_outputs: List[Register] = []
+
+    def accept(self, visitor: "Visitor"):
+        raise Exception("AsmStmt is supposed to be abstract!")
+
+
+class GenericStmt(AsmStmt):
     operation: str
     inputs: List[Operand]
     output: Operand
@@ -13,19 +24,27 @@ class AsmStmt:
         visitor.visitStmt(self)
 
 
+class MovStmt(AsmStmt):
+    src: Operand
+    dest: Operand
+
+    def accept(self, visitor: "Visitor"):
+        visitor.visitMov(self)
+
+
 class FmaStmt(AsmStmt):
-    bcast_src: str = None
-    mult_src: str = None
-    add_dest: str = None
+    bcast_src: MemoryAddress
+    mult_src: Register
+    add_dest: Register
 
     def accept(self, visitor: "Visitor"):
         visitor.visitFma(self)
 
 
 class AddStmt(AsmStmt):
-    src: str = None
-    dest: str = None
-    typ: int = None
+    src: Operand = None
+    dest: Register = None
+    typ: AsmType = None
 
     def accept(self, visitor: "Visitor"):
         visitor.visitAdd(self)
@@ -51,6 +70,13 @@ class JumpStmt(AsmStmt):
     def accept(self, visitor: "Visitor"):
         visitor.visitJump(self)
 
+class DataStmt(AsmStmt):
+    value: Operand
+    asmType: AsmType
+
+    def accept(self, visitor: "Visitor"):
+        visitor.visitData(self)
+
 
 class Block(AsmStmt):
     contents : List[AsmStmt] = []
@@ -59,28 +85,15 @@ class Block(AsmStmt):
         visitor.visitBlock(self)
 
 
+class Command(AsmStmt):
+    name: str
 
+    def accept(self, visitor: "Visitor"):
+        visitor.visitCommand(self)
 
-class Visitor:
-
-    def visitStmt(self, stmt: AsmStmt) -> None:
+    def make(self, e) -> Block:
         raise NotImplementedError()
 
-    def visitAdd(self, stmt: AddStmt) -> None:
-        raise NotImplementedError()
 
-    def visitLabel(self, stmt: LabelStmt) -> None:
-        raise NotImplementedError()
 
-    def visitFma(self, stmt: FmaStmt) -> None:
-        raise NotImplementedError()
-
-    def visitCmp(self, stmt: CmpStmt) -> None:
-        raise NotImplementedError()
-
-    def visitJump(self, stmt: JumpStmt) -> None:
-        raise NotImplementedError()
-
-    def visitBlock(self, stmt: Block) -> None:
-        raise NotImplementedError()
 
