@@ -1,12 +1,13 @@
 
 
-from cursors.abstractcursor import CursorDef, CursorLocation
+from cursors.abstractcursor import CursorDef, CursorLocation, BlockInfo
 from codegen.ast import AsmStmt
+from codegen.sugar import add
 from codegen.operands import Register, MemoryAddress
 from codegen.matrix import Matrix
 from codegen.coords import Coords
 
-from typing import List, Tuple
+from typing import List, Tuple, cast
 
 
 class TiledCursorDef(CursorDef):
@@ -15,7 +16,7 @@ class TiledCursorDef(CursorDef):
 
     def __init__(self,
                  name: str,
-                 ptr_reg: Register,
+                 base_ptr: Register,
                  rows:int,
                  cols:int,
                  pattern: List[List[bool]],
@@ -25,10 +26,11 @@ class TiledCursorDef(CursorDef):
         self.name = name
         self.r, self.c = rows, cols
         self.br, self.bc = pattern.shape
+        self.pattern = pattern
         self.offsets = Matrix.full(self.br, self.bc, -1)
 
-        self.ptr_reg = ptr_reg
-        self.index_reg = None
+        self.base_ptr = base_ptr
+        self.index_ptr = None
         self.scalar_bytes = scalar_bytes
         self.vector_width = vector_width
 
@@ -50,20 +52,27 @@ class TiledCursorDef(CursorDef):
                          dest_cell: Coords
                         ) -> bool:
         assert(dest_cell.absolute == False)
-        return offsets[dest_cell.down, dest_cell.right] != -1
+        return self.offsets[dest_cell.down, dest_cell.right] != -1
+
+
+    def has_nonzero_block(self, src: CursorLocation, dest_block: Coords) -> bool:
+        return True
+        # TODO: How does this handle out-of-bounds and fringes?
+
 
     def offset(self,
-               src: CursorLocation,
+               src_block: Coords,
                dest_block: Coords,
                dest_cell: Coords
               ) -> int:
 
+        assert(src_block.absolute == True)
         assert(dest_cell.absolute == False)
         if not dest_block.absolute:
-            dest_block += src.current_block
+            dest_block += src_block
 
         block_offset = self.ld_offset*dest_block.right + self.block_offset*dest_block.down
-        cell_offset = offsets[dest_cell.down, dest_cell.right]
+        cell_offset = self.offsets[dest_cell.down, dest_cell.right]
         if cell_offset == -1:
             raise Exception(f"Cell {dest_cell} does not exist in memory")
         return block_offset + cell_offset
@@ -75,47 +84,80 @@ class TiledCursorDef(CursorDef):
 
         assert(dest_block.absolute == False)
         comment = f"Move {self.name} to {str(dest_block)}"
-        offset = self.offset(src, dest_block, src.current_cell)
-        offset *= self.scalar_bytes
+        src_offset = self.offset(src.current_block, Coords(), src.current_cell)
+        dest_offset = self.offset(src.current_block, dest_block, src.current_cell)
+        rel_offset = (dest_offset - src_offset) * self.scalar_bytes
         dest = CursorLocation(src.current_block + dest_block, src.current_cell)
-        return (add(offset, self.ptr_reg, comment), dest)
+        return (add(rel_offset, self.base_ptr, comment), dest)
 
     def look(self,
              src: CursorLocation,
+             dest_block: Coords,
              dest_cell: Coords
             ) -> Tuple[MemoryAddress, str]:
 
-        disp = Displacement(down, right, units)
-        if displacement is not None:
-            disp += displacement
+        assert(dest_cell.absolute == False)
 
-        vr, vc = self._vector_width, 1
-        br, bc = len(self.pattern), len(self.pattern[0])
-        down = disp.down_cells + disp.down_vecs * vr + disp.down_blocks * br
-        right = disp.right_cells + disp.right_vecs * vc + disp.right_blocks * bc
+        comment = f"{self.name} @ block{str(dest_block)}, cell{str(dest_cell)}"
 
-        offset = self.lookup[down][right]
-        if offset == -1:
-            raise Exception(f"No value at location ({down},{right}).")
+        src_offset_abs = self.offset(src.current_block, Coords(), src.current_cell)
+        dest_offset_abs = self.offset(src.current_block, dest_block, dest_cell)
+        rel_offset = self.scalar_bytes * (dest_offset_abs - src_offset_abs)
 
-
-        return self._ptr_reg + self._scalar_bytes*offset
+        if self.index_ptr is not None:
+            addr = MemoryAddress(self.base_ptr, self.index_ptr, self.scale, rel_offset)
+        else:
+            addr = MemoryAddress(self.base_ptr, None, None, rel_offset)
+        return (addr, comment)
 
 
+    def start_location(self, dest_block: Coords = Coords(absolute=True)) -> CursorLocation:
+
+        assert(dest_block.absolute == True)
+        #TODO: Handle fringe case?
+        for bci in range(self.bc):
+            for bri in range(self.br):
+                if self.offsets[bri, bci] != -1:
+                    return CursorLocation(dest_block, Coords(down=bri, right=bci, absolute=False))
+
+        raise Exception(f"Block {dest_block} has no starting location because it is empty!")
+
+    def get_block(self, src: CursorLocation=None, dest_block: Coords=None) -> BlockInfo:
+
+        if src is None:
+            assert(dest_block is not None)
+            assert(dest_block.absolute == True)
+            block_abs = dest_block
+        elif dest_block is None:
+            assert(src.current_block.absolute == True)
+            block_abs = src.current_block
+        else:
+            assert(src.current_block.absolute == True)
+            assert(dest_block.absolute == False)
+            block_abs = dest_block + src.current_block
+
+        br = self.br if block_abs.down < self.Br else self.brf   #TODO: Verify these
+        bc = self.bc if block_abs.right < self.Bc else self.bcf
+        index = 0
+        pattern = self.pattern[0:br, 0:bc]
+        pattern = cast(Matrix[bool], pattern)
+        return BlockInfo(br, bc, index, pattern)
 
 class DenseCursorDef(TiledCursorDef):
     def __init__(self,
                  name: str,
-                 ptr_reg: Register,
+                 base_ptr: Register,
                  rows:int,
                  cols:int,
+                 ld: int,
                  block_rows: int,
                  block_cols: int,
                  scalar_bytes:int = 8,
                  vector_width:int = 8) -> None:
 
         pattern = Matrix.full(block_rows, block_cols, True)
-        return TiledCursorDef.__init__(self, name, ptr_reg, rows, cols, pattern, scalar_bytes, vector_width)
+        # TODO: This is probably not handling ld correctly. Separate this from tiledcursor such that it does.
+        return TiledCursorDef.__init__(self, name, base_ptr, rows, cols, pattern, scalar_bytes, vector_width)
 
 
 

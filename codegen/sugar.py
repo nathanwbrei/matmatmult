@@ -17,11 +17,12 @@ def label(name: str):
     stmt.label = Label(name)
     return stmt
 
-def fma(bcast_src: MemoryAddress, mult_src: Register, add_dest: Register):
+def fma(bcast_src: MemoryAddress, mult_src: Register, add_dest: Register, comment: str = None):
     stmt = FmaStmt()
     stmt.bcast_src = bcast_src
     stmt.mult_src = mult_src
     stmt.add_dest = add_dest
+    stmt.comment = comment
     return stmt
 
 def cmp(lhs: Union[Operand, int], rhs: Union[Operand, int]):

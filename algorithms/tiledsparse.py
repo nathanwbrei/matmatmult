@@ -1,10 +1,13 @@
 
 from algorithms.parameters import *
 from algorithms.registerblocks import *
-from algorithms.matmults import MatMult
+from algorithms.matmults import make_gemm
+
+from cursors.abstractcursor import CursorLocation
 
 from codegen.ast import *
 from codegen.sugar import *
+
 from scenarios.seissol_star import full_pattern
 
 # This is going to be a clean rejiggering of tiledsparse which is a sensible
@@ -12,56 +15,50 @@ from scenarios.seissol_star import full_pattern
 # going to use the new coords, new cursors, and new parameters objects.
 
 
-def make_kt_unroll(p: Parameters, Bni: int) -> Block:
-    """ Use case: SparseSparse.
-        Requirements: None
-        Choices: Move once or move on every block? For now, move on each (prep for jumping version)
-    """
-    if Bni is None:  # This means that the mnt is a loop and doesn't know its Bni
-        to_B_panel = Coords(absolute=False)
-    else:
-        to_B_panel = Coords(right=Bni, absolute=True)
+def make_kt_unroll(p: Parameters,
+                   A_ptr: CursorLocation,
+                   B_ptr: CursorLocation,
+                   C_ptr: CursorLocation,
+                   to_B_panel: Coords = Coords()
+                  ) -> Block:
 
-    Bk = (p.k // p.bk) + (p.k % p.bk != 0)
-    asm = block("KT unrolled " + p.name,
-                load_register_block(p.C, p.C_regs, C_mask(p.C_regs, p.C, p.B)))
+    Bkf = (p.k // p.bk) + (p.k % p.bk != 0)
+    mask = C_mask(p.C_regs, p.C, C_ptr, Coords(), p.B, B_ptr, to_B_panel, tiled=True)
+    asm = block("KT unrolled " + p.name)
+    asm.add(move_register_block(p.C, C_ptr, Coords(), p.C_regs, mask, store=False))
 
-    for Bki in range(0,Bk):
-        to_block = to_B_panel + Coords(down=Bki)
-        if p.B.has_nonzero_block(to_block):
-            asm.add(MatMult(p, to_A=Coords(right=Bki), to_B=to_block))
+    for Bki in range(0, Bkf):
+        to_A_block = Coords(right=Bki)
+        to_B_block = to_B_panel + Coords(down=Bki)
+        if p.B.has_nonzero_block(B_ptr, to_B_block):
+            asm.add(make_gemm(p, A_ptr, to_A_block, B_ptr, to_B_block))
 
-    asm.add(store_register_block(p.C, p.C_regs, C_mask(p.C_regs, p.C, p.B)))
+    asm.add(move_register_block(p.C, C_ptr, Coords(), p.C_regs, mask, store=True))
     return asm
 
 
 
-def make_mnt_loop(p:Parameters, make_ktraveler, outer_regular=True) -> Block:
+def make_mn_loop(p:Parameters) -> Block:
 
     Bm = (p.m // p.bm)
     Bn = (p.n // p.bn)
-    if outer_regular:
-        move_B = block("Moving B, because it is outer-regular and we are looped.")
-        move_B.add(p.B.move(Coords(right=1), iters=1)),
-    else:
-        move_B = block("Not moving B, because it is outer-regular, so kt has to do a lookup")
-
-    # Undo the state change on B cursor
-    #p.B.reset()
+    A_ptr = p.A.start_location()
+    B_ptr = p.B.start_location()
+    C_ptr = p.C.start_location()
 
     asm = block(f"MNTraveler looped for {p.name}").body(
         loop(r(13), 0, Bn*p.bn, p.bn).body(
             loop(r(12), 0, Bm, 1).body(
 
-                make_ktraveler(p, None),
-                p.A.move(Coords(down=1), iters=Bm),
-                p.C.move(Coords(down=1), iters=Bm),
+                make_kt_unroll(p, A_ptr, B_ptr, C_ptr),
+                p.A.move(A_ptr, Coords(down=1))[0],
+                p.C.move(C_ptr, Coords(down=1))[0],
                 # TODO: Might be able to achieve A,C moves simultaneously with
                 # loop updates by using scale-index addressing.
             ),
-            p.A.move(Coords(down=-Bm)),
-            p.C.move(Coords(down=-Bm, right=1)),
-            move_B
+            p.A.move(A_ptr, Coords(down=-Bm))[0],
+            p.B.move(B_ptr, Coords(right=1))[0],
+            p.C.move(C_ptr, Coords(down=-Bm, right=1))[0]
         )
     )
     if p.B.bottom_fringe:
@@ -69,8 +66,8 @@ def make_mnt_loop(p:Parameters, make_ktraveler, outer_regular=True) -> Block:
             loop(r(12), 0, Bm, 1).body(  # Right-hand fringe. #TODO: Cursors need to be set correctly.
 
                 make_ktraveler(p, None),
-                p.A.move(Coords(down=1), iters=Bm),
-                p.C.move(Coords(down=1), iters=Bm),
+                p.A.move(A_loc, Coords(down=1))[0],
+                p.C.move(C_loc, Coords(down=1))[0],
             )
         )
         asm.add(fringe_asm)
@@ -88,5 +85,5 @@ tiled_full = TiledParameters(
 )
 
 def make(p: Parameters = tiled_full):
-    asm = make_mnt_loop(p, make_kt_unroll)
+    asm = make_mn_loop(p)
     return asm

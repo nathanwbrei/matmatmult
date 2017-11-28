@@ -1,74 +1,78 @@
-from codegen.blocks import *
+
 from codegen.coords import Coords
-from codegen.cursors import *
+from codegen.sugar import *
 from codegen.matrix import *
 
+from cursors.abstractcursor import *
 
-def load_register_block(cursor: Cursor,
+
+def move_register_block(cursor: CursorDef,
+                        cursor_ptr: CursorLocation,
+                        block_offset: Coords(),
                         registers: Matrix[Register],
                         mask: Matrix[bool] = None,
-                        block_coords: Coords = Coords()
-                       ) -> AsmBlock:
+                        store: bool = False
+                       ) -> Block:
 
     rows, cols = registers.shape
-    asm = AsmBlock(f"Load {cursor.name} register block @ {block_coords}")
+    action = "Store" if store else "Load"
+    asm = block(f"{action} {cursor.name} register block @ {block_offset}")
 
     for ic in range(cols):
         for ir in range(rows):
             if (mask is None) or (mask[ir,ic]):
-                cell_coords = Coords(down=ir*8, right=ic)
-                addr, comment = cursor.look(block_coords, cell_coords)
-                asm.stmt("vmovapd", addr, registers[ir, ic], comment=comment)
+                cell_offset = Coords(down=ir*8, right=ic)
+                addr, comment = cursor.look(cursor_ptr, block_offset, cell_offset)
+                if store:
+                    asm.add(mov(addr, registers[ir,ic], comment)) # TODO: This will generate the wrong mov
+                else:
+                    asm.add(mov(registers[ir,ic], addr, comment))
     return asm
 
 
-
-def store_register_block(cursor: Cursor,
-                         registers: Matrix[Register],
-                         mask: Matrix[bool] = None,
-                         block_coords: Coords = Coords()
-                        ) -> AsmBlock:
-
-    rows, cols = registers.shape
-    asm = AsmBlock(f"Store {cursor.name} register block @ {block_coords}")
-
-    for ic in range(cols):
-        for ir in range(rows):
-            if (mask is None) or (mask[ir,ic]):
-                cell_coords = Coords(down=ir*8, right=ic)
-                addr, comment = cursor.look(block_coords, cell_coords)
-                asm.stmt("vmovapd", registers[ir, ic], addr, comment=comment)
-    return asm
-
-
-# Assume that the cursor is pointing at the block we want, for now
-def C_mask(C_regs: Matrix[Register], C: Cursor, B: Cursor, tiled=True):
+def C_mask(C_regs: Matrix[Register],
+           C: CursorDef,
+           C_ptr: CursorLocation,
+           C_block_offset: Coords,
+           B: CursorDef,
+           B_ptr: CursorLocation,
+           B_block_offset: Coords,
+           tiled: bool = True
+          ) -> Matrix[bool]:
 
     Vr, Vc = C_regs.shape
     mask = Matrix.full(Vr, Vc, False)
-    C_br, C_bc, C_idx, C_pat = C.block()
-    B_br, B_bc, B_idx, B_pat = B.block()
+    C_br, C_bc, C_idx, C_pat = C.get_block(C_ptr, C_block_offset)
+    B_br, B_bc, B_idx, B_pat = B.get_block(B_ptr, B_block_offset)
 
     assert(Vr*8 == C_br)   # bm must tile m exactly for now
     assert(Vc >= C_bc)     # Matrix block must fit in register block
     assert(C_bc == B_bc)   # Matrix blocks are compatible
 
+    # Mask out registers not used in current block, including zero-cols of B
     if tiled:
-        # Mask out registers not used in current block, including zero-cols of B
         for Vci in range(C_bc):
             if B_pat[:,Vci].any(axis=0):
                 mask[:,Vci] = True
     else:
-        mask[:,0:Vci] = True
+        mask[:, C_bc] = True
+
 
     return mask
 
-def A_mask(A_regs: Matrix[Register], A: Cursor, B: Cursor):
+def A_mask(A_regs: Matrix[Register],
+           A: CursorDef,
+           A_ptr: CursorLocation,
+           A_block_offset: Coords,
+           B: CursorDef,
+           B_ptr: CursorLocation,
+           B_block_offset: Coords
+          ) -> Matrix[bool]:
 
     Vr, Vc = A_regs.shape
     mask = Matrix.full(Vr, Vc, False)
-    A_br, A_bc, A_idx, A_pat = A.block()
-    B_br, B_bc, B_idx, B_pat = B.block()
+    A_br, A_bc, A_idx, A_pat = A.get_block(A_ptr, A_block_offset)
+    B_br, B_bc, B_idx, B_pat = B.get_block(B_ptr, B_block_offset)
 
     assert(Vr*8 == A_br)   # bm must tile m exactly for now
     assert(Vc >= A_bc)     # Matrix block must fit in register block

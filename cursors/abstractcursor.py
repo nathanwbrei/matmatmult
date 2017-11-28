@@ -80,6 +80,11 @@ class CursorDef:
             ) -> MemoryAddress:
         raise NotImplementedError()
 
+    def start_location(self, dest_block: Coords) -> CursorLocation:
+        raise NotImplementedError()
+
+    def get_block(self, src: CursorLocation=None, dest_block: Coords=None) -> BlockInfo:
+        raise NotImplementedError()
 
 
 class CursorMovement(Command):

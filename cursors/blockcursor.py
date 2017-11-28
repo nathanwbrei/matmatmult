@@ -122,12 +122,24 @@ class BlockCursorDef(CursorDef):
         return (addr, comment)
 
 
-    def get_block(self, src: CursorLocation, dest_block: Coords) -> BlockInfo:
-        block_abs = block if block.absolute else block + src.current_block
-        br = self.br if block_abs.down < self.Br else self.brf
+    def get_block(self, src: CursorLocation=None, dest_block: Coords=None) -> BlockInfo:
+
+        if src is None:
+            assert(dest_block is not None)
+            assert(dest_block.absolute == True)
+            block_abs = dest_block
+        elif dest_block is None:
+            assert(src.current_block.absolute == True)
+            block_abs = src.current_block
+        else:
+            assert(src.current_block.absolute == True)
+            assert(dest_block.absolute == False)
+            block_abs = dest_block + src.current_block
+
+        br = self.br if block_abs.down < self.Br else self.brf   #TODO: Verify these
         bc = self.bc if block_abs.right < self.Bc else self.bcf
         index = self.blocks[block_abs.down, block_abs.right]
-        index = cast(int, index)
+        index = cast(int, index)  # TODO: Overload functions correctly
         pattern = self.patterns[index][0:br, 0:bc]
         pattern = cast(Matrix[bool], pattern)
         return BlockInfo(br, bc, index, pattern)
@@ -150,6 +162,17 @@ class BlockCursorDef(CursorDef):
                     nonzero = True
         return nonzero
 
+
+    def start_location(self, dest_block: Coords = Coords(absolute=True)) -> CursorLocation:
+
+        assert(dest_block.absolute == True)
+        br,bc,idx,pat = self.block(dest_block=dest_block)
+        for bci in range(bc):
+            for bri in range(br):
+                if pat[bci,bri]:
+                    return CursorLocation(dest_block, Coords(down=bri, right=bci, absolute=False))
+
+        raise Exception(f"Block {dest_block} has no starting location because it is empty!")
 
 
     def rel_block_start(self, dest_block: Coords) -> Coords:
