@@ -1,95 +1,92 @@
 
+from algorithms.parameters import *
 from algorithms.registerblocks import *
-from codegen.blocks import *
-from codegen.loop import *
-from codegen.cursors import *
-from codegen.matrix import *
+from algorithms.matmults import MatMult
 
-from typing import Tuple, NamedTuple
-from algorithms.parameters import Parameters
+from codegen.ast import *
+from codegen.sugar import *
+from scenarios.seissol_star import full_pattern
 
-defaults = Parameters.from_tiledsparse(
-    name = "defaults",
-    m = 48, n = 9, k = 9,
-    A_regs = Matrix([[zmm(x) for x in range(0, 8)]]),     # zmm0..zmm7
-    C_regs = Matrix([[zmm(x) for x in range(23, 32)]]),   # zmm23..zmm31
-    pattern = Matrix.full(8,9,True)     # Constrained st cols=nb=len(C_regs)
+# This is going to be a clean rejiggering of tiledsparse which is a sensible
+# compromise between the tiledsparse0 and mntravelers imimplementations. It is
+# going to use the new coords, new cursors, and new parameters objects.
+
+
+def make_kt_unroll(p: Parameters, Bni: int) -> Block:
+    """ Use case: SparseSparse.
+        Requirements: None
+        Choices: Move once or move on every block? For now, move on each (prep for jumping version)
+    """
+    if Bni is None:  # This means that the mnt is a loop and doesn't know its Bni
+        to_B_panel = Coords(absolute=False)
+    else:
+        to_B_panel = Coords(right=Bni, absolute=True)
+
+    Bk = (p.k // p.bk) + (p.k % p.bk != 0)
+    asm = block("KT unrolled " + p.name,
+                load_register_block(p.C, p.C_regs, C_mask(p.C_regs, p.C, p.B)))
+
+    for Bki in range(0,Bk):
+        to_block = to_B_panel + Coords(down=Bki)
+        if p.B.has_nonzero_block(to_block):
+            asm.add(MatMult(p, to_A=Coords(right=Bki), to_B=to_block))
+
+    asm.add(store_register_block(p.C, p.C_regs, C_mask(p.C_regs, p.C, p.B)))
+    return asm
+
+
+
+def make_mnt_loop(p:Parameters, make_ktraveler, outer_regular=True) -> Block:
+
+    Bm = (p.m // p.bm)
+    Bn = (p.n // p.bn)
+    if outer_regular:
+        move_B = block("Moving B, because it is outer-regular and we are looped.")
+        move_B.add(p.B.move(Coords(right=1), iters=1)),
+    else:
+        move_B = block("Not moving B, because it is outer-regular, so kt has to do a lookup")
+
+    # Undo the state change on B cursor
+    #p.B.reset()
+
+    asm = block(f"MNTraveler looped for {p.name}").body(
+        loop(r(13), 0, Bn*p.bn, p.bn).body(
+            loop(r(12), 0, Bm, 1).body(
+
+                make_ktraveler(p, None),
+                p.A.move(Coords(down=1), iters=Bm),
+                p.C.move(Coords(down=1), iters=Bm),
+                # TODO: Might be able to achieve A,C moves simultaneously with
+                # loop updates by using scale-index addressing.
+            ),
+            p.A.move(Coords(down=-Bm)),
+            p.C.move(Coords(down=-Bm, right=1)),
+            move_B
+        )
     )
+    if p.B.bottom_fringe:
+        fringe_asm = block(f"Loop over right-hand fringe").body(
+            loop(r(12), 0, Bm, 1).body(  # Right-hand fringe. #TODO: Cursors need to be set correctly.
 
-
-def make_gemm(p:Parameters) -> AsmBlock:
-
-    m,n,k = p.C.r,p.C.c,p.A.c # Number of cells in m,n,k -directions
-    mb = 8                    # Number of cells in one m-block
-    nb = len(p.C_regs)        # Number of cells in one n-block
-
-    A,B,C = p.A, p.B, p.C
-    A_regs, C_regs = p.A_regs, p.C_regs   # Access matrices from register blocks
-    m_reg, n_reg = r(12), r(13)           # Iteration variables
-
-    C_mask = emptycols(C_regs, p.pattern) # Mask unnecessary loads/stores
-
-    asm = AsmBlock(f"LibXSMM short-wide small on KNL for {m}x{n}x{k}").body([
-        loop(n_reg, 0, n, nb).body([
-            loop(m_reg, 0, m, mb).body([
-
-                load_register_block(C, C_regs, C_mask),
-                block_inner_prod(p),
-                store_register_block(C, C_regs, C_mask),
-
-                A.move(down1block, iters=m//mb),
-                C.move(down1block, iters=m//mb),
-            ]),
-            A.move(Coords(down=-m, units="cells")),
-            B.move(Coords(right=1, units="blocks"), iters=n//nb),
-            C.move(Coords(down=-m, right=nb, units="cells")),
-        ])
-    ])
+                make_ktraveler(p, None),
+                p.A.move(Coords(down=1), iters=Bm),
+                p.C.move(Coords(down=1), iters=Bm),
+            )
+        )
+        asm.add(fringe_asm)
     return asm
 
 
-def block_inner_prod(p):
+tiled_full = TiledParameters(
+    name = "StarTiledFull",
+    m = 40,
+    n = 15,
+    k = 9,
+    A_regs = Matrix([[zmm(i) for i in range(32-9, 32)]]),
+    C_regs = Matrix([[zmm(i) for i in range(15)]]),
+    pattern = full_pattern
+)
 
-    m, n, k = p.C.r, p.C.c, p.A.c   # Number of cells in m,n,k -directions
-    mb = 8                    # Number of cells in one m-block
-    nb = p.C_regs.shape[1]    # Number of cells in one n-block
-    kb = p.A_regs.shape[1]    # Number of cells in one k-block
-    kB = k // kb              # Number of complete k-blocks
-    kr = k % kb               # Number of remaining cells in k-direction
-
-    A,B,C = p.A, p.B, p.C                 # Access matrices from memory
-    A_regs, C_regs = p.A_regs, p.C_regs   # Access matrices from register blocks
-    A_mask = emptyrows(A_regs, p.pattern) # Avoid unnecessary load/stores
-    A_mask_partial = A_mask & submatrix(A_regs, rows=1, cols=kr)  #TODO: Handle 2d case
-
-    asm = AsmBlock("Block inner product")
-
-    for ikB in range(kB):    # for each k-block
-
-        to_A_block = Coords(right=ikB, units="blocks")
-        to_B_block = Coords(down=ikB, units="blocks")
-        asm.include(load_register_block(A, A_regs, A_mask, to_A_block))
-
-        for ikb in range(kb):       # inside this k-block
-            for inb in range(nb):   # inside this n-block
-                to_cell = to_B_block + Coords(down=ikb, right=inb)
-                if B.has_nonzero_cell(to_cell):
-                    B_cell, comment = B.look(to_cell)
-                    asm.include(BcastFma(B_cell, A_regs[0,ikb], C_regs[0,inb], comment=comment))
-
-    # Account for remaining columns (which don't fill a block)
-    asm.include(load_register_block(A, A_regs, A_mask_partial,
-                                    Coords(right=kB, units="blocks")))
-
-    for ikr in range(kr):
-        for inb in range(nb):
-            to_fringe_cell = Coords(down=kB*kb+ikr, right=inb)
-            if B.has_nonzero_cell(to_fringe_cell):
-                B_cell, comment = B.look(to_fringe_cell)
-                asm.include(BcastFma(B_cell, A_regs[0,ikr], C_regs[0,inb], comment=comment))
+def make(p: Parameters = tiled_full):
+    asm = make_mnt_loop(p, make_kt_unroll)
     return asm
-
-
-
-default_alg = make_gemm(defaults)
-print(default_alg.gen(pretty))

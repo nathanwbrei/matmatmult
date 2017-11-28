@@ -3,7 +3,8 @@ from codegen.ast import AsmStmt, Command
 from codegen.matrix import Matrix
 from codegen.coords import Coords
 
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Tuple
+
 
 
 class BlockInfo(NamedTuple):
@@ -11,6 +12,21 @@ class BlockInfo(NamedTuple):
     bc: int                 # Cell cols in block
     pattern_index: int      # Pattern location in index
     pattern: Matrix[bool]   # The pattern itself
+
+
+
+class CursorLocation:
+    current_block: Coords  # Absolute coords of current block
+    current_cell: Coords   # Relative?
+
+    def __init__(self,
+                 current_block: Coords = Coords(absolute=True),
+                 current_cell: Coords = Coords(absolute=False)):
+        assert(current_cell.absolute == False)
+        assert(current_block.absolute == True)
+        self.current_block = current_block
+        self.current_cell = current_cell
+
 
 class CursorDef:
     name: str
@@ -65,15 +81,6 @@ class CursorDef:
         raise NotImplementedError()
 
 
-class CursorLocation:
-    current_block: Coords  # Absolute coords of current block
-    current_cell: Coords   # Relative?
-
-    def __init__(self, current_block: Coords, current_cell: Coords):
-        assert(current_cell.absolute == False)
-        assert(current_block.absolute == True)
-        self.current_block = current_block
-        self.current_cell = current_cell
 
 class CursorMovement(Command):
     matrix: CursorDef

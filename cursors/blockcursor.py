@@ -1,4 +1,5 @@
 from cursors.abstractcursor import *
+from typing import cast # TODO: Use function overloads correctly now that I know how
 
 class BlockCursorDef(CursorDef):
 
@@ -43,14 +44,14 @@ class BlockCursorDef(CursorDef):
         # makes a lot of things easier
         x = 0
         offsets = Matrix.full(rows+1, cols+1, -1)
-        for Bci in range(Bc):        # Iterate over blocks of columns
-            for Bri in range(Br):    # Iterate over blocks of rows
+        for Bci in range(self.Bc):        # Iterate over blocks of columns
+            for Bri in range(self.Br):    # Iterate over blocks of rows
                 index = cast(int, blocks[Bri, Bci])
                 pattern = patterns[index]                    # Pattern for current block
-                for bci in range(bc):                        # Iterate over cols inside block
-                    for bri in range(br):                    # Iterate over rows inside block
+                for bci in range(self.bc):                        # Iterate over cols inside block
+                    for bri in range(self.br):                    # Iterate over rows inside block
                         if pattern[bri,bci]:
-                            offsets[Bri*br + bri, Bci*bc + bci] = x
+                            offsets[Bri*self.br + bri, Bci*self.bc + bci] = x
                             x += 1
         # TODO: Handle fringes correctly.
         self.offsets = offsets

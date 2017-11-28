@@ -1,13 +1,15 @@
 from typing import Union
 
 from codegen.ast import *
+from codegen.forms import Loop
 from codegen.operands import *
 
 # Convenient statement constructors
-def add(src: Union[Operand, int], dest: Register):
+def add(src: Union[Operand, int], dest: Register, comment: str= None):
     stmt = AddStmt()
     stmt.src = src if isinstance(src, Operand) else c(src)
     stmt.dest = dest
+    stmt.comment = comment
     return stmt
 
 def label(name: str):
@@ -34,10 +36,11 @@ def jump(label: str, backwards: bool):
     stmt.backwards = backwards
     return stmt
 
-def mov(src: Union[Operand, int], dest: Operand):
+def mov(src: Union[Operand, int], dest: Operand, comment:str = None):
     stmt = MovStmt()
     stmt.src = src if isinstance(src, Operand) else c(src)
     stmt.dest = dest
+    stmt.comment = comment
     return stmt
 
 def data(value: Union[Operand, int], asmType=AsmType.i64):
@@ -67,6 +70,10 @@ class BlockBuilder(Block):
     def close(self):
         return self.parent
 
+    def body(self, *args):
+        self.contents = args
+        return self
+
 
 
 # S-expression interface
@@ -74,6 +81,9 @@ def block(description: str, *args: AsmStmt):
     b = BlockBuilder(description)
     b.contents = list(args)
     return b
+
+def loop(iter_var, initial_val, final_val, increment):
+    return Loop(iter_var, initial_val, final_val, increment)
 
 
 

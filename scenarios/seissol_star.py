@@ -1,6 +1,7 @@
-from algorithms.parameters import Parameters
+from algorithms.parameters import Parameters, BlockParameters, TiledParameters
 from codegen.operands import *
 from codegen.matrix import *
+
 
 
 full_pattern = Matrix(
@@ -49,7 +50,7 @@ blocks_bsc = Matrix(
      [1, 1, 0, 1, 1]])
 
 
-spsp_3x3 = Parameters.from_sparsesparse(
+spsp_3x3 = BlockParameters(
     name = "Star",
     m = 40, n = 15, k = 9,
     A_regs = Matrix([[zmm(r+5*c) for c in range(3)] for r in range(5)]),
@@ -57,7 +58,7 @@ spsp_3x3 = Parameters.from_sparsesparse(
     blocks = blocks_full, # TODO: Vary this
     pattern_index = pattern_index)
 
-tiled_full = Parameters.from_tiledsparse(
+tiled_full = TiledParameters(
     name = "StarTiledFull",
     m = 40,
     n = 15,
@@ -67,7 +68,7 @@ tiled_full = Parameters.from_tiledsparse(
     pattern = full_pattern
 )
 
-tiled_square = Parameters.from_tiledsparse(
+tiled_square = TiledParameters(
     name = "StarTiledSquare",
     m = 40,
     n = 15,
@@ -77,7 +78,7 @@ tiled_square = Parameters.from_tiledsparse(
     pattern = square_pattern
 )
 
-tiled_skinny = Parameters.from_tiledsparse(
+tiled_skinny = TiledParameters(
     name = "StarTiledSkinny",
     m = 40,
     n = 15,

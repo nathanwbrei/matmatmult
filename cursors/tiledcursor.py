@@ -1,5 +1,13 @@
 
-from codegen.abstract_cursor import CursorDef
+
+from cursors.abstractcursor import CursorDef, CursorLocation
+from codegen.ast import AsmStmt
+from codegen.operands import Register, MemoryAddress
+from codegen.matrix import Matrix
+from codegen.coords import Coords
+
+from typing import List, Tuple
+
 
 class TiledCursorDef(CursorDef):
 
@@ -92,6 +100,23 @@ class TiledCursorDef(CursorDef):
 
 
         return self._ptr_reg + self._scalar_bytes*offset
+
+
+
+class DenseCursorDef(TiledCursorDef):
+    def __init__(self,
+                 name: str,
+                 ptr_reg: Register,
+                 rows:int,
+                 cols:int,
+                 block_rows: int,
+                 block_cols: int,
+                 scalar_bytes:int = 8,
+                 vector_width:int = 8) -> None:
+
+        pattern = Matrix.full(block_rows, block_cols, True)
+        return TiledCursorDef.__init__(self, name, ptr_reg, rows, cols, pattern, scalar_bytes, vector_width)
+
 
 
 
