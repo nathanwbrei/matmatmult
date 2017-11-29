@@ -52,39 +52,25 @@ blocks_bsc: Matrix[int] = Matrix(
 
 spsp_3x3 = BlockParameters(
     name = "Star",
-    m = 40, n = 15, k = 9,
-    A_regs = Matrix([[zmm(r+5*c) for c in range(3)] for r in range(5)]),
-    C_regs = Matrix([[zmm(r+5*c+15) for c in range(3)] for r in range(5)]),
-    blocks = blocks_full, # TODO: Vary this
+    m = 40, n = 15, k = 9, bm = 8, bn = 3, bk = 3,
+    blocks = blocks_full,
     pattern_index = pattern_index)
 
 tiled_full = TiledParameters(
     name = "StarTiledFull",
-    m = 40,
-    n = 15,
-    k = 9,
-    A_regs = Matrix([[zmm(i) for i in range(32-9, 32)]]),
-    C_regs = Matrix([[zmm(i) for i in range(15)]]),
+    m = 40, n = 15, k = 9, bm = 8, bn = 15, bk = 9,
     pattern = full_pattern
 )
 
 tiled_square = TiledParameters(
     name = "StarTiledSquare",
-    m = 40,
-    n = 15,
-    k = 9,
-    A_regs = Matrix([[zmm(i) for i in range(32-9, 32)]]),
-    C_regs = Matrix([[zmm(i) for i in range(9)]]),
+    m = 40, n = 15, k = 9, bm = 8, bn = 9, bk = 9,
     pattern = square_pattern
 )
 
 tiled_skinny = TiledParameters(
     name = "StarTiledSkinny",
-    m = 40,
-    n = 15,
-    k = 9,
-    A_regs = Matrix([[zmm(r+2*c) for c in range(9)] for r in range(2)]),
-    C_regs = Matrix([[zmm(r+2*c+26) for c in range(3)] for r in range(2)]),
+    m = 40, n = 15, k = 9, bm = 8, bn = 3, bk = 9,
     pattern = skinny_pattern
 )
 

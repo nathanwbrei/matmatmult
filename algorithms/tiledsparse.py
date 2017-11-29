@@ -74,11 +74,7 @@ def make_mn_loop(p:Parameters) -> Block:
 
 tiled_full = TiledParameters(
     name = "StarTiledFull",
-    m = 40,
-    n = 15,
-    k = 9,
-    A_regs = Matrix([[zmm(i) for i in range(32-9, 32)]]),
-    C_regs = Matrix([[zmm(i) for i in range(15)]]),
+    m = 40, n = 15, k = 9, bm = 8, bn = 15, bk = 9,
     pattern = full_pattern
 )
 
