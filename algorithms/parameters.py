@@ -42,9 +42,6 @@ class TiledParameters(Parameters):
 
     def __init__(self, name, m, n, k, bm, bn, bk, pattern: Matrix[bool]) -> None:
 
-        if (pattern.shape != (bk,bn)):
-            print(f"Warning: pattern.shape: expected {(bk,bn)}, got {pattern.shape}")
-
         ld = m if m % 8 == 0 else m + bm - m%bm
         self.name = name
         self.m, self.n, self.k, self.ld = m, n, k, ld
@@ -54,6 +51,11 @@ class TiledParameters(Parameters):
         self.C = DenseCursorDef("C", rdx, m, n, ld, bm, bn)
         self.A_regs, self.C_regs = make_reg_blocks(bm, bn, bk)
 
+        if (pattern.shape != (bk,bn)):
+            print(f"Warning: Specified B blocksize {(bk,bn)}, " +
+                  f"but provided pattern with shape {pattern.shape}")
+            self.B.br = bk
+            self.B.bc = bn
 
 def make_reg_blocks(bm:int, bn:int, bk:int):
     assert(bm % 8 == 0)

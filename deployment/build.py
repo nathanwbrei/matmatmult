@@ -35,7 +35,7 @@ def make_script(e:Experiment, c:Cluster):
 
 def make_executable(e:Experiment):
 
-    src = path.join(e.reldir, e.executable+".c")
+    src = path.join(e.reldir, e.executable+".cpp")
     dest = path.join("build", e.executable)
 
     cmds = [f"./linux g++ -mavx512f -std=c++11 -O3 -DNDEBUG -lrt -o {dest} {src}"]
