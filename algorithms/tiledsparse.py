@@ -7,6 +7,7 @@ from cursors.abstractcursor import CursorLocation
 
 from codegen.ast import *
 from codegen.sugar import *
+from codegen.forms import *
 
 from scenarios.seissol_star import full_pattern
 
@@ -46,28 +47,25 @@ def make_mn_loop(p:Parameters) -> Block:
     B_ptr = p.B.start_location()
     C_ptr = p.C.start_location()
 
-    asm = block(f"MNTraveler looped for {p.name}").body(
+    asm = block(f"{p.name}, looped over n,m").body(
         loop(r(13), 0, Bn*p.bn, p.bn).body(
             loop(r(12), 0, Bm, 1).body(
-
                 make_kt_unroll(p, A_ptr, B_ptr, C_ptr),
                 p.A.move(A_ptr, Coords(down=1))[0],
-                p.C.move(C_ptr, Coords(down=1))[0],
-                # TODO: Might be able to achieve A,C moves simultaneously with
-                # loop updates by using scale-index addressing.
+                p.C.move(C_ptr, Coords(down=1))[0]
             ),
             p.A.move(A_ptr, Coords(down=-Bm))[0],
             p.B.move(B_ptr, Coords(right=1))[0],
             p.C.move(C_ptr, Coords(down=-Bm, right=1))[0]
         )
     )
-    if p.B.bottom_fringe:
+    if p.B.brf != 0:
         fringe_asm = block(f"Loop over right-hand fringe").body(
-            loop(r(12), 0, Bm, 1).body(  # Right-hand fringe. #TODO: Cursors need to be set correctly.
+            loop(r(12), 0, Bm, 1).body(  # Right-hand fringe. 
 
-                make_ktraveler(p, None),
-                p.A.move(A_loc, Coords(down=1))[0],
-                p.C.move(C_loc, Coords(down=1))[0],
+                make_kt_unroll(p, A_ptr, B_ptr, C_ptr),
+                p.A.move(A_ptr, Coords(down=1))[0],
+                p.C.move(C_ptr, Coords(down=1))[0],
             )
         )
         asm.add(fringe_asm)

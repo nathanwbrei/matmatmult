@@ -98,7 +98,7 @@ class TiledCursorDef(CursorDef):
 
         assert(dest_cell.absolute == False)
 
-        comment = f"{self.name} @ block{str(dest_block)}, cell{str(dest_cell)}"
+        comment = f"{self.name} [{dest_block.down},{dest_block.right}] [{dest_cell.down},{dest_cell.right}]"
 
         src_offset_abs = self.offset(src.current_block, Coords(), src.current_cell)
         dest_offset_abs = self.offset(src.current_block, dest_block, dest_cell)
@@ -156,9 +156,26 @@ class DenseCursorDef(TiledCursorDef):
                  vector_width:int = 8) -> None:
 
         pattern = Matrix.full(block_rows, block_cols, True)
-        # TODO: This is probably not handling ld correctly. Separate this from tiledcursor such that it does.
-        return TiledCursorDef.__init__(self, name, base_ptr, rows, cols, pattern, scalar_bytes, vector_width)
+        TiledCursorDef.__init__(self, name, base_ptr, rows, cols, pattern, scalar_bytes, vector_width)
+        self.ld = ld
 
+    def offset(self,
+               src_block: Coords,
+               dest_block: Coords,
+               dest_cell: Coords
+              ) -> int:
+        # TODO: Why not make offset compute the 1D distance
+        # from current pointer to desired logical cell instead?
+
+        assert(src_block.absolute == True)
+        assert(dest_cell.absolute == False)
+        if not dest_block.absolute:
+            dest_block += src_block
+
+        Bri, Bci = dest_block.down, dest_block.right
+        bri, bci = dest_cell.down, dest_cell.right
+
+        return (Bci*self.bc + bci) * self.ld + Bri*self.br + bri
 
 
 

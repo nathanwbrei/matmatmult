@@ -36,7 +36,7 @@ class Coords(NamedTuple):
             absolute = ", absolute"
         else:
             absolute = ""
-        return f"(down={self.down}, right={self.right}{absolute})"
+        return f"(d={self.down},r={self.right}{absolute})"
 
 
 

@@ -9,26 +9,26 @@ AsmType.__doc__ = """Enum of different concrete types, the useful subset of
     the cross product {Int,Float} x {size} x {vector length}.
     Each Operand has exactly one concrete type."""
 
-Syntax = Enum('Syntax', ['inline', 'intel', 'pretty'])
-inline = Syntax.inline
-intel = Syntax.intel
-pretty = Syntax.pretty
-
-
 class Operand:
-    """ Base class for different types of operands. """
-    def gen(self, syntax:Syntax = inline) -> str:
-        pass
+    pass
 
+
+# TODO: Rename this 'Immediate'
 class Constant(Operand):
     def __init__(self, value:int) -> None:
         self.value = value
 
-    def gen(self, syntax:Syntax = inline):
-        if syntax == inline:
-            return "$" + str(self.value)
-        else:
-            return str(self.value)
+    def __repr__(self):
+        return f"Immediate: {self.value}"
+
+    @property
+    def ugly(self):
+        return f"${self.value}"
+
+    @property
+    def nice(self):
+        return str(self.value)
+
 
 def c(n):
     """Sugar for conveniently defining integer constants"""
@@ -48,15 +48,16 @@ class Label(Operand):
             Label._last += 1
             Label._interns[value] = self.ordinal
 
-    def gen(self, syntax=inline):
-        if syntax == Syntax.inline:
-            return str(self.ordinal)
-        else:
-            return str(self.value)
+    @property
+    def ugly(self):
+        return self.ordinal
 
     @property
-    def inline(self):
-        return self.ordinal
+    def nice(self):
+        return self.value
+
+    def __repr__(self):
+        return "Label: "+self.value
 
 def l(label: str):
     return Label(label)
@@ -68,24 +69,17 @@ class Register(Operand):
         self.typeinfo = typeinfo
         self.value = str(value)
 
-    def __add__(self, offset):
-        if isinstance(offset, Constant):
-            return MemoryAddress(self, None, None, offset)
-        elif isinstance(offset, int):
-            return MemoryAddress(self, None, None, Constant(offset))
-
-    def gen(self, syntax:Syntax=inline):
-        if syntax is inline:
-            return "%%" + self.value
-        else:
-            return self.value
-
-    def __repr__(self):
-        return self.value
+    @property
+    def ugly(self):
+        return "%%" + self.value
 
     @property
-    def inline(self):
-        return "%%" + self.value
+    def nice(self):
+        return self.value
+
+    def __repr__(self):
+        return "Register: " + self.value
+
 
 rax = Register(AsmType.i64, "rax")
 rbx = Register(AsmType.i64, "rbx")
@@ -114,30 +108,29 @@ class MemoryAddress(Operand):
         self.disp = disp
 
 
-    def gen(self, syntax: Syntax = inline) -> str:
-
-        base_str = self.base.gen(syntax)
-        offset_str = str(self.disp)
-
+    @property
+    def nice(self):
         if self.index is not None and self.scale is not None:
-            index_str = self.index.gen(syntax)
-            scale_str = str(self.scale)
-
-            if syntax == inline:
-                return f"{offset_str}({base_str}, {index_str}, {scale_str})"
-            else:
-                return f"[{base_str}+{index_str}*{scale_str}+{offset_str}]"
+            return f"[{self.base.nice}+{self.index.nice}*{self.scale}+{self.disp}]"
         else:
-            if syntax == inline:
-                return f"{offset_str}({base_str})"
-            else:
-                return f"[{base_str}+{offset_str}]"
+            return f"[{self.base.nice}+{self.disp}]"
+
+    @property
+    def ugly(self):
+        if self.index is not None and self.scale is not None:
+            return f"{self.disp}({self.base.ugly}, {self.index.ugly}, {self.scale})"
+        else:
+            return f"{self.disp}({self.base.ugly})"
 
     def __repr__(self):
-        return self.gen(syntax=Syntax.pretty)
+        return "MemoryAddress: " + self.nice
 
 
 def mem(base, index, scale, offset):
     return MemoryAddress(base, index, scale, offset)
+
+
+
+
 
 

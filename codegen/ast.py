@@ -27,6 +27,8 @@ class GenericStmt(AsmStmt):
 class MovStmt(AsmStmt):
     src: Operand
     dest: Operand
+    typ: AsmType
+    aligned: bool = False
 
     def accept(self, visitor: "Visitor"):
         visitor.visitMov(self)

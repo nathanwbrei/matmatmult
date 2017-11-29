@@ -41,6 +41,7 @@ def make_gemm(p: Parameters,
                                 cast(Register, p.A_regs[Vmi, bki]),
                                 cast(Register, p.C_regs[Vmi, bni]),
                                 comment=comment))
+    return asm
 
 
 

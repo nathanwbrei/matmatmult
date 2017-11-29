@@ -8,7 +8,7 @@ from cursors.abstractcursor import *
 
 def move_register_block(cursor: CursorDef,
                         cursor_ptr: CursorLocation,
-                        block_offset: Coords(),
+                        block_offset: Coords,
                         registers: Matrix[Register],
                         mask: Matrix[bool] = None,
                         store: bool = False
@@ -24,9 +24,9 @@ def move_register_block(cursor: CursorDef,
                 cell_offset = Coords(down=ir*8, right=ic)
                 addr, comment = cursor.look(cursor_ptr, block_offset, cell_offset)
                 if store:
-                    asm.add(mov(addr, registers[ir,ic], comment)) # TODO: This will generate the wrong mov
+                    asm.add(mov(registers[ir,ic], addr, True, comment))
                 else:
-                    asm.add(mov(registers[ir,ic], addr, comment))
+                    asm.add(mov(addr, registers[ir,ic], True, comment))
     return asm
 
 
