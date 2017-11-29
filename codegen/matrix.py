@@ -4,7 +4,7 @@
 # Lists of lists are too cumbersome, and scipy does not understand typing.
 # Also don't want to introduce a hard dependence on scipy if not necessary.
 
-from typing import TypeVar, Generic, Union, Tuple
+from typing import TypeVar, Generic, Union, Tuple, overload, Any
 from scipy import full, matrix # type: ignore
 
 T = TypeVar('T')
@@ -24,7 +24,15 @@ class Matrix(Generic[T]):
     def __repr__(self):
         return self._underlying.__repr__()
 
-    def __getitem__(self, t) -> Union[T, "Matrix[T]"]:
+    @overload
+    def __getitem__(self, t: Tuple[slice,slice]) -> Matrix[T]:
+        pass
+
+    @overload
+    def __getitem__(self, t: Tuple[int,int]) -> T:
+        pass
+
+    def __getitem__(self, t) -> Union[T, Matrix[T]]:
         result = self._underlying[t]
         if isinstance(result, matrix):
             return Matrix(result)

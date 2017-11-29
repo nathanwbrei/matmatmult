@@ -1,4 +1,5 @@
 from cursors.abstractcursor import *
+from codegen.sugar import *
 from typing import cast # TODO: Use function overloads correctly now that I know how
 
 class BlockCursorDef(CursorDef):
@@ -21,6 +22,7 @@ class BlockCursorDef(CursorDef):
         self.base_ptr = base_ptr
         self.index_ptr = None
         self.scale = 1
+        self.scalar_bytes = 1
         self.r = rows
         self.c = cols
         self.br = block_rows
@@ -59,7 +61,7 @@ class BlockCursorDef(CursorDef):
 
 
     def offset(self,
-               src: CursorLocation,
+               src_block: Coords,
                dest_block: Coords = Coords(),
                dest_cell: Coords = Coords()
               ) -> int:
@@ -67,7 +69,7 @@ class BlockCursorDef(CursorDef):
         if (dest_cell.absolute and dest_block.down!=0 and dest_block.right!=0):
             raise Exception("Cells may only be absolute if no logical block specified")
 
-        dest_block_abs = dest_block if dest_block.absolute else dest_block+src.current_block
+        dest_block_abs = dest_block if dest_block.absolute else dest_block+src_block
         dest_cell_abs = dest_cell + Coords(dest_block_abs.down * self.br,
                                            dest_block_abs.right * self.bc,
                                            absolute = True )
@@ -82,15 +84,15 @@ class BlockCursorDef(CursorDef):
             ) -> Tuple[AsmStmt, CursorLocation]:
 
         comment = f"Move {self.name} to {str(block)}"
-        if move_base_ptr or (self._index_ptr is None):
-            ptr_to_move = self._base_ptr
+        if self.index_ptr is None:
+            ptr_to_move = self.base_ptr
         else:
-            ptr_to_move = self._index_ptr
+            ptr_to_move = self.index_ptr
 
         dest_block_abs = dest_block if dest_block.absolute else dest_block+src.current_block
         dest_cell_rel = self.rel_block_start(dest_block_abs)
-        dest_offset_abs = self.offset(src, dest_block, dest_cell_rel)
-        src_offset_abs = self.offset(src)
+        dest_offset_abs = self.offset(src.current_block, dest_block, dest_cell_rel)
+        src_offset_abs = self.offset(src.current_block)
         dest_offset_rel = dest_offset_abs - src_offset_abs
 
         dest = CursorLocation()
@@ -98,7 +100,7 @@ class BlockCursorDef(CursorDef):
         dest.current_cell = dest_cell_rel  # TODO: Do we need this abs or rel?
 
         if dest_block.absolute:
-            return (mov(dest_offset_abs, ptr_to_move, comment), dest)
+            return (mov(dest_offset_abs, ptr_to_move, False, comment), dest)
         else:
             return (add(dest_offset_rel*self.scalar_bytes, ptr_to_move, comment), dest)
 
@@ -109,16 +111,16 @@ class BlockCursorDef(CursorDef):
              dest_cell: Coords
             ) -> Tuple[MemoryAddress, str]:
 
-        comment = f"{self.name} @ block{str(block)}, cell{str(cell)}"
-        src_offset_abs = self.offset(src)
-        dest_offset_abs = self.offset(src, dest_block, dest_cell)
+        comment = f"{self.name} @ block{dest_block}, cell{dest_cell}"
+        src_offset_abs = self.offset(src.current_block)
+        dest_offset_abs = self.offset(src.current_block, dest_block, dest_cell)
         rel_offset = dest_offset_abs - src_offset_abs
 
-        if self._index_ptr is not None:
-            addr = MemoryAddress(self._base_ptr, self._index_ptr,
-                                 c(self._scale), c(rel_offset*self._scalar_bytes))
+        if self.index_ptr is not None:
+            addr = MemoryAddress(self.base_ptr, self.index_ptr,
+                                 self.scale, rel_offset*self.scalar_bytes)
         else:
-            addr = MemoryAddress(self._base_ptr, None, None, self._scalar_bytes*rel_offset)
+            addr = MemoryAddress(self.base_ptr, None, None, self.scalar_bytes*rel_offset)
         return (addr, comment)
 
 
@@ -150,12 +152,12 @@ class BlockCursorDef(CursorDef):
                          dest_block: Coords,
                          dest_cell: Coords
                         ) -> bool:
-        return self.offset(src, dest_block, dest_cell) != -1
+        return self.offset(src.current_block, dest_block, dest_cell) != -1
 
 
     def has_nonzero_block(self, src: CursorLocation, dest_block: Coords) -> bool:
         nonzero = False
-        br,bc,idx,pat = self.block(src, dest_block)
+        br,bc,idx,pat = self.get_block(src, dest_block)
         for bci in range(bc):
             for bri in range(br):
                 if pat[bci,bri]:
@@ -166,7 +168,7 @@ class BlockCursorDef(CursorDef):
     def start_location(self, dest_block: Coords = Coords(absolute=True)) -> CursorLocation:
 
         assert(dest_block.absolute == True)
-        br,bc,idx,pat = self.block(dest_block=dest_block)
+        br,bc,idx,pat = self.get_block(dest_block=dest_block)
         for bci in range(bc):
             for bri in range(br):
                 if pat[bci,bri]:

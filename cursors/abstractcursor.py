@@ -21,7 +21,8 @@ class CursorLocation:
 
     def __init__(self,
                  current_block: Coords = Coords(absolute=True),
-                 current_cell: Coords = Coords(absolute=False)):
+                 current_cell: Coords = Coords(absolute=False)
+                ) -> None:
         assert(current_cell.absolute == False)
         assert(current_block.absolute == True)
         self.current_block = current_block
@@ -60,8 +61,13 @@ class CursorDef:
                         ) -> bool:
         raise NotImplementedError()
 
+
+    def has_nonzero_block(self, src: CursorLocation, dest_block: Coords) -> bool:
+        raise NotImplementedError()
+
+
     def offset(self,
-               src: CursorLocation,
+               src: Coords,
                dest_block: Coords,
                dest_cell: Coords
               ) -> int:
@@ -77,7 +83,7 @@ class CursorDef:
              src: CursorLocation,
              dest_block: Coords,
              dest_cell: Coords
-            ) -> MemoryAddress:
+            ) -> Tuple[MemoryAddress, str]:
         raise NotImplementedError()
 
     def start_location(self, dest_block: Coords = Coords(absolute=True)) -> CursorLocation:

@@ -4,7 +4,7 @@ from codegen.matrix import *
 
 
 
-full_pattern = Matrix(
+full_pattern: Matrix[bool] = Matrix(
     [[0,0,0, 0,0,0, 1,0,0, 0,0,0, 0,0,0],
      [0,0,0, 0,0,0, 0,1,0, 0,0,0, 0,0,0],
      [0,0,0, 0,0,0, 0,0,1, 0,0,0, 0,0,0],
@@ -29,22 +29,22 @@ D = full_pattern[0:3, 6:9]
 
 pattern_index = [Z, A, B, C, D]
 
-blocks_full = Matrix(
+blocks_full: Matrix[int] = Matrix(
     [[0, 0, 4, 0, 0],
      [0, 0, 3, 0, 0],
      [1, 2, 0, 4, 2]])
 
-blocks_partial_3 = Matrix(
+blocks_partial_3: Matrix[int] = Matrix(
     [[0, 0, 4, 0, 0],
      [0, 0, 1, 0, 0],
      [1, 2, 0, 4, 2]])
 
-blocks_partial_2 = Matrix(
+blocks_partial_2: Matrix[int] = Matrix(
     [[0, 0, 4, 0, 0],
      [0, 0, 1, 0, 0],
      [1, 1, 0, 4, 1]])
 
-blocks_bsc = Matrix(
+blocks_bsc: Matrix[int] = Matrix(
     [[0, 0, 1, 0, 0],
      [0, 0, 1, 0, 0],
      [1, 1, 0, 1, 1]])

@@ -19,7 +19,7 @@ class TiledCursorDef(CursorDef):
                  base_ptr: Register,
                  rows:int,
                  cols:int,
-                 pattern: List[List[bool]],
+                 pattern: Matrix[bool],
                  scalar_bytes:int = 8,
                  vector_width:int = 8) -> None:
 
@@ -31,6 +31,7 @@ class TiledCursorDef(CursorDef):
 
         self.base_ptr = base_ptr
         self.index_ptr = None
+        self.scale = 1
         self.scalar_bytes = scalar_bytes
         self.vector_width = vector_width
 
