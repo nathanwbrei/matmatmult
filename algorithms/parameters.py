@@ -3,7 +3,7 @@ from typing import NamedTuple, List, Tuple
 from cursors.abstractcursor import CursorDef
 from cursors.tiledcursor import TiledCursorDef, DenseCursorDef
 from cursors.blockcursor import BlockCursorDef
-from codegen.operands import Register, rdi, rdx, rsi
+from codegen.operands import *
 from codegen.matrix import Matrix
 
 class Parameters:
@@ -23,77 +23,45 @@ class Parameters:
 
 
 class BlockParameters(Parameters):
-    def __init__(self,
-                 name: str,
-                 m: int,
-                 n: int,
-                 k: int,
-                 A_regs: Matrix[Register],           # Constrains ld, bm, bk
-                 C_regs: Matrix[Register],           # Constrains bm, bn
+    def __init__(self, name, m, n, k, bm, bn, bk,
                  blocks: Matrix[int],                # These two are required to be
                  pattern_index: List[Matrix[bool]]   # compatible with k,n,bk,bn
                 ) -> None:
 
-        bma, bk = A_regs.shape
-        bmc, bn = C_regs.shape
-        assert(bma==bmc)
-
-        bm = 8*bma
-        if m % 8 == 0:
-            ld = m
-        else:
-            ld = m + bm - (m % bm)
-
+        ld = m if m % 8 == 0 else m + bm - m % bm
         self.name = name
-        self.m = m
-        self.n = n
-        self.k = k
-        self.ld = ld
-        self.bm = bm
-        self.bn = bn
-        self.bk = bk
+        self.m, self.n, self.k, self.ld = m, n, k, ld
+        self.bm, self.bn, self.bk = bm, bn, bk
         self.A = DenseCursorDef("A", rdi, m, k, ld, bm, bk)
         self.B = BlockCursorDef("B", rsi, k, n, bk, bn, blocks, pattern_index)
         self.C = DenseCursorDef("C", rdx, m, n, ld, bm, bn)
-        self.A_regs = A_regs
-        self.C_regs = C_regs
+        self.A_regs, self.C_regs = make_reg_blocks(bm, bn, bk)
+
 
 class TiledParameters(Parameters):
 
-    def __init__(self,
-                 name: str,
-                 m: int,
-                 n: int,
-                 k: int,
-                 A_regs: Matrix[Register],  # Constrains ld, bm, bk
-                 C_regs: Matrix[Register],  # Constrains bm, bn
-                 pattern: Matrix[bool],     # Constrains bk,bn
-                 pattern_update: Tuple[int,int] = None
-                ) -> None:
+    def __init__(self, name, m, n, k, bm, bn, bk, pattern: Matrix[bool]) -> None:
 
-        bma, bk = A_regs.shape
-        bmc, bn = C_regs.shape
-        assert(bma==bmc)
         if (pattern.shape != (bk,bn)):
-            raise AssertionError(f"pattern.shape: expected {(bk,bn)}, got {pattern.shape}")
+            print(f"Warning: pattern.shape: expected {(bk,bn)}, got {pattern.shape}")
 
-        bm = 8*bma
-        if m % 8 == 0:
-            ld = m
-        else:
-            ld = m + bm - (m % bm)
-
+        ld = m if m % 8 == 0 else m + bm - m%bm
         self.name = name
-        self.m = m
-        self.n = n
-        self.k = k
-        self.ld = ld
-        self.bm = bm
-        self.bn = bn
-        self.bk = bk
+        self.m, self.n, self.k, self.ld = m, n, k, ld
+        self.bm, self.bn, self.bk = bm, bn, bk
         self.A = DenseCursorDef("A", rdi, m, k, ld, bm, bk)
         self.B = TiledCursorDef("B", rsi, k, n, pattern)
         self.C = DenseCursorDef("C", rdx, m, n, ld, bm, bn)
-        self.A_regs = A_regs
-        self.C_regs = C_regs
+        self.A_regs, self.C_regs = make_reg_blocks(bm, bn, bk)
+
+
+def make_reg_blocks(bm:int, bn:int, bk:int):
+    assert(bm % 8 == 0)
+    vm = bm//8
+    assert((bn+bk) * vm <= 32)  # Needs to fit in AVX512 zmm registers
+
+    A_regs = Matrix([[zmm(vm*c + r) for c in range(bk)] for r in range(vm)])
+    C_regs = Matrix([[zmm(32 - vm*bn + vm*c + r) for c in range(bn)]
+                                                 for r in range(vm)])
+    return A_regs, C_regs
 

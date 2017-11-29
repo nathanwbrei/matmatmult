@@ -11,7 +11,10 @@ T = TypeVar('T')
 class Matrix(Generic[T]):
 
     def __init__(self, data):
-        self._underlying = matrix(data)
+        if isinstance(data, Matrix):
+            self._underlying = matrix(data._underlying)
+        else:
+            self._underlying = matrix(data)
         self.shape = self._underlying.shape
         self.rows = self.shape[0]
         self.cols = self.shape[1]
