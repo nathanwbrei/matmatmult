@@ -53,7 +53,7 @@ int main(int argc, char ** argv) {{
 
 
 
-    def make(self) -> str:
+    def make(self, destination: str = None) -> str:
 
         algdefs = ""
         tests = ""
@@ -67,12 +67,19 @@ int main(int argc, char ** argv) {{
             # Generate the code which calls this
             tests += self.make_test(param) + "\n\n"
 
-        return self.harness_template.format(
+        result = self.harness_template.format(
             imports = self.imports,
             algdefs = algdefs,
             setup = self.setup,
             tests = tests,
             teardown = self.teardown)
+
+        if destination is not None:
+            with open(destination,"w") as f:
+                f.write(result)
+
+        return result
+
 
 
 

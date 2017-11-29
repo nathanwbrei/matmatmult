@@ -25,14 +25,14 @@ class Matrix(Generic[T]):
         return self._underlying.__repr__()
 
     @overload
-    def __getitem__(self, t: Tuple[slice,slice]) -> Matrix[T]:
+    def __getitem__(self, t: Tuple[slice,slice]) -> "Matrix[T]":
         pass
 
     @overload
     def __getitem__(self, t: Tuple[int,int]) -> T:
         pass
 
-    def __getitem__(self, t) -> Union[T, Matrix[T]]:
+    def __getitem__(self, t) -> Union[T, "Matrix[T]"]:
         result = self._underlying[t]
         if isinstance(result, matrix):
             return Matrix(result)
@@ -51,6 +51,7 @@ class Matrix(Generic[T]):
     def nnz(self) -> int:
         return sum(self[r,c] != 0 for r in range(self.rows)
                                   for c in range(self.cols))
+
 
 
 

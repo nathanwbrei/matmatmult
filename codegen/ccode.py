@@ -1,5 +1,7 @@
 
-from codegen.blocks import *
+from codegen.analysis import Analyzer
+from codegen.inlineprinter import InlinePrinter
+from codegen.sugar import *
 
 
 template = """
@@ -13,33 +15,19 @@ void {funcName} (const double* A, const double* B, double* C) {{
 }};
 """
 
-class CBlock:
+def make_cfunc(funcName:str, body:Block) -> str:
 
-    def __init__(self, comment: str = None, parent: "AsmBlock" = None) -> None:
+    printer = InlinePrinter()
+    printer.lmargin = 23
+    body.accept(printer)
+    body_text = "\n".join(printer.output)
 
-        self.block : List[Union[str,"CBlock"]] = []
-        self.parent = parent
+    analyzer = Analyzer()
+    body.accept(analyzer)
+    regs = [f'"{reg.nice}"' for reg in analyzer.clobbered_registers]
+    regs.sort()
+    clobbered = ",".join(regs)
 
-    def gen(self):
-        result = ""
-        for s in self.block:
-            if isinstance(s, CBlock):
-                result += s.gen() + "\n"
-            else:
-                result += str(s) + "\n"
-        return result
-
-
-def make_cfunc(funcName:str, body:AsmBlock, matchLibxsmm=False):
-
-    if (matchLibxsmm):
-        indent = " " * 23
-    else:
-        indent = "    "
-    body_text = "\n".join(indent + f'"{stmt}\\n\\t"' for stmt in body.gen().splitlines())
-    out_regs = [f'"{reg.value}"' for reg in body.outputs()]
-    out_regs.sort()
-    clobbered = ",".join(out_regs)
     return template.format(funcName = funcName,
                            body_text = body_text,
                            clobbered = clobbered)
