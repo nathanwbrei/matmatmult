@@ -24,7 +24,6 @@ class CursorLocation:
                  current_cell: Coords = Coords(absolute=False)
                 ) -> None:
         assert(current_cell.absolute == False)
-        assert(current_block.absolute == True)
         self.current_block = current_block
         self.current_cell = current_cell
 
@@ -65,13 +64,6 @@ class CursorDef:
     def has_nonzero_block(self, src: CursorLocation, dest_block: Coords) -> bool:
         raise NotImplementedError()
 
-
-    def offset(self,
-               src: Coords,
-               dest_block: Coords,
-               dest_cell: Coords
-              ) -> int:
-        raise NotImplementedError()
 
     def move(self,
              src: CursorLocation,

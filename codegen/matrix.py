@@ -25,7 +25,13 @@ class Matrix(Generic[T]):
         return cls(full((rows,cols), initial_value))
 
     def __repr__(self):
-        return self._underlying.__repr__()
+        col_str = []
+        for ri in range(self.rows):
+            row_str = []
+            for ci in range(self.cols):
+                row_str.append(str(self._underlying[ri,ci]).rjust(8))
+            col_str.append("".join(row_str))
+        return "\n".join(col_str)
 
     def __eq__(self, other):
         return (self._underlying == other._underlying).all()
