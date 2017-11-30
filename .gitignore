@@ -1,5 +1,7 @@
 *.swp
 *.pyc
+*.gch
+.#*
 build/*
 __pycache__
 .mypy_cache
