@@ -36,7 +36,8 @@ def make_gemm(p: Parameters,
             for bni in range(bn):   # inside this n-block
                 to_cell = Coords(down=bki, right=bni)
                 if p.B.has_nonzero_cell(B_ptr, to_B_block, to_cell):
-                    B_cell_addr, comment = p.B.look(B_ptr, to_B_block, to_cell)
+                    B_cell_addr, B_comment = p.B.look(B_ptr, to_B_block, to_cell)
+                    comment = f"C[{Vmi},{bni}] += A[{Vmi},{bki}]*{B_comment}"
                     asm.add(fma(B_cell_addr,
                                 cast(Register, p.A_regs[Vmi, bki]),
                                 cast(Register, p.C_regs[Vmi, bni]),

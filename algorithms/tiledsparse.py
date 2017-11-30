@@ -24,7 +24,7 @@ def make_kt_unroll(p: Parameters,
                   ) -> Block:
 
     Bkf = (p.k // p.bk) + (p.k % p.bk != 0)
-    mask = C_mask(p.C_regs, p.C, C_ptr, Coords(), p.B, B_ptr, to_B_panel, tiled=True)
+    mask = C_mask(p.C_regs, p.C, C_ptr, Coords(), p.B, B_ptr, to_B_panel, tiled=False)
     asm = block("KT unrolled " + p.name)
     asm.add(move_register_block(p.C, C_ptr, Coords(), p.C_regs, mask, store=False))
 
@@ -55,7 +55,7 @@ def make_mn_loop(p:Parameters) -> Block:
                 p.C.move(C_ptr, Coords(down=1))[0]
             ),
             p.A.move(A_ptr, Coords(down=-Bm))[0],
-            p.B.move(B_ptr, Coords(right=1))[0],
+            #p.B.move(B_ptr, Coords(right=1))[0],
             p.C.move(C_ptr, Coords(down=-Bm, right=1))[0]
         )
     )

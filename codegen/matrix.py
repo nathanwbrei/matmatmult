@@ -27,6 +27,9 @@ class Matrix(Generic[T]):
     def __repr__(self):
         return self._underlying.__repr__()
 
+    def __eq__(self, other):
+        return (self._underlying == other._underlying).all()
+
     @overload
     def __getitem__(self, t: Tuple[slice,slice]) -> "Matrix[T]":
         pass

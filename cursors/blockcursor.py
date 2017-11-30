@@ -90,7 +90,7 @@ class BlockCursorDef(CursorDef):
             ptr_to_move = self.index_ptr
 
         dest_block_abs = dest_block if dest_block.absolute else dest_block+src.current_block
-        dest_cell_rel = self.rel_block_start(dest_block_abs)
+        dest_cell_rel = self.start_location(dest_block_abs)
         dest_offset_abs = self.offset(src.current_block, dest_block, dest_cell_rel)
         src_offset_abs = self.offset(src.current_block)
         dest_offset_rel = dest_offset_abs - src_offset_abs
@@ -111,7 +111,7 @@ class BlockCursorDef(CursorDef):
              dest_cell: Coords
             ) -> Tuple[MemoryAddress, str]:
 
-        comment = f"{self.name} @ block{dest_block}, cell{dest_cell}"
+        comment = f"{self.name}[{dest_block.down},{dest_block.right}][{dest_cell.down},{dest_cell.right}]"
         src_offset_abs = self.offset(src.current_block)
         dest_offset_abs = self.offset(src.current_block, dest_block, dest_cell)
         rel_offset = dest_offset_abs - src_offset_abs
@@ -160,13 +160,14 @@ class BlockCursorDef(CursorDef):
         br,bc,idx,pat = self.get_block(src, dest_block)
         for bci in range(bc):
             for bri in range(br):
-                if pat[bci,bri]:
+                if pat[bri,bci]:
                     nonzero = True
         return nonzero
 
 
     def start_location(self, dest_block: Coords = Coords(absolute=True)) -> CursorLocation:
 
+        print(f"Getting start location for block: {dest_block}")
         assert(dest_block.absolute == True)
         br,bc,idx,pat = self.get_block(dest_block=dest_block)
         for bci in range(bc):
@@ -177,10 +178,10 @@ class BlockCursorDef(CursorDef):
         raise Exception(f"Block {dest_block} has no starting location because it is empty!")
 
 
-    def rel_block_start(self, dest_block: Coords) -> Coords:
-        pass
 
-    @staticmethod
-    def _physical_start(pattern: Matrix[bool]) -> Coords:
-        pass
+    def _bounds_check(self, abs_cells: Coords) -> None:
+        ri,ci = abs_cells.down, abs_cells.right
+        r, c = self.offsets.shape
+        if ri >= r or ci >= c or ri < 0 or ci < 0:
+            raise Exception(f"Entry {ri},{ci} outside matrix!")
 

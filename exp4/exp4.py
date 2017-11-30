@@ -22,20 +22,20 @@ def make_urn(k:int = 256, n:int = 28):
 def sample_no_replacement(urn, samples=128):
     return [urn.pop(randint(0,len(urn)-1)) for x in range(samples)]
 
-def make_param_space(m=256, n=28, k=256, bm=8, bn=28, bk=4):
+def make_param_space(m=128, n=28, k=128, bm=8, bn=28, bk=4):
     params = []
     seed(22)
     urn = make_urn(k, n)
     pattern = Matrix.full(k,n,False)
-    for x in range(28):
+    for x in range(3):
 
-        pattern_updates = sample_no_replacement(urn, 256)
+        pattern_updates = sample_no_replacement(urn, 100)
         for sample in pattern_updates:
             pattern[sample[0], sample[1]] = True
 
-        param = TiledParameters(f"tiledsparse_{28*x}_nnzs",
-                                m, n, k, bm, bn, bk,
-                                Matrix(pattern))
+        param = BlockParametersFromPattern(f"scalability_full_{28*x}_nnzs",
+                                           m, n, k, bm, bn, bk,
+                                           Matrix(pattern))
 
         param.pattern_updates = pattern_updates
 
@@ -76,17 +76,18 @@ def make_test(p) -> str:
     return code
 
 
-def make() -> str:
-    params = make_param_space()
+def make(m=128, n=28, k=128, bm=8, bn=28, bk=4) -> str:
+
+    params = make_param_space(m,n,k,bm,bn,bk)
     harness = HarnessBuilder(make_mn_loop, params)
     harness.make_test = make_test
-    harness.setup = """
+    harness.setup = f"""
     struct timespec start, end;
-    struct colmajor A = zeros(40, 9);
-    struct colmajor C_expected = zeros(40, 15);
-    struct colmajor C_actual = zeros(40, 15);
-    struct patternsparse B = create_patternsparse(9, 15, 9, 15);
-    struct colmajor B_dense = zeros(9,15);
+    struct colmajor A = zeros({m}, {k});
+    struct colmajor C_expected = zeros({m}, {n});
+    struct colmajor C_actual = zeros({m}, {n});
+    struct patternsparse B = create_patternsparse({k}, {n}, {k}, {n});
+    struct colmajor B_dense = zeros({k},{n});
     fill(&A, 1, 2);
     fill_sparse(&B, 1, 2);
     """

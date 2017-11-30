@@ -55,7 +55,7 @@ def C_mask(C_regs: Matrix[Register],
             if B_pat[:,Vci].any(axis=0):
                 mask[:,Vci] = True
     else:
-        mask[:, C_bc] = True
+        mask[:, :C_bc] = True
 
 
     return mask

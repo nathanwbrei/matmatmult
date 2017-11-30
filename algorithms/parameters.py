@@ -22,6 +22,8 @@ class Parameters:
     C_regs: Matrix[Register]
 
 
+
+
 class BlockParameters(Parameters):
     def __init__(self, name, m, n, k, bm, bn, bk,
                  blocks: Matrix[int],                # These two are required to be
@@ -36,6 +38,33 @@ class BlockParameters(Parameters):
         self.B = BlockCursorDef("B", rsi, k, n, bk, bn, blocks, pattern_index)
         self.C = DenseCursorDef("C", rdx, m, n, ld, bm, bn)
         self.A_regs, self.C_regs = make_reg_blocks(bm, bn, bk)
+
+
+
+def BlockParametersFromPattern(name, m, n, k, bm, bn, bk, pattern: Matrix[bool]):
+
+    # TODO: Currently does not support fringe
+    Bk,Bn = k//bk, n//bn
+    patterns = []
+    blocks = Matrix.full(Bk,Bn,-1)
+    x = 0
+    for Bni in range(Bn):
+        for Bki in range(Bk):
+            block = pattern[(Bki*bk):((Bki+1)*bk), (Bni*bn):((Bni+1)*bn)]
+            found = False
+            for pi in range(len(patterns)):
+                if patterns[pi] == block:
+                    blocks[Bki,Bni] = pi
+                    found = True
+            if not found:
+                blocks[Bki,Bni] = x
+                x += 1
+                patterns.append(block)
+
+    return BlockParameters(name, m, n, k, bm, bn, bk, blocks, patterns)
+
+
+
 
 
 class TiledParameters(Parameters):
