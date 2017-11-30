@@ -3,13 +3,12 @@
 
 struct DenseMatrix : public Matrix {
 
-  int rows;
-  int cols;
   int ld;
   double * values;
 
-  DenseMatrix(int rows, int cols, int ld)
-    : rows(rows), cols(cols), ld(ld) {
+  DenseMatrix(int rows, int cols, int ld) : ld(ld) {
+    this->rows = rows;
+    this->cols = cols;
 
     posix_memalign(reinterpret_cast<void **>(&values), 64, rows*cols*sizeof(double));
     clear();

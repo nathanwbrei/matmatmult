@@ -2,14 +2,14 @@
 
 struct SparseMatrix : public Matrix {
 
-  int rows;
-  int cols;
   int nnz;
   double * values;
   int * row_idx;
   int * col_idx;
 
-  SparseMatrix(int rows, int cols) : rows(rows), cols(cols) {
+  SparseMatrix(int rows, int cols) {
+    this->rows = rows;
+    this->cols = cols;
     values = new double[rows*cols];
     row_idx = new int[rows*cols];
     col_idx = new int[rows*cols];

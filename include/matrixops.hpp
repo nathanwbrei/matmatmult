@@ -6,6 +6,8 @@
 #include "dense.hpp"
 
 
+double epsilon = 0.00001;
+
 void to_dense(const Matrix & original, DenseMatrix & dense) {
   for (int ci=0; ci<original.cols; ci++) {
     for (int ri=0; ri<original.rows; ri++) {
@@ -19,7 +21,10 @@ void to_csc(const Matrix & original, SparseMatrix & csc) {
   csc.clear();
   for (int ci=0; ci<original.cols; ci++) {
     for (int ri=0; ri<original.rows; ri++) {
-      csc.set(ri, ci, original.get(ri,ci));
+      double x = original.get(ri,ci);
+      if (fabs(x) > epsilon) {
+        csc.set(ri, ci, x);
+      }
     }
   }
 }
@@ -34,7 +39,10 @@ void to_block_csc(const Matrix & original, SparseMatrix & bcsc, int br, int bc) 
     for (int Bri=0; Bri<Br; Bri++) {
       for (int bci=0; bci<bc; bci++) {
         for (int bri=0; bri<br; bri++) {
-          bcsc.set(Bri*br+bri, Bci*bc+bci, original.get(bri, bci));
+          double x = original.get(Bri*br+bri,Bci*bc+bci);
+          if (fabs(x) > epsilon) {
+            bcsc.set(Bri*br+bri, Bci*bc+bci, x);
+          }
         }
       }
     }
@@ -45,7 +53,6 @@ void to_block_csc(const Matrix & original, SparseMatrix & bcsc, int br, int bc) 
 void assert_equals(const Matrix & expected, const Matrix & actual) {
 
   bool equal = true;
-  double epsilon = 0.00001;
   if (expected.rows != actual.rows) {
     equal = false;
     printf("Expected %d rows, actually %d rows\n", expected.rows, actual.rows);
@@ -93,8 +100,10 @@ void gemm(const Matrix & A, const Matrix & B, Matrix & C) {
   for (int ni=0; ni<n; ni++) {
     for (int ki=0; ki<k; ki++) {
       for (int mi=0; mi<m; mi++) {
-        // C[i,j] += A[i,x]*B[x,j]
-        C.set(mi, ni, A.get(mi, ki) * B.get(ki, ni));
+
+        double c = C.get(mi,ni);
+        double ab = A.get(mi,ki) * B.get(ki,ni);
+        C.set(mi, ni, c+ab);
       }
     }
   }
