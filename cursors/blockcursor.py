@@ -119,7 +119,7 @@ class BlockCursorDef(CursorDef):
         else:
             ptr_to_move = self.index_ptr
 
-        dest_loc = CursorLocation(dest_block, self.start_location(dest_block))
+        dest_loc = self.start_location(dest_block)
         offset_bytes = self.offset(src_loc, dest_loc) * self.scalar_bytes
 
         if dest_block.absolute:

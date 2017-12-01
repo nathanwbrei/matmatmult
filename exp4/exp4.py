@@ -40,6 +40,7 @@ def make_param_space(m=16, n=16, k=6, bm=8, bn=16, bk=3, iters=3, dnnz=10):
         param.pattern_updates = pattern_updates
         param.iteration = x
         param.dnnz = dnnz
+        param.nnz = dnnz * (x+1)
         params.append(param)
     return params
 
@@ -73,21 +74,21 @@ def make_test(p) -> str:
         {p.name}(A.values, B.values, C_actual.values);
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    printf("{p.name}, %lf\\n",
-        1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
+    printf("{p.name}, {p.m}, {p.n}, {p.k}, {p.bm}, {p.bn}, {p.bk}, {p.nnz}, %lf\\n", microsecs(start,end)/3000.0);
     """
     return code
 
-def make(m=128, n=28, k=128, bm=8, bn=28, bk=4, iters=10, dnnz=10) -> str:
 #def make(m=16, n=16, k=6, bm=8, bn=16, bk=3, iters=10, dnnz=100) -> str:
+def make(m=128, n=28, k=128, bm=8, bn=28, bk=4, iters=35*2, dnnz=50) -> str:
 
     params = make_param_space(m,n,k,bm,bn,bk,iters,dnnz)
     harness = HarnessBuilder(make_mn_loop, params)
     harness.make_test = make_test
     harness.imports = """
-#include<stdio.h>
-#include<time.h>
+#include <stdio.h>
+#include "../include/timing.h"
 #include "../include/matrixops.hpp"
+#include "baseline.hpp"
 """
 
     harness.setup = f"""
@@ -99,6 +100,18 @@ def make(m=128, n=28, k=128, bm=8, bn=28, bk=4, iters=10, dnnz=10) -> str:
     DenseMatrix B_dense({k},{n},{k});
 
     fill(A, 1, 2);
+    fill(B_dense, 7, 9);
+    gemm(A, B_dense, C_expected);
+    baseline_gemm(A.values, B_dense.values, C_actual.values);
+    assert_equals(C_expected, C_actual);
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    for (int t=0; t<3000; t++)
+        baseline_gemm(A.values, B.values, C_actual.values);
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    printf("baseline, {m}, {n}, {k}, {bm}, {bn}, {bk}, {n*k}, %lf\\n", microsecs(start,end)/3000.0);
+    B_dense.clear();
     """
     return harness.make("exp4/exp4.cpp")
 
