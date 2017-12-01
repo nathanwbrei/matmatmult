@@ -194,7 +194,6 @@ class BlockCursorDef(CursorDef):
 
     def start_location(self, dest_block: Coords = Coords(absolute=True)) -> CursorLocation:
 
-        print(f"Getting start location for block: {dest_block}")
         assert(dest_block.absolute == True)
         br,bc,idx,pat = self.get_block(dest_block=dest_block)
         for bci in range(bc):

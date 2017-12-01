@@ -2,7 +2,7 @@
 
 LDFLAGS_MACOS = -arch x86_64 -macosx_version_min 10.10 -lSystem -no_pie 
 
-.PHONY: exp1 exp2
+.PHONY: exp1 exp2 exp4
 
 docker-image:
 	docker build -t thesis_dev_env .
@@ -57,3 +57,6 @@ exp2:
 	#icpc -xCORE-AVX2 -std=c++11 -O3 -o build/exp1 exp1/exp.c -lrt -DNDEBUG
 	g++ -mavx512f -std=c++11 -O3 -o build/baseline exp2/baseline.c -lrt -DNDEBUG
 	g++ -mavx512f -std=c++11 -O3 -o build/exp2 exp2/exp2.c -lrt -DNDEBUG
+
+exp4:
+	PYTHONPATH="." python3 exp4/exp4.py

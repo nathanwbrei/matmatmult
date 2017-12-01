@@ -53,15 +53,16 @@ def make_test(p) -> str:
     C_expected.clear();
     C_actual.clear();\n"""
 
-    x = p.iteration * p.dnnz
+    x = p.iteration * p.dnnz + 1  # The 1 is needed because otherwise there will
+                                  # be a zero entry which throws off the vbcsc representation
     for ri,ci in p.pattern_updates:
         code += f"    B_dense.set({ri},{ci},{x});\n"
         x += 1
 
     code += f"""
     to_block_csc(B_dense, B, {p.bk}, {p.bn});
-    printf("Created B=\\n");
-    B.show();
+    // printf("Created B=\\n");
+    // B.show();
 
     gemm(A, B, C_expected);
     {p.name}(A.values, B.values, C_actual.values);
@@ -77,8 +78,8 @@ def make_test(p) -> str:
     """
     return code
 
-#def make(m=128, n=28, k=128, bm=8, bn=28, bk=4) -> str:
-def make(m=16, n=16, k=6, bm=8, bn=16, bk=3, iters=3, dnnz=10) -> str:
+def make(m=128, n=28, k=128, bm=8, bn=28, bk=4, iters=10, dnnz=10) -> str:
+#def make(m=16, n=16, k=6, bm=8, bn=16, bk=3, iters=10, dnnz=100) -> str:
 
     params = make_param_space(m,n,k,bm,bn,bk,iters,dnnz)
     harness = HarnessBuilder(make_mn_loop, params)
@@ -105,4 +106,12 @@ def make(m=16, n=16, k=6, bm=8, bn=16, bk=3, iters=3, dnnz=10) -> str:
 #make()
 
 
+
+if __name__=="__main__":
+    print("Generating exp4.cpp ...")
+    make()
+    print("Compiling and deploying to cluster ...")
+    from deployment import *
+    e = Experiment("exp4")
+    run(e)
 
