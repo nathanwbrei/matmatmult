@@ -131,9 +131,26 @@
 
 
 * My algorithms: 
-*** Overview and flowchart
+*** Overview
+
+    * Sparse x Dense vs Dense x Sparse
 *** Dense x Sparse
 **** Sparse microkernel
+     The basic idea behind SparseMicrokernel is to extend the dense outer-product formulation (used
+by libxsmm, GotoBLAS, and others) to perform dense-by-sparse matrix multiplication in way which
+takes advantage of the AVX512 vector registers. The original algorithm loads an entire block of A
+
+
+The SparseMicrokernel algorithm is a straightforward modification: FMA instructions which operate on 
+broadcasted zero entries are eliminated, and the memory addresses of the nonzero entries are 
+shifted so that a sparse matrix format with better memory locality can be used. If an entire 
+row of B is zero, the corresponding column of A is not needed, so the corresponding load 
+operation is removed. Traversing the sparse matrix, finding the nonzeros, and finding the correct
+memory address for each cell is done using a high-level cursor abstraction, as described elsewhere.   
+
+Eliminating the unnecessary instructions reduces both computational intensity and memory traffic.
+
+
 **** Fully unrolled sparse
 
 ***** Description
@@ -170,9 +187,9 @@ directly affect both memory locality and FMA instruction size. (As discussed els
 helpful to keep the pointer's offset under 128, as FMA instructions above that threshold are
 10 bytes and below are 7 bytes.) A key constraint is regularity: This algorithm assumes it is
 possible to traverse the matrix block-by-block using simple pointer arithmetic, which constrains 
-the possible layouts to (V){CSR, CSC, BCSR, BCSC}. (This assumption will be relaxed in 
+the main layouts to (V){CSR, CSC, BCSR, BCSC}. (This assumption will be relaxed in 
 later algorithms.) The layout which best suits the memory accesses made by TiledSparse 
-is virtual-block-csr. If the layout is prescribed externally as something other than (V){BCSR, BCSC), 
+is VBCSR. If the layout is prescribed externally as something other than (V){BCSR, BCSC), 
 or if the pattern contains more than 128 nonzeros, it is recommended to use multiple cursors in 
 order to keep the FMA instruction size down. One possible interoperability trick is to store 
 the matrix in COO format, but order the values according to VBCSR. Of course, this is fragile 
@@ -183,9 +200,6 @@ fill in until it becomes mostly dense. Otherwise, it is limited to having fewer 
 in the pattern. It does not require the tiling to be perfect (where the bottommost and rightmost 
 tiles are full sized), although this makes the generator more complicated and reduces the allowed 
 number of nonzeros in the pattern to $3000 - nnz(top_right) - nnz(bottom_right) - nnz(bottom_left)$. 
-
-
-
 
 
       
