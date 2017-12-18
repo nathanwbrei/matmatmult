@@ -90,7 +90,7 @@
   \end{block}
 
   \begin{block}{Small Sparse Matrix Multiplications}
-    The compute kernels resemble the operation shown below, applied recursively. Different sparsity pattterns are used, but they are all known at compile time.
+    The compute kernels resemble the operation shown below, applied recursively. Different sparsity patterns are used, but they are all known at compile time.
   \end{block}
 
   \centering
@@ -102,21 +102,21 @@
   \frametitle{Knights Landing}
   \begin{block}{KNL is the 2nd-generation Intel Xeon Phi many-core processor}
     \begin{itemize}
-    \item A standalone processor (not just a coprocessor or GPU) which supports the entire x86\_64 instruction set along with AVX512 extensions.
-    \item Organized into a 2D grid of 36 tiles, each containing 2 cores and a 1MB shared L2 cache
-    \item 4 threads/core $\implies$ 288 threads/processor
+    \item A standalone processor (not just a coprocessor or GPU) which supports the entire x86 instruction set along with AVX512 extensions.
+    \item Organized into a 2D grid of up to 36 tiles, each containing 2 cores and a 1MB shared L2 cache
+    \item 4 threads/core $\implies$ up to 288 threads/processor
     \item 32 vector registers holding 8 doubles/register
-    \item Fused-multiply-add instruction with implicit broadcast and mask registers
+    \item Fused-multiply-add instruction $(=:FMA)$ with mask registers and implicit broadcast
     \item 2 vpus/core, 16 double ops/vpu/cycle, 1.3e9 cycles/sec \\ $\implies$ 3 double TFlop peak performance
 
     \end{itemize}
   \end{block}
   \begin{block}{KNL greatly prefers large dense matrix operations to small sparse ones}
     \begin{itemize}
-    \item Scalar operations limited to 1/16 peak performance
-    \item \textbf{Out-of-order execution pipeline can only issue 2 instructions per cycle}
+    \item Scalar operations limited to 1/8 peak performance
     \item Bottleneck with vector stores: 64B/cycle
-    \item Bottleneck with instruction cache, decoder: 16B/cycle
+    \item Bottleneck with instruction cache, decoder: min(16B/cycle, 2 instructions)
+    \item \textbf{Out-of-order execution pipeline can only issue 2 instructions per cycle}
     \end{itemize}
   \end{block}
 \end{frame}
@@ -126,9 +126,9 @@
   \begin{block}{Standard compressed-sparse-column multiplication}
     \begin{itemize}
       \item[$+$] Generality.
-      \item[$+$] Algorithm requires very few instructions.
+      \item[$+$] Algorithm uses a (small) constant number of instructions.
       \item[$-$] Index lookups require indirect memory access, causing lots of problems for the execution pipeline.
-      \item[$-$] Scalar operations limit us to $1/16$ peak performance. (Note: BSR can be vectorized, however.)
+      \item[$-$] $sparse \times sparse$ is fundamentally scalar. (However, BSR can be vectorized.)
       \item[$-$] Disregards the fact that the sparsity pattern is known at compile time.
     \end{itemize}
   \end{block}
@@ -288,12 +288,10 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
   \end{columns}
 
   \begin{itemize}
-    \item For $nnz \leq 3100$, time-to-solution scales linearly.
-    \item For $nnz \geq 3200$, the FMAs completely fill the instruction cache (regardless of matrix dimensions!)
+    \item For $nnz < 3100$, time-to-solution scales linearly.
+    \item For $nnz > 3200$, the FMAs completely fill the instruction cache (regardless of matrix dimensions!)
     \item Fully unrolled sparse algorithm outperforms dense ``nonzero'' GFlops, but always underperforms dense ``hardware'' GFlops
-    \item Paradoxical decrease of both time-to-solution and GFlops
     
-
   \end{itemize}
 \end{frame}
 

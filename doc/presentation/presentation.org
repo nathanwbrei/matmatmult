@@ -1,0 +1,212 @@
+
+* What is the problem I am trying to solve?
+** Earthquakes. What does SeisSol let you predict about earthquakes?
+** ADER-DG. How is this different from finite elements?
+** Small local matrix multiplications with low communication overhead. How is this possible?
+** Innermost compute kernel: star matrix. Goal: Make this slightly faster?
+** sparse*dense != dense*sparse
+
+* Why is this difficult?
+** What is KNL?
+    - Multi/manycore (~64) coprocessor/processor
+    - AVX512 instruction set with 32x 64-byte vector registers
+    - Taking over top500 list
+ 
+** Why is KNL bad for sparse matrix operations?
+    - Lower clock frequency
+    - Narrow oooE issue width
+    - Large instruction size (Cannot stream FMA instructions)  // HOW TRUE IS THIS?
+    - Scalar instructions run slower
+    - Fewer execution units? 
+
+    - Wide vector registers
+    - 32(!) named vector registers, 16 scalar registers
+    - FMA instructions include broadcast and masking => fewer instructions, registers needed total
+    - Gather/scatter, blending operations
+    - Large reorder buffer
+    - TODO: Why do we use a 1d register blocking?
+
+** Consequence: 
+    - Code optimal for SNB/HSW is probably unoptimal for KNL
+    - Not obvious whether _sth_ holds
+
+* What solutions exist?
+** Naive solution: CSC
+   + Low memory use
+   - Sparsity patterns not known at compile time -> Index lookups -> Control dependencies
+
+** Unrolled solution: Breuer
+   + Fine-grained control of vectorization
+   + No index lookups, few or no loops
+
+   + Throttles instruction cache
+   + Generated C++ code which compiler is not able to optimize for avx512 
+
+** Dense solution: Libxsmm
+   + Efficient use of KNL hardware
+   + High total GFlops
+   + Low nonzero GFlops
+   + Low time-to-solution
+   + Best computational intensity, but more memory movement -> Roofline model
+ 
+* My work: Finding a compromise between full unrolling and 
+
+
+** Goals
+   - Explore the parameter space of different families of algorithms:
+     + dense-sparse csc, tiledcsc, blockcsc
+     + sparse-dense breuer, blended, shifted-load, scalar, gather-scatter
+
+   - Independent variables include matrix size, overall sparsity, sparsity patterns, 
+         block size, register usage, loop unroll depth, instruction reordering
+
+   - Identify bottlenecks and understand how they constrain the regions of 
+         parameter space in which they are useful
+         
+** 
+
+* Methodology   
+
+** Code generation
+
+*** Approach
+
+     - Choice of generated language:
+
+       + C++ 
+         - Optimizer has inside knowledge
+         - Compile-time specialization only via macros, templates, constexprs
+         - Syntax is too complex to capture in generator. Nested strings are error-prone. 
+         - Alg designer must infer what assembly the compiler will omit
+
+       + ASM
+         - Designer needs to be thinking in terms of assembly anyway
+         - Syntax is simple enough to capture an exact AST
+         - Full AST allows dependency analysis, optimizations such as instruction reordering, 
+           simulation of caches, visualization
+
+       + Compromise: Algorithms expressed in assembly AST, harness expressed in C++
+
+        
+     - Choice of generation language:
+       + C++
+         - Strong static typing and manual memory management 
+           hinder interactivity, increase feedback time
+
+       + Python
+         + Existing code generation for SeisSol, e.g. sparse matrix encodings which could possibly be reused
+         + Able to leverage SciPy, Matplotlib
+         + Lack of type safety somewhat ameliorated in Python 3.6
+         
+       + Julia
+         + Expressive macros, algebraic datatypes, multiple dispatch
+         + Significant support for code generation
+         + Ability to introspect both LLVM IR and x86 assembly from the Julia interpreter
+         + Significant churn and breaking changes.
+         + Difficult to build a standalone executable which can even run on the cluster, 
+           particularly while using the codegen features
+         + Doesn't allow interacting with assembly directly
+
+       + Racket
+         + Modern lisp with large user base, well-suited to language design
+         + Optional typing, algebraic datatypes, pattern matching
+         + Possibility to write an entirely new syntax DSL
+         + Unlikely anyone would be able to understand the code I wrote
+
+         
+       + Blocks, Loops, and unrolling
+         - Comments, indentation, GAS vs intel vs inline GAS syntax
+         - 
+
+       + Matrix cursor
+         
+       + Simulation
+         - 
+
+
+** Experiment framework
+   - Autodeployment
+
+   - 
+
+
+* My algorithms: 
+*** Overview
+
+    * Sparse x Dense vs Dense x Sparse
+*** Dense x Sparse
+**** Sparse microkernel
+     The basic idea behind SparseMicrokernel is to extend the dense outer-product formulation (used
+by libxsmm, GotoBLAS, and others) to perform dense-by-sparse matrix multiplication in way which
+takes advantage of the AVX512 vector registers. The original algorithm loads an entire block of A
+
+
+The SparseMicrokernel algorithm is a straightforward modification: FMA instructions which operate on 
+broadcasted zero entries are eliminated, and the memory addresses of the nonzero entries are 
+shifted so that a sparse matrix format with better memory locality can be used. If an entire 
+row of B is zero, the corresponding column of A is not needed, so the corresponding load 
+operation is removed. Traversing the sparse matrix, finding the nonzeros, and finding the correct
+memory address for each cell is done using a high-level cursor abstraction, as described elsewhere.   
+
+Eliminating the unnecessary instructions reduces both computational intensity and memory traffic.
+
+
+**** Fully unrolled sparse
+
+***** Description
+      -- Choice of unrolling
+      -- Diagram
+      -- Pseudocode
+
+***** Theoretical Limitations
+      -- Instruction size
+      -- Plot
+      
+*** Tiledsparse
+
+     The basic idea behind TiledSparse is to scale the FullyUnrolledSparse algorithm to 
+matrices with more than 3000 nonzeros by assuming that the sparsity pattern is perfectly regular. 
+Specifically, we assume that there is a single sparsity pattern which tiles over the entire matrix
+and can be encoded as either a SparseMicrokernel or a FullyUnrolledSparse. The former, of course,
+subjects the tiled sparsity pattern to register block size constraints, whereas the latter merely 
+subjects it to number-of-nonzeros constraints. Our tiling assumption can be made without loss 
+of generality because we can always fill in zeros until we arrive at a regular pattern. (One
+way to do this is to partition the original matrix with a desired blocksize, and then take the 
+logical union of the sparsity patterns in each block.) The assumption does result in a loss of 
+practicality, however, as often the pattern will degenerate to dense. If the pattern is dense, 
+and the pattern-blocksize is chosen sensibly, the resulting algorithm will be very similar to 
+libxsmm.
+
+There are several ways in which this algorithm may be modified. The first design variable is the
+choice of loops to unroll. Because each pattern-block occupies the same amount of memory, the 
+loops need only update the pointer to the current block, and thus may be unrolled trivially. 
+The optimal amount of unrolling depends mainly on the number of nonzeros in the sparsity pattern.
+
+The second design variable is the representation of the sparse matrix in memory. The choice will
+directly affect both memory locality and FMA instruction size. (As discussed elsewhere, it is 
+helpful to keep the pointer's offset under 128, as FMA instructions above that threshold are
+10 bytes and below are 7 bytes.) A key constraint is regularity: This algorithm assumes it is
+possible to traverse the matrix block-by-block using simple pointer arithmetic, which constrains 
+the main layouts to (V){CSR, CSC, BCSR, BCSC}. (This assumption will be relaxed in 
+later algorithms.) The layout which best suits the memory accesses made by TiledSparse 
+is VBCSR. If the layout is prescribed externally as something other than (V){BCSR, BCSC), 
+or if the pattern contains more than 128 nonzeros, it is recommended to use multiple cursors in 
+order to keep the FMA instruction size down. One possible interoperability trick is to store 
+the matrix in COO format, but order the values according to VBCSR. Of course, this is fragile 
+if the matrix gets modified.
+
+As mentioned earlier, the main limitation to this algorithm is the tendency for the block pattern to 
+fill in until it becomes mostly dense. Otherwise, it is limited to having fewer than ~3000 nonzeros 
+in the pattern. It does not require the tiling to be perfect (where the bottommost and rightmost 
+tiles are full sized), although this makes the generator more complicated and reduces the allowed 
+number of nonzeros in the pattern to $3000 - nnz(top_right) - nnz(bottom_right) - nnz(bottom_left)$. 
+
+
+      
+** Practical Applications
+      -- SeisSol Star
+      -- SeisSol K (Transposed)
+      -- Random
+      -- Random with full diagonal
+      -- Diagonal K
+      

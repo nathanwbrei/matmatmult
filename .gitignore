@@ -2,7 +2,9 @@
 *.pyc
 *.gch
 .#*
-build/*
+build
+doc/build
+tests/cpptests/build
 __pycache__
 .mypy_cache
 
