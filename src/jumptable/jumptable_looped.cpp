@@ -46,8 +46,7 @@ int actual_looped() {
       ".quad CASE_2_%=\n\t"
 
       "LOOP_TOP_%=:\n\t"
-        "leaq XS_%=(,%%rcx,8), %%rdx\n\t"
-        "jmp *%%rdx\n\t"
+        "jmpq *XS_%=(,%%rcx,8)\n\t"
 
         "CASE_0_%=:\n\t"
         "addl $22, %[y]\n\t"
