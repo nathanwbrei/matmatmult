@@ -6,7 +6,7 @@ int f(int x) {
         case 0:
             return 22;
         case 1:
-            return 33;
+            return 1;
         case 2:
             return 44;
         default:
@@ -17,9 +17,22 @@ int f(int x) {
 int g(int x) {
     int y = -1;
     __asm__ __volatile__ (
-        "movl %[x], %[y]\n\t"
+
+        // ".text\n\t"
+        "movl TABLE(,%[x],4), %[y]\n\t"
+        "jmp FINISHED\n\t"
+
+        // ".section .rodata\n\t"
+        "TABLE:\n\t"
+        ".long 22\n\t"
+        ".long 1\n\t"
+        ".long 44\n\t"
+        ".long 99\n\t"
+
+        "FINISHED:\n\t"
         : [y] "=r" (y)
         : [x] "r" (x));
+
     return y;
 }
 
