@@ -25,9 +25,11 @@ int expected() {
 }
 
 int actual_unrolled() {
-  int x = 1000;
-  int y = -1;
+  int x;
+  int y;
   __asm__ __volatile__ (
+
+      "movl $0, %[y]\n\t"
 
       "movl $0, %[x]\n\t"
       "movq $RETURN_0_%=, %%r10\n\t"
@@ -94,8 +96,7 @@ int actual_unrolled() {
         "jmp *%%r10\n\t"
 
       "END_SWITCH_%=:\n\t"
-        : [y] "=r" (y)
-        : [x] "r" (x));
+      : [y] "=r" (y), [x] "=r" (x));
 
     return y;
 }
