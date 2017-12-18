@@ -14,10 +14,21 @@ int f(int x) {
   }
 }
 
+int g(int x) {
+    int y = -1;
+    __asm__ __volatile__ (
+        "movl %[x], %[y]\n\t"
+        : [y] "=r" (y)
+        : [x] "r" (x));
+    return y;
+}
+
 
 int main(int argc, char** argv) {
     int x = atoi(argv[1]);
     printf("f(%d) = %d\n", x, f(x));
+    printf("g(%d) = %d\n", x, g(x));
+    return 0;
 }
 
 
