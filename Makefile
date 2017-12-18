@@ -61,5 +61,9 @@ exp2:
 exp4:
 	PYTHONPATH="." python3 exp4/exp4.py
 
-jumptable: tests/cpptests/jumptable.cpp
-	g++ -g -mavx512f -std=c++11 -O0 -o tests/cpptests/build/jumptable tests/cpptests/jumptable.cpp
+jumptable: src/jumptable/jumptable.cpp src/jumptable/jumpbacktable.cpp
+	g++ -g -mavx512f -std=c++11 -O3 -o build/jumptable src/jumptable/jumptable.cpp
+	g++ -g -mavx512f -std=c++11 -O3 -o build/jumpbacktable src/jumptable/jumpbacktable.cpp
+	objdump -D build/jumptable > src/jumptable/jumptable.asm
+	objdump -D build/jumpbacktable > src/jumptable/jumpbacktable.asm
+

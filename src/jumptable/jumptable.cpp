@@ -18,7 +18,6 @@ int g(int x) {
     int y = -1;
     __asm__ __volatile__ (
 
-
         "cmp $0, %[x]\n\t"
         "jl DEFAULT_%=\n\t"
 
@@ -27,27 +26,27 @@ int g(int x) {
 
         "jmp *SWITCH_%=(,%[x],8)\n\t"
 
-        "SWITCH_%=:\n\t"
+      "SWITCH_%=:\n\t"
         ".quad CASE_0_%=\n\t"
         ".quad CASE_1_%=\n\t"
         ".quad CASE_2_%=\n\t"
 
-        "CASE_0_%=:\n\t"
+      "CASE_0_%=:\n\t"
         "movl $22, %[y]\n\t"
         "jmp END_SWITCH_%=\n\t"
 
-        "CASE_1_%=:\n\t"
+      "CASE_1_%=:\n\t"
         "movl $1, %[y]\n\t"
         "jmp END_SWITCH_%=\n\t"
 
-        "CASE_2_%=:\n\t"
+      "CASE_2_%=:\n\t"
         "movl $44, %[y]\n\t"
         "jmp END_SWITCH_%=\n\t"
 
-        "DEFAULT_%=:\n\t"
+      "DEFAULT_%=:\n\t"
         "movl $99, %[y]\n\t"
 
-        "END_SWITCH_%=:\n\t"
+      "END_SWITCH_%=:\n\t"
         : [y] "=r" (y)
         : [x] "r" (x));
 
