@@ -1,64 +1,86 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int f(int x) {
-    switch (x) {
-        case 0:
-            return 22;
-        case 1:
-            return 1;
-        case 2:
-            return 44;
-        default:
-            return 99;
+
+void table(int x, int& y) {
+  switch (x) {
+  case 0:
+    y += 22; break;
+  case 1:
+    y += 1; break;
+  case 2:
+    y += 44; break;
+  default:
+    y += 99; break;
   }
 }
 
-int g(int x) {
-    int y = -1;
-    __asm__ __volatile__ (
+int expected() {
+  int xs[6] = {0,3,2,3,1,2};
+  int y = 0;
 
-        "cmp $0, %[x]\n\t"
-        "jl DEFAULT_%=\n\t"
+  for (int i=0; i<6; i++) {
+    table(xs[i], y);
+  }
+  return y;
+}
 
-        "cmp $2, %[x]\n\t"
-        "jg DEFAULT_%=\n\t"
 
-        "jmp *SWITCH_%=(,%[x],8)\n\t"
+int actual_looped() {
+  const int xs [6] = {0,3,2,3,1,2};
+  int y;
 
-      "SWITCH_%=:\n\t"
+  // rdi: Pointer to xs
+  // rcx: Iteration variable over xs
+  // edx: Table entry
+
+  __asm__ __volatile__ (
+
+      "movl $0, %[y]\n\t"
+      "movq %1, %%rdi\n\t"
+      "movq $0, %%rcx\n\t"
+      "LOOP_TOP_%=:\n\t"
+
+        "movl (%%rdi,%%rcx,4), %%edx\n\t"
+        "jmp *TABLE_%=(,%%edx,8)\n\t"
+
+        "TABLE_%=:\n\t"
         ".quad CASE_0_%=\n\t"
         ".quad CASE_1_%=\n\t"
         ".quad CASE_2_%=\n\t"
 
-      "CASE_0_%=:\n\t"
-        "movl $22, %[y]\n\t"
+        "CASE_0_%=:\n\t"
+        "addl $22, %[y]\n\t"
         "jmp END_SWITCH_%=\n\t"
 
-      "CASE_1_%=:\n\t"
-        "movl $1, %[y]\n\t"
+        "CASE_1_%=:\n\t"
+        "addl $1, %[y]\n\t"
         "jmp END_SWITCH_%=\n\t"
 
-      "CASE_2_%=:\n\t"
-        "movl $44, %[y]\n\t"
+        "CASE_2_%=:\n\t"
+        "addl $44, %[y]\n\t"
         "jmp END_SWITCH_%=\n\t"
 
-      "DEFAULT_%=:\n\t"
-        "movl $99, %[y]\n\t"
+        "CASE_3_%=:\n\t"
+        "addl $99, %[y]\n\t"
 
-      "END_SWITCH_%=:\n\t"
-        : [y] "=r" (y)
-        : [x] "r" (x));
+        "END_SWITCH_%=:\n\t"
+
+      "addq $1, %%rcx\n\t"
+      "cmpq $6, %%rcx\n\t"
+      "jl LOOP_TOP_%=\n\t"
+
+      : [y] "=r" (y)
+      : "m" (xs)
+      : "rcx", "rdi", "rdx");
 
     return y;
 }
 
-
 int main(int argc, char** argv) {
-    int x = atoi(argv[1]);
-    printf("f(%d) = %d\n", x, f(x));
-    printf("g(%d) = %d\n", x, g(x));
-    return 0;
+  printf("expected = %d\n", expected());
+  printf("actual_looped = %d\n", actual_looped());
+  return 0;
 }
 
 
