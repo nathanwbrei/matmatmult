@@ -27,7 +27,8 @@ int expected() {
 
 
 int actual_looped() {
-  const int xs [6] = {0,3,2,3,1,2};
+  int xs_underlying [6] = {0,3,2,3,1,2};
+  int * xs = xs_underlying;
   int y;
 
   // rdi: Pointer to xs
@@ -37,17 +38,18 @@ int actual_looped() {
   __asm__ __volatile__ (
 
       "movl $0, %[y]\n\t"
-      "movq %1, %%rdi\n\t"
+      "movq %[xs], %%rdi\n\t"
       "movq $0, %%rcx\n\t"
       "LOOP_TOP_%=:\n\t"
 
         "movl (%%rdi,%%rcx,4), %%edx\n\t"
-        "jmp *TABLE_%=(,%%edx,8)\n\t"
+        "jmpq *TABLE_%=(,%%edx,8)\n\t"
 
         "TABLE_%=:\n\t"
         ".quad CASE_0_%=\n\t"
         ".quad CASE_1_%=\n\t"
         ".quad CASE_2_%=\n\t"
+        ".quad CASE_3_%=\n\t"
 
         "CASE_0_%=:\n\t"
         "addl $22, %[y]\n\t"
@@ -71,7 +73,7 @@ int actual_looped() {
       "jl LOOP_TOP_%=\n\t"
 
       : [y] "=r" (y)
-      : "m" (xs)
+      : [xs] "m" (xs)
       : "rcx", "rdi", "rdx");
 
     return y;
