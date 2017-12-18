@@ -33,51 +33,42 @@ int actual_unrolled() {
 
       "movl $0, %[x]\n\t"
       "movq $RETURN_0_%=, %%r10\n\t"
-      "jmp SWITCH_%=\n\t"
+      "jmp *TABLE_%=(,%[x],8)\n\t"
       "RETURN_0_%=:\n\t"
 
       "movl $3, %[x]\n\t"
       "movq $RETURN_1_%=, %%r10\n\t"
-      "jmp SWITCH_%=\n\t"
+      "jmp *TABLE_%=(,%[x],8)\n\t"
       "RETURN_1_%=:\n\t"
 
       "movl $2, %[x]\n\t"
       "movq $RETURN_2_%=, %%r10\n\t"
-      "jmp SWITCH_%=\n\t"
+      "jmp *TABLE_%=(,%[x],8)\n\t"
       "RETURN_2_%=:\n\t"
 
       "movl $3, %[x]\n\t"
       "movq $RETURN_3_%=, %%r10\n\t"
-      "jmp SWITCH_%=\n\t"
+      "jmp *TABLE_%=(,%[x],8)\n\t"
       "RETURN_3_%=:\n\t"
 
       "movl $1, %[x]\n\t"
       "movq $RETURN_4_%=, %%r10\n\t"
-      "jmp SWITCH_%=\n\t"
+      "jmp *TABLE_%=(,%[x],8)\n\t"
       "RETURN_4_%=:\n\t"
 
       "movl $2, %[x]\n\t"
       "movq $RETURN_5_%=, %%r10\n\t"
-      "jmp SWITCH_%=\n\t"
+      "jmp *TABLE_%=(,%[x],8)\n\t"
       "RETURN_5_%=:\n\t"
 
       "jmp END_SWITCH_%=\n\t"
 
 
-      "SWITCH_%=:\n\t"
-
-        "cmp $0, %[x]\n\t"
-        "jl DEFAULT_%=\n\t"
-
-        "cmp $2, %[x]\n\t"
-        "jg DEFAULT_%=\n\t"
-
-        "jmp *TABLE_%=(,%[x],8)\n\t"
-
       "TABLE_%=:\n\t"
         ".quad CASE_0_%=\n\t"
         ".quad CASE_1_%=\n\t"
         ".quad CASE_2_%=\n\t"
+        ".quad CASE_3_%=\n\t"
 
       "CASE_0_%=:\n\t"
         "addl $22, %[y]\n\t"
@@ -91,7 +82,7 @@ int actual_unrolled() {
         "addl $44, %[y]\n\t"
         "jmp *%%r10\n\t"
 
-      "DEFAULT_%=:\n\t"
+      "CASE_3_%=:\n\t"
         "addl $99, %[y]\n\t"
         "jmp *%%r10\n\t"
 
