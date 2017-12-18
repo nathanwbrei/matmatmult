@@ -18,18 +18,16 @@ int g(int x) {
     int y = -1;
     __asm__ __volatile__ (
 
-        // ".text\n\t"
         "movl TABLE(,%[x],4), %[y]\n\t"
-        "jmp FINISHED\n\t"
 
-        // ".section .rodata\n\t"
+        ".section .rodata\n\t"
         "TABLE:\n\t"
         ".long 22\n\t"
         ".long 1\n\t"
         ".long 44\n\t"
         ".long 99\n\t"
+        ".text\n\t"
 
-        "FINISHED:\n\t"
         : [y] "=r" (y)
         : [x] "r" (x));
 
