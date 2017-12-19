@@ -1,39 +1,22 @@
 
 from algorithms.parameters import *
 from algorithms.registerblocks import *
-from algorithms.matmults import make_gemm
+from algorithms.matmults import make_gemm, make_microkernel
 
 from cursors.abstractcursor import CursorLocation
+from cursors.blockcursor import BlockCursorDef
 
 from codegen.ast import *
 from codegen.sugar import *
 from codegen.forms import *
 
 
-def make_kt_unroll(p: Parameters,
-                   A_ptr: CursorLocation,
-                   B_ptr: CursorLocation,
-                   C_ptr: CursorLocation,
-                   to_B_panel: Coords = Coords()
-                  ) -> Block:
 
-    Bkf = (p.k // p.bk) + (p.k % p.bk != 0)
-    mask = C_mask(p.C_regs, p.C, C_ptr, Coords(), p.B, B_ptr, to_B_panel, tiled=False)
-    asm = block("KT unrolled " + p.name)
-    asm.add(move_register_block(p.C, C_ptr, Coords(), p.C_regs, mask, store=False))
+def minicursor(name: str, base_ptr: Register, pattern: Matrix[bool]):
+    rows, cols = pattern.shape
+    cursor = BlockCursorDef(name, base_ptr, rows, cols, rows, cols, Matrix([[0]]), [pattern])
+    return cursor
 
-    for Bki in range(0, Bkf):
-        to_A_block = Coords(right=Bki)
-        to_B_block = to_B_panel + Coords(down=Bki)
-        if p.B.has_nonzero_block(B_ptr, to_B_block):
-            asm.add(make_gemm(p, A_ptr, to_A_block, B_ptr, to_B_block))
-
-    asm.add(move_register_block(p.C, C_ptr, Coords(), p.C_regs, mask, store=True))
-    return asm
-
-
-# For now assume m=bm=8, n=bn=8, bk=8, k=1024
-# Later expand to use UnrolledSparse instead of SparseMicrokernel
 
 def make(p:Parameters) -> Block:
 
@@ -54,8 +37,8 @@ def make(p:Parameters) -> Block:
         case_label = f"CASE_{x}"
         cases.append(case_label)
         asm.add(label(case_label))
-        asm.add(block("Gemm goes here"))
-        #asm.add(make_gemm(p, A_ptr, to_A_block, B_ptr, to_B_block))
+        BB = minicursor(f"block_{x}", p.B.base_ptr, pattern)
+        asm.add(make_microkernel(p.A,BB,A_ptr,B_ptr,p.A_regs,p.C_regs))
         asm.add(indirect_jump(jump_reg))
         x += 1
 
@@ -83,6 +66,8 @@ def make(p:Parameters) -> Block:
     return asm
 
 
+# For now assume m=bm=8, n=bn=8, bk=8, k=1024
+# Later expand to use UnrolledSparse instead of SparseMicrokernel
 def defaults(nblocks):
     bm = 8
     bn = 8
@@ -90,7 +75,7 @@ def defaults(nblocks):
     m = 8
     n = 8
     k = bk * nblocks
-    nnz = 30
+    nnz = 5
     patterns = [random_pattern(nnz, bk, bn) for i in range(nblocks)]
     blocks = Matrix([[x] for x in range(nblocks)])
     return BlockParameters("GeneralSparse defaults", m, n, k, bm, bn, bk, blocks, patterns)
@@ -105,6 +90,4 @@ def random_pattern(nnz, k, n):
         pattern[sample[0], sample[1]] = True
     return pattern
 
-def subcursor():
-    pass
 
