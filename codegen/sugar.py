@@ -2,6 +2,8 @@ from typing import Union
 
 from codegen.ast import *
 from codegen.operands import *
+from codegen.prettyprinter import PrettyPrinter
+from codegen.inlineprinter import InlinePrinter
 
 # Convenient statement constructors
 def add(src: Union[Operand, int], dest: Register, comment: str= None):
@@ -30,10 +32,18 @@ def cmp(lhs: Union[Operand, int], rhs: Union[Operand, int]):
     stmt.rhs = rhs if isinstance(rhs, Operand) else c(rhs)
     return stmt
 
-def jump(label: str, backwards: bool):
+def jump(label: str, condition="jl"):
     stmt = JumpStmt()
-    stmt.label = Label(label)
-    stmt.backwards = backwards
+    stmt.indirect = False
+    stmt.destination = Label(label)
+    stmt.condition = condition
+    return stmt
+
+def indirect_jump(dest_op):
+    stmt = JumpStmt()
+    stmt.indirect = True
+    stmt.destination = dest_op
+    stmt.condition = "jmp"
     return stmt
 
 def mov(src: Union[Operand, int], dest: Operand, vector: bool, comment:str = None):
@@ -89,5 +99,14 @@ def block(description: str, *args: AsmStmt):
     return b
 
 
+def inline(block: Block):
+    printer = InlinePrinter()
+    printer.visitBlock(block)
+    return "\n".join(printer.output)
+
+def pretty(block: Block):
+    printer = PrettyPrinter()
+    printer.visitBlock(block)
+    return "\n".join(printer.output)
 
 

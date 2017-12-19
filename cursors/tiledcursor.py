@@ -83,12 +83,16 @@ class TiledCursorDef(CursorDef):
              dest_block: Coords
             ) -> Tuple[AsmStmt, CursorLocation]:
 
-        assert(dest_block.absolute == False)
+        if dest_block.absolute:
+            dest_block_abs = dest_block
+        else:
+            dest_block_abs = src.current_block + dest_block
+
         comment = f"Move {self.name} to {str(dest_block)}"
         src_offset = self.offset(src.current_block, Coords(), src.current_cell)
         dest_offset = self.offset(src.current_block, dest_block, src.current_cell)
         rel_offset = (dest_offset - src_offset) * self.scalar_bytes
-        dest = CursorLocation(src.current_block + dest_block, src.current_cell)
+        dest = CursorLocation(dest_block_abs, src.current_cell)
         return (add(rel_offset, self.base_ptr, comment), dest)
 
     def look(self,

@@ -60,6 +60,25 @@ def C_mask(C_regs: Matrix[Register],
 
     return mask
 
+
+def C_mask_untiled(C_regs: Matrix[Register],
+           C: CursorDef,
+           C_ptr: CursorLocation,
+           C_block_offset: Coords,
+          ) -> Matrix[bool]:
+
+    Vr, Vc = C_regs.shape
+    mask = Matrix.full(Vr, Vc, False)
+    C_br, C_bc, C_idx, C_pat = C.get_block(C_ptr, C_block_offset)
+
+    assert(Vr*8 == C_br)   # bm must tile m exactly for now
+    assert(Vc >= C_bc)     # Matrix block must fit in register block
+
+    mask[:, :C_bc] = True
+    return mask
+
+
+
 def A_mask(A_regs: Matrix[Register],
            A: CursorDef,
            A_ptr: CursorLocation,

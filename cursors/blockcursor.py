@@ -113,13 +113,17 @@ class BlockCursorDef(CursorDef):
              dest_block: Coords
             ) -> Tuple[AsmStmt, CursorLocation]:
 
-        comment = f"Move {self.name} to {str(block)}"
+        comment = f"Move {self.name} to {str(dest_block)}"
         if self.index_ptr is None:
             ptr_to_move = self.base_ptr
         else:
             ptr_to_move = self.index_ptr
 
-        dest_loc = self.start_location(dest_block)
+        if dest_block.absolute:
+            dest_loc = self.start_location(dest_block)
+        else:
+            dest_loc = self.start_location(dest_block + src_loc.current_block)
+
         offset_bytes = self.offset(src_loc, dest_loc) * self.scalar_bytes
 
         if dest_block.absolute:
@@ -147,17 +151,22 @@ class BlockCursorDef(CursorDef):
 
     def get_block(self, src: CursorLocation=None, dest_block: Coords=None) -> BlockInfo:
 
-        if src is None:
+        if src is None: # Have dest_block but no src
             assert(dest_block is not None)
             assert(dest_block.absolute == True)
             block_abs = dest_block
-        elif dest_block is None:
+
+        elif dest_block is None: # Have src but no dest_block
             assert(src.current_block.absolute == True)
             block_abs = src.current_block
-        else:
+
+        elif dest_block.absolute: # Have src and absolute dest_block
+            block_abs = dest_block
+
+        else: # Have both src and relative dest_block
             assert(src.current_block.absolute == True)
-            assert(dest_block.absolute == False)
             block_abs = dest_block + src.current_block
+
 
         br = self.br if block_abs.down < self.Br else self.brf   #TODO: Verify these
         bc = self.bc if block_abs.right < self.Bc else self.bcf

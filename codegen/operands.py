@@ -40,6 +40,7 @@ class Label(Operand):
     _interns: Dict[str, int] = {}
     _last: int = -1
     def __init__(self, value: str) -> None:
+        assert(isinstance(value, str))
         self.value = value
         if value in Label._interns:
             self.ordinal = Label._interns[value]
@@ -50,7 +51,8 @@ class Label(Operand):
 
     @property
     def ugly(self):
-        return self.ordinal
+        #return self.ordinal
+        return self.value.upper() + "_%="
 
     @property
     def nice(self):

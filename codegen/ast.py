@@ -66,8 +66,11 @@ class LabelStmt(AsmStmt):
 
 
 class JumpStmt(AsmStmt):
-    label: Label = None
-    backwards: bool = True
+    destination: Operand = None
+    indirect: bool = False
+    local: bool = False
+    backwards: bool = None
+    condition: str = "jmp"
 
     def accept(self, visitor: "Visitor"):
         visitor.visitJump(self)

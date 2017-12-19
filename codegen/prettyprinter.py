@@ -41,8 +41,13 @@ class PrettyPrinter(Visitor):
         self.addLine(s, stmt.comment)
 
     def visitJump(self, stmt: JumpStmt):
-        direction = "b" if stmt.backwards else "f"
-        s = f"jl {stmt.label.nice}{direction}"
+        if stmt.indirect:
+            s = f"{stmt.condition} *{stmt.destination.nice}"
+        elif stmt.local:
+            direction = "b" if stmt.backwards else "f"
+            s = f"{stmt.condition} {stmt.destination.nice}{direction}"
+        else:
+            s = f"{stmt.condition} {stmt.destination.nice}"
         self.addLine(s, stmt.comment)
 
     def visitMov(self, stmt: MovStmt):

@@ -61,15 +61,25 @@ class InlinePrinter(Visitor):
         self.addLine(s, stmt.comment)
 
     def visitJump(self, stmt: JumpStmt):
-        direction = "b" if stmt.backwards else "f"
-        s = f"jl {stmt.label.ugly}{direction}"
+        if stmt.indirect:
+            s = f"{stmt.condition} *{stmt.destination.ugly}"
+        elif stmt.local:
+            direction = "b" if stmt.backwards else "f"
+            s = f"{stmt.condition} {stmt.destination.ugly}{direction}"
+        else:
+            s = f"{stmt.condition} {stmt.destination.ugly}"
         self.addLine(s, stmt.comment)
 
     def visitMov(self, stmt: MovStmt):
+        if isinstance(stmt.src, Label):
+            src_str = "$" + stmt.src.ugly
+        else:
+            src_str = stmt.src.ugly
+
         if stmt.typ == AsmType.i64:
-            s = f"movq {stmt.src.ugly}, {stmt.dest.ugly}"
+            s = f"movq {src_str}, {stmt.dest.ugly}"
         elif stmt.typ == AsmType.f64x8 and stmt.aligned:
-            s = f"vmovapd {stmt.src.ugly}, {stmt.dest.ugly}"
+            s = f"vmovapd {src_str}, {stmt.dest.ugly}"
         else:
             raise NotImplementedError()
         self.addLine(s, stmt.comment)
