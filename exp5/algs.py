@@ -38,7 +38,8 @@ def make(p:Parameters) -> Block:
         cases.append(case_label)
         asm.add(label(case_label))
         BB = minicursor(f"block_{x}", p.B.base_ptr, pattern)
-        asm.add(make_microkernel(p.A,BB,A_ptr,B_ptr,p.A_regs,p.C_regs))
+        BB_ptr = BB.start_location()
+        asm.add(make_microkernel(p.A,BB,A_ptr,BB_ptr,p.A_regs,p.C_regs))
         asm.add(indirect_jump(jump_reg))
         x += 1
 
@@ -65,29 +66,5 @@ def make(p:Parameters) -> Block:
 
     return asm
 
-
-# For now assume m=bm=8, n=bn=8, bk=8, k=1024
-# Later expand to use UnrolledSparse instead of SparseMicrokernel
-def defaults(nblocks):
-    bm = 8
-    bn = 8
-    bk = 8
-    m = 8
-    n = 8
-    k = bk * nblocks
-    nnz = 5
-    patterns = [random_pattern(nnz, bk, bn) for i in range(nblocks)]
-    blocks = Matrix([[x] for x in range(nblocks)])
-    return BlockParameters("GeneralSparse defaults", m, n, k, bm, bn, bk, blocks, patterns)
-
-def random_pattern(nnz, k, n):
-    from random import randint, seed
-    seed(22)
-    urn = [(ri,ci) for ri in range(k) for ci in range(n)]
-    samples = [urn.pop(randint(0,len(urn)-1)) for x in range(nnz)]
-    pattern = Matrix.full(k,n,False)
-    for sample in samples:
-        pattern[sample[0], sample[1]] = True
-    return pattern
 
 

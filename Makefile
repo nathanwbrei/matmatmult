@@ -2,7 +2,7 @@
 
 LDFLAGS_MACOS = -arch x86_64 -macosx_version_min 10.10 -lSystem -no_pie 
 
-.PHONY: exp1 exp2 exp4
+.PHONY: exp1 exp2 exp4 exp5
 
 docker-image:
 	docker build -t thesis_dev_env .
@@ -60,6 +60,9 @@ exp2:
 
 exp4:
 	PYTHONPATH="." python3 exp4/exp4.py
+
+exp5:
+	PYTHONPATH="." python3 exp5/exp5.py
 
 jumptable: src/jumptable/jumptable.cpp src/jumptable/jumptable_unrolled.cpp src/jumptable/jumptable_looped.cpp
 	g++ -g -mavx512f -std=c++11 -O3 -o build/jumptable src/jumptable/jumptable.cpp
