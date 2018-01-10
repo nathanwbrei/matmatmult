@@ -3,7 +3,7 @@
 
 import random
 from codegen.harness import *
-from exp5.algs import make as make_alg
+from algorithms.generalsparse import make as make_alg
 from algorithms.parameters import *
 
 
@@ -31,8 +31,8 @@ def defaults(nblocks=3, nnzs=10):
     return params
 
 def make_param_space():
-    return [defaults(nblocks, nnzs) for nblocks in range(1,20)
-                                    for nnzs in range(4,64,4)]
+    return [defaults(nblocks, nnzs) for nblocks in range(1,5)
+                                    for nnzs in range(4,64,16)]
 
 def make_test(p) -> str:
 
@@ -70,6 +70,9 @@ def make_test(p) -> str:
 def make() -> str:
 
     params = make_param_space()
+    m = params[0].m
+    n = params[0].n  # Are supposed to be constant for all samples
+
     harness = HarnessBuilder(make_alg, params)
     harness.make_test = make_test
     harness.imports = """
@@ -81,25 +84,11 @@ def make() -> str:
 
     harness.setup = f"""
     struct timespec start, end;
-    DenseMatrix A({m},{k},{m});
+    DenseMatrix A = NULL;
+    SparseMatrix B_sparse = NULL;
+    SparseMatrix B_dense = NULL;
     DenseMatrix C_expected({m},{n},{m});
     DenseMatrix C_actual({m},{n},{m});
-    SparseMatrix B({k},{n});
-    DenseMatrix B_dense({k},{n},{k});
-
-    fill(A, 1, 2);
-    fill(B_dense, 7, 9);
-    gemm(A, B_dense, C_expected);
-    baseline_gemm(A.values, B_dense.values, C_actual.values);
-    assert_equals(C_expected, C_actual);
-
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    for (int t=0; t<3000; t++)
-        baseline_gemm(A.values, B.values, C_actual.values);
-    clock_gettime(CLOCK_MONOTONIC, &end);
-
-    printf("baseline, {m}, {n}, {k}, {bm}, {bn}, {bk}, {n*k}, %lf\\n", microsecs(start,end)/3000.0);
-    B_dense.clear();
     """
     return harness.make("exp5/exp5.cpp")
 
@@ -111,6 +100,6 @@ if __name__=="__main__":
     make()
     print("Compiling and deploying to cluster ...")
     from deployment import *
-    e = Experiment("exp4")
+    e = Experiment("exp5")
     run(e)
 
