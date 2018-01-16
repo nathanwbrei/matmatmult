@@ -7,7 +7,7 @@ path_to_libxsmm = "../libxsmm/bin/libxsmm_gemm_generator"
 def main():
 
 	# Unpack libxsmm arguments	
-	sparsity = argv[0]                # "sparse","dense","dense_asm"
+	sparsity = argv[0]              # "sparse","dense","dense_asm"
 	output_filename = argv[1]
 	funcname = argv[2]
 	m = int(argv[3])
@@ -23,19 +23,30 @@ def main():
 	arch = argv[13]                 # noarch, wsm, snb, hsw, knc, knl, knm, skx
 	prefetch = argv[14]             # nopf, pfsigonly, ...
 	precision = argv[15]            # I16, SP, DP
-	matrix_filename = argv[16]
+
+	if len(argv) > 16:
+		matrix_filename = argv[16]
 
 	# Decide whether to handle this request or delegate it
+	# Assume dxsp for now
 	handle_ourselves = False
-	if sparsity == "sparse" and 
-	   arch == "knl":
+	if sparsity == "sparse" and
+	   lda > 0 and
+	   ldb < 1 and
+	   arch == "knl" and
+	   prefetch == "nopf" and
+	   precision == "DP":
 		handle_ourselves = True
 
 	if handle_ourselves:
-		# Assume dxsp for now
-		print("Handling request")
+		print("Handling request...")
+		with open(output_filename,"a") as f:
+			#alg = generator.make(m,n,k,lda,ldb,ldc,mtx)
+			f.write(alg)
+
 	else:
 		# Delegate codegen to actual libxsmm
+		print("Delegating request...")
 		argv[0] = path_to_libxsmm
 		result = subprocess.run(argv)
 
