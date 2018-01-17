@@ -1,55 +1,43 @@
 
-# Matrix format enum
-ANY = 0
-CSC = 1
-CSR = 2
-BSC = 3
-BSR = 4
-BCSC = 5
-BCSR = 6
+from sys import argv
+from enum import Enum
+from algorithms import generalsparse, tiledsparse, unrolledsparse, blockedsparse
 
-# Family enum
-DxSpAny = 0
-DxSpUnrolled = 1
-DxSpTiled = 2
-DxSpBlocked = 3
-DxSpPadded = 4
-DxSpPaddedDiag = 5
-DxSpGeneral = 6
-#TxSpUnrolled = 6
-#SpxDTransposed = 7
-#SpxDDiag = 8
+DxSpAlgorithm = Enum('DxSpAlgorithm', ['Any','Unrolled','Blocked','Padded','PaddedDiag','General'])
 
-# Output format enum
-CPP = 0
-GAS = 1
-PRETTY = 2
+OutputFormat = Enum('OutputFormat', ['CPP','GAS','Pretty'])
 
 
-class DxSpParameters:
+class Parameters:
+	name: str
 	m: int
 	n: int
 	k: int
 	lda: int
+	ldb: int
 	ldc: int
-	mtx_file: str
-	mtx_fmt: int
+	mtx_pattern: Matrix[bool]
+	mtx_format: MatrixFormat
+	mtx_filename: str
+
+families = {"unrolled": unrolledsparse,
+			"tiled":    tiledsparse,
+			"blocked":  blockedsparse,
+			"general":  generalsparse
+			}
+
+def make_alg(params: Parameters, family: str) -> Block:
+
+	family = families[family]
+	params = family.choose_params(params)
+	alg = family.make_alg(params)
+	return alg
 
 
-# make_alg :: params -> AsmBlock
-def make_alg(params, family=0):
-
-	if family==0:
-		# Find best family, best params
-		pass
-	else:
-		# Find best params for given family
-		pass
-
-	# Generate alg for best params
-
-
-def main(params, family=0, output_format=0, filename=None):
+def main(params: Parameters,
+		 family: str = None,
+		 output_format: OutputFormat = OutputFormat.Pretty,
+		 filename: str = None):
 
 	alg = make_alg(params, family)
 	text = alg.render(output_format)
@@ -61,11 +49,20 @@ def main(params, family=0, output_format=0, filename=None):
 
 
 if __name__=="__main__":
-	# Parse arguments: 
-	#  m,n,k,lda,ldb,ldb,ldc,mtx
-	#  family
-	#  outputformat
-	#  filename
+
+	params = Parameters()
+	p.m = int(argv[1])
+	p.n = int(argv[2])
+	p.k = int(argv[3])
+	p.lda = int(argv[4])              # < 1: sparse, o/w: dense
+	#p.ldb = int(argv[5])              # < 1: sparse, o/w: dense
+	#assert(ldb == 0)
+	p.ldc = int(argv[6])
+
+	mtx_filename = argv[8]
+	funcname = argv[7]
+	if len(argv) > 9:
+		output_filename = argv[9]
 
 	main(params, family, output_format, filename)
 
