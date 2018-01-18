@@ -3,11 +3,13 @@
 PATH_TO_LIBXSMM = "../libxsmm/bin/libxsmm_gemm_generator"
 ALGORITHM = "unrolled"
 
-from sys import argv
 import argparse
 import subprocess
 import traceback
+from sys import argv
+
 import sparsemmgen
+from parameters import Parameters
 
 
 def delegate():
@@ -28,7 +30,7 @@ def main(args):
 	    args.precision == "DP"):
 
 		try:
-			params = sparsemmgen.Parameters(algorithm=ALGORITHM, **args.__dict__)
+			params = Parameters(algorithm=ALGORITHM, **args.__dict__)
 			sparsemmgen.main(params)
 
 		except Exception as e:

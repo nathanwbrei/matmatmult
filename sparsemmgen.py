@@ -1,76 +1,37 @@
 #!/usr/local/bin/python3
 
 import argparse
-from enum import Enum
+
 from codegen import *
 from codegen.ccode import make_cfunc
-from algorithms import generalsparse, tiledsparse, unrolledsparse, blockedsparse
+from parameters import Parameters
+from generators import dxsp_auto, dxsp_general, dxsp_tiled, dxsp_unrolled, dxsp_blocked
+
 
 mtx_formats = ['any','csc','csr','bsc','bsr','bcsc','bcsr']
+
 output_formats = ['cpp','gas','pretty']
 
-generators = {
-#			"auto":     autosparse,
-			"unrolled": unrolledsparse,
-			"tiled":    tiledsparse,
-			"blocked":  blockedsparse,
-			"general":  generalsparse
+generator_dict = {
+			"auto":     dxsp_auto,
+			"unrolled": dxsp_unrolled,
+			"tiled":    dxsp_tiled,
+			"blocked":  dxsp_blocked,
+			"general":  dxsp_general
 			}
-
-class Parameters:
-
-	def __init__(self,
-				 algorithm: str, 
-				 m: int, 
-				 n: int, 
-				 k: int, 
-				 lda: int, 
-				 ldb: int, 
-				 ldc: int,
-				 mtx_filename: str,
-
-				 mtx_format: str = 'any',
-				 output_format: str = 'cpp',
-				 output_funcname: str = None,
-				 output_filename: str = None,
-				 bm: int = None, 
-				 bn: int = None, 
-				 bk: int = None,
-				 verbose: bool = False,
-				 **kwargs
-				 ) -> None:
-
-		self.algorithm = algorithm
-		self.m, self.n, self.k = m, n, k
-		self.lda, self.ldb, self.ldc = lda, ldb, ldc
-		self.bm, self.bn, self.bk = bm, bn, bk
-		self.mtx_filename = mtx_filename
-		self.mtx_format = mtx_format
-		self.output_format = output_format
-		self.output_funcname = output_funcname
-		self.output_filename = output_filename
-		self.verbose = verbose
-
-		# Validate inputs
-		if algorithm not in generators:
-			raise Exception(f"Invalid algorithm: '{algorithm}'")
-
-		if mtx_format not in mtx_formats:
-			raise Exception(f"Invalid mtx_format: '{mtx_format}'")
-
-		if output_format not in output_formats:
-			raise Exception(f"Invalid output_format: '{output_format}'")
-
-		if lda == 0 or ldb != 0:
-			raise Exception("Sparse x Dense not supported yet-- lda must be nonzero, ldb must be 0")
-
 
 
 def main(params: Parameters) -> None:
 
-	generator = generators[params.algorithm]
-	params = generator.choose_params(params)
-	block = generator.make_alg(params)
+	if params.algorithm not in generator_dict:
+		raise Exception(f"Invalid algorithm '{params.algorithm}'")
+
+	generator = generator_dict[params.algorithm]
+	params = generator.choose_params(params)       # type: ignore
+	block = generator.make_alg(params)             # type: ignore
+
+	# MyPy does not support 'module interfaces'
+	# https://github.com/python/mypy/issues/1741
 
 	if params.output_format == "pretty":
 		text = prettyprinter.prettyprint(block)
@@ -78,14 +39,17 @@ def main(params: Parameters) -> None:
 	elif params.output_format == "gas":
 		text = inlineprinter.render(block)
 
-	else: # 'cpp'
+	elif params.output_format == "cpp":
 		text = make_cfunc(params.output_funcname, block)
+
+	else:
+		raise Exception(f"Invalid output_format '{params.output_format}'")
 
 	if params.output_filename is None:
 		print(text)
 
 	else:
-		with open(filename, "a") as f:
+		with open(params.output_filename, "a") as f:
 			f.write(text)
 
 
@@ -94,7 +58,7 @@ if __name__=="__main__":
 
 	parser = argparse.ArgumentParser(description='Generate a sparse matrix multiplication algorithm.')
 
-	parser.add_argument("algorithm", help="Choice of algorithm", choices = list(generators.keys()))
+	parser.add_argument("algorithm", help="Choice of algorithm", choices=list(generator_dict.keys()))
 
 	parser.add_argument("m", type=int, help="Number of rows of A and C")
 	parser.add_argument("n", type=int, help="Number of cols of B and C")
@@ -111,7 +75,7 @@ if __name__=="__main__":
 	parser.add_argument("mtx_filename", help="Path to MTX file describing the sparse matrix")
 	parser.add_argument("--mtx_format", help="Constraint on sparsity pattern", choices=mtx_formats, default="Any")
 
-	parser.add_argument("--output_format", help="Output format", choices=output_formats, default="CPP")
+	parser.add_argument("--output_format", help="Output format", choices=output_formats, default="cpp")
 	parser.add_argument("--output_funcname", help="Name for generated C++ function")
 	parser.add_argument("--output_filename", help="Path to destination C++ file")
 
