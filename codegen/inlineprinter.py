@@ -96,3 +96,7 @@ class InlinePrinter(Visitor):
         self.stack.pop()
 
 
+def render(s: AsmStmt):
+    p = InlinePrinter()
+    s.accept(p)
+    return "\n".join(p.output)

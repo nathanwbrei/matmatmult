@@ -11,7 +11,7 @@ class PrettyPrinter(Visitor):
     margin: int = 40
     vpadding: bool = False
     output: List[str] = None
-    stack: List[str] = None
+    stack: List[Block] = None
 
     def __init__(self):
         self.output = []
@@ -70,8 +70,8 @@ class PrettyPrinter(Visitor):
 
 
 
-
 def prettyprint(s: AsmStmt):
     p = PrettyPrinter()
     s.accept(p)
     return "\n".join(p.output)
+
