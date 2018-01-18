@@ -29,14 +29,15 @@ class Parameters:
 				 ldc: int,
 				 mtx_filename: str,
 
-				 mtx_format: str = 'Any',
-				 output_format: str = 'CPP',
+				 mtx_format: str = 'any',
+				 output_format: str = 'cpp',
 				 output_funcname: str = None,
 				 output_filename: str = None,
 				 bm: int = None, 
 				 bn: int = None, 
 				 bk: int = None,
-				 verbose: bool = False
+				 verbose: bool = False,
+				 **kwargs
 				 ) -> None:
 
 		self.algorithm = algorithm
@@ -60,9 +61,9 @@ class Parameters:
 		if output_format not in output_formats:
 			raise Exception(f"Invalid output_format: '{output_format}'")
 
-		if lda == 0 || ldb != 0:
+		if lda == 0 or ldb != 0:
 			raise Exception("Sparse x Dense not supported yet-- lda must be nonzero, ldb must be 0")
-			
+
 
 
 def main(params: Parameters) -> None:
