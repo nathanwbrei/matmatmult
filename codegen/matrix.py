@@ -6,6 +6,7 @@
 
 from typing import TypeVar, Generic, Union, Tuple, overload, Any
 from scipy import full, matrix # type: ignore
+from scipy.io import mmread, mmwrite
 
 T = TypeVar('T')
 class Matrix(Generic[T]):
@@ -63,6 +64,19 @@ class Matrix(Generic[T]):
     def nnz(self) -> int:
         return sum(self[r,c] != 0 for r in range(self.rows)
                                   for c in range(self.cols))
+
+    @classmethod
+    def load_pattern(cls, filename) -> "Matrix[bool]":
+        m = mmread(filename)
+        m = m != 0
+        m = m.todense()
+        return Matrix(m)
+
+    def store_pattern(self, filename) -> None:
+        m = self._underlying
+        mmwrite(filename, m, field="pattern")
+
+
 
 
 
