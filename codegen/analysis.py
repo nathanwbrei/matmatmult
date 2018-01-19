@@ -6,9 +6,9 @@ from typing import List, Set
 class Analyzer(Visitor):
 
     clobbered_registers: Set[Register]
-    basic_blocks: Block
-    current_block: Block
-    flat: Block
+    basic_blocks: BlockBuilder
+    current_block: BlockBuilder
+    flat: BlockBuilder
     stack: List[Block]
 
     def __init__(self):

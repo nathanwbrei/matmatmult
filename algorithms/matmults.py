@@ -3,7 +3,6 @@ from typing import cast
 from codegen.sugar import *
 from codegen.coords import Coords
 
-from algorithms.parameters import *
 from algorithms.registerblocks import *
 
 
@@ -46,7 +45,7 @@ def make_microkernel(A: CursorDef,
 
 
 # DEPRECATED
-def make_gemm(p: Parameters,
+def make_gemm(p: "Parameters",
               A_ptr: CursorLocation,
               to_A_block: Coords,
               B_ptr: CursorLocation,

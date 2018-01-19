@@ -1,6 +1,6 @@
 
 from codegen import *
-from cursors import CursorDef, BlockCursorDef, DenseCursorDef
+from cursors import *
 from algorithms.registerblocks import make_reg_blocks
 from parameters import Parameters
 

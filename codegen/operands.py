@@ -10,7 +10,13 @@ AsmType.__doc__ = """Enum of different concrete types, the useful subset of
     Each Operand has exactly one concrete type."""
 
 class Operand:
-    pass
+    @property
+    def ugly(self):
+        raise NotImplementedError()
+
+    @property
+    def nice(self):
+        raise NotImplementedError()
 
 
 # TODO: Rename this 'Immediate'
