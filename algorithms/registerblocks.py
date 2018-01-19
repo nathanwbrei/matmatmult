@@ -6,6 +6,19 @@ from codegen.matrix import *
 from cursors.abstractcursor import *
 
 
+
+def make_reg_blocks(bm:int, bn:int, bk:int):
+    assert(bm % 8 == 0)
+    vm = bm//8
+    assert((bn+bk) * vm <= 32)  # Needs to fit in AVX512 zmm registers
+
+    A_regs = Matrix([[zmm(vm*c + r) for c in range(bk)] for r in range(vm)])
+    C_regs = Matrix([[zmm(32 - vm*bn + vm*c + r) for c in range(bn)]
+                                                 for r in range(vm)])
+    return A_regs, C_regs
+
+
+
 def move_register_block(cursor: CursorDef,
                         cursor_ptr: CursorLocation,
                         block_offset: Coords,

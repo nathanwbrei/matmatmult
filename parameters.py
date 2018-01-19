@@ -1,6 +1,8 @@
 
 
 class Parameters:
+	""" Container class for user-specified parameters. 
+	    All attributes should be supplied as ctor args. """
 
 	def __init__(self,
 				 algorithm: str, 
@@ -19,9 +21,9 @@ class Parameters:
 				 bn: int = None, 
 				 bk: int = None,
 				 verbose: bool = False,
-				 **kwargs
+				 **kwargs  # Accept and ignore args which don't belong
 				 ) -> None:
-
+	
 		self.algorithm = algorithm
 		self.verbose = verbose
 
@@ -43,5 +45,11 @@ class Parameters:
 		self.output_format = output_format
 		self.output_funcname = output_funcname
 		self.output_filename = output_filename
+
+
+	def copy(self, other):
+		""" Updates contents """
+		Parameters.__init__(self, **other.__dict__)
+
 	
 

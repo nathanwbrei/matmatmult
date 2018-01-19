@@ -1,6 +1,7 @@
 
 from codegen import *
 from cursors import CursorDef, BlockCursorDef, DenseCursorDef
+from algorithms.registerblocks import make_reg_blocks
 from parameters import Parameters
 
 
@@ -64,18 +65,6 @@ def choose_params(params: Parameters) -> BlockedParameters:
                 patterns.append(block)
 
     return BlockedParameters(params, blocks, patterns)
-
-
-
-def make_reg_blocks(bm:int, bn:int, bk:int):
-    assert(bm % 8 == 0)
-    vm = bm//8
-    assert((bn+bk) * vm <= 32)  # Needs to fit in AVX512 zmm registers
-
-    A_regs = Matrix([[zmm(vm*c + r) for c in range(bk)] for r in range(vm)])
-    C_regs = Matrix([[zmm(32 - vm*bn + vm*c + r) for c in range(bn)]
-                                                 for r in range(vm)])
-    return A_regs, C_regs
 
 
 def make_alg(params: Parameters) -> Block:

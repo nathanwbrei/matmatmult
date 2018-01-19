@@ -32,8 +32,9 @@ def cmp(lhs: Union[Operand, int], rhs: Union[Operand, int]):
     stmt.rhs = rhs if isinstance(rhs, Operand) else c(rhs)
     return stmt
 
-def jump(label: str, condition="jl"):
+def jump(label: str, condition="jl", backwards=True):
     stmt = JumpStmt()
+    stmt.backwards = backwards
     stmt.indirect = False
     stmt.destination = Label(label)
     stmt.condition = condition
