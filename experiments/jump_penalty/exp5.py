@@ -42,7 +42,7 @@ def make_test(p) -> str:
     C_expected.clear();
     C_actual.clear();\n"""
 
-    x = p.iteration * p.dnnz + 1  # The 1 is needed because otherwise there will
+    x = 22 #p.iteration * p.dnnz + 1  # The 1 is needed because otherwise there will
                                   # be a zero entry which throws off the vbcsc representation
     for ri,ci in p.pattern_updates:
         code += f"    B_dense.set({ri},{ci},{x});\n"
