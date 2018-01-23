@@ -13,12 +13,11 @@ Status = Enum('Status', ['PENDING','RUNNING','SUSPENDED','CANCELLED','COMPLETING
 
 
 
-
-def send(filename: str, c: Cluster = coolmuc3) -> bool:
+def send(filename: str, c: Cluster) -> bool:
     return subprocess.run(["scp", filename, c.host+":"+c.basedir]).returncode == 0
 
 
-def submit(e: Experiment, c: Cluster = coolmuc3) -> Job:
+def submit(e: Experiment, c: Cluster) -> Job:
     cmdstr = f'sbatch {c.basedir}/{e.script}'
     output = subprocess.run(["ssh", c.host, cmdstr],
                             stdout=subprocess.PIPE,
@@ -44,7 +43,7 @@ def monitor(j: Job) -> Status:
     else:
         return Status[status_str]
 
-def jobs(c: Cluster = coolmuc3) -> List[Job]:
+def jobs(c: Cluster) -> List[Job]:
     cmdstr = f'squeue -o "%j %A %F %T" -h -u {c.user}'
     output = subprocess.run(["ssh", c.host, cmdstr],
                             stdout=subprocess.PIPE,

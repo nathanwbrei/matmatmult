@@ -1,19 +1,26 @@
 #!/usr/local/bin/python3
 
-from experiments.jump_penalty import exp5 as jump_penalty
-from experiments.unrolled_scaling import exp4 as unrolled_scaling
 from deployment import *
+from experiments.unrolled_scaling.exp4 import make as make_unrolled_scaling
+from experiments.jump_penalty.exp5 import make as make_jump_penalty
 
 import argparse
 
-exps = [
-    {   'text': "DxSpUnrolled scaling study",
-        'exp_id': "exp3",
-        'module': unrolled_scaling },
 
-    {   'text': "DxSpGeneral indirect jump penalty",
-        'exp_id': "exp5",
-        'module': jump_penalty }]
+exps = [
+    Experiment(name = "exp3", 
+               text = "DxSpUnrolled scaling study",
+               reldir = "experiments/unrolled_scaling",
+               make_cpp = make_unrolled_scaling),
+
+    Experiment(name = "exp5", 
+               text = "DxSpGeneral indirect jump penalty",
+               reldir = "experiments/jump_penalty",
+               make_cpp = make_jump_penalty)]
+
+coolmuc2 = Cluster("linuxcluster", "mpp2", "/home/hpc/pr63so/ga63qow2/experiments")
+coolmuc3 = Cluster("knlcluster", "mpp3", "/home/hpc/pr63so/ga63qow2/experiments")
+
 
 
 
@@ -22,7 +29,7 @@ def run(e: Experiment, generate: bool, deploy: bool, execute: bool, wait: bool,
 
     if generate:
         print(f"Generating...")
-        e["module"].make()
+        e.make_cpp(e.reldir + "/" + e.executable + ".cpp")
         make_script(e,c)
         make_executable(e)
 
@@ -62,7 +69,7 @@ if __name__=="__main__":
 
     description = "Run an experiment:\n"
     for i, e in enumerate(exps):
-        description += f"{i}: {e['text']}\n"
+        description += f"{i}: {e.text}\n"
 
     parser = argparse.ArgumentParser(description=description, 
                                      formatter_class=argparse.RawTextHelpFormatter)

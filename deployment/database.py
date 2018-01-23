@@ -19,14 +19,12 @@ class Job:
         return self.experiment.name+"."+self.jobid+".out"
 
 class Experiment:
-    def __init__(self, name):
+    def __init__(self, name, text, reldir, make_cpp):
         self.name = name
-        self.reldir = name
+        self.text = text
+        self.reldir = reldir
+        self.make_cpp = make_cpp
+
         self.executable = name
         self.script = name + ".sh"
-
-
-coolmuc2 = Cluster("linuxcluster", "mpp2", "/home/hpc/pr63so/ga63qow2/experiments")
-coolmuc3 = Cluster("knlcluster", "mpp3", "/home/hpc/pr63so/ga63qow2/experiments")
-exp2 = Experiment("exp2")
 

@@ -68,7 +68,7 @@ def make_test(p) -> str:
     return code
 
 
-def make() -> str:
+def make(destination: str = None) -> str:
 
     params = make_param_space()
     m = params[0].m
@@ -91,16 +91,7 @@ def make() -> str:
     DenseMatrix C_expected({m},{n},{m});
     DenseMatrix C_actual({m},{n},{m});
     """
-    return harness.make("exp5/exp5.cpp")
+    return harness.make(destination)
 
 
-
-
-if __name__=="__main__":
-    print("Generating exp5.cpp ...")
-    make()
-    print("Compiling and deploying to cluster ...")
-    from deployment import *
-    e = Experiment("exp5")
-    run(e)
 
