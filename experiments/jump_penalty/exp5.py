@@ -2,10 +2,10 @@
 ### Experiment 5 ###
 
 import random
-from codegen.harness import *
-from algorithms.generalsparse import make as make_alg
-from algorithms.parameters import *
-
+from experiments.harness import *
+from generators.dxsp_general import make_alg, GeneralParameters
+from parameters import *
+from codegen.matrix import Matrix
 
 def random_pattern(nnz, k, n, seed):
     random.seed(seed)
@@ -16,18 +16,26 @@ def random_pattern(nnz, k, n, seed):
         pattern[sample[0], sample[1]] = True
     return pattern
 
+
 def defaults(nblocks=3, nnzs=10):
-    bm = 8
+
+    k = 8 * nblocks
     bn = 8
     bk = 8
-    m = 8
-    n = 8
-    k = bk * nblocks
+    basic_params = Parameters(
+        algorithm = "dxsp_general", 
+        m = 8, n = 8, k = k,
+        lda = 8, ldb = 0, ldc = 8,
+        mtx_filename = f"dxsp_general_8x8x{k}_{nnzs}",
+        mtx_format = "bcsc",
+        bm = 8, bn = bn, bk = bk)
+
     patterns = [random_pattern(nnzs, bk, bn, i) for i in range(nblocks)]
     blocks = Matrix([[x] for x in range(nblocks)])
-    params = BlockParameters("generalsparse_{m}x{n}x{k}_{nnzs}", m, n, k, bm, bn, bk, blocks, patterns)
+    params = GeneralParameters(basic_params, blocks, patterns)
     params.nblocks = nblocks
     params.nnzs = nnzs
+    params.name = params.mtx_filename   # TODO: Handle this better throughout
     return params
 
 def make_param_space():
@@ -40,20 +48,13 @@ def make_test(p) -> str:
     /***** Testing {p.name} *****/
 
     C_expected.clear();
-    C_actual.clear();\n"""
-
-    x = 22 #p.iteration * p.dnnz + 1  # The 1 is needed because otherwise there will
-                                  # be a zero entry which throws off the vbcsc representation
-    for ri,ci in p.pattern_updates:
-        code += f"    B_dense.set({ri},{ci},{x});\n"
-        x += 1
-
-    code += f"""
+    C_actual.clear();
+    from_mtx(B_dense, "{p.mtx_filename}");
     to_block_csc(B_dense, B, {p.bk}, {p.bn});
-    // printf("Created B=\\n");
-    // B.show();
+    printf("Created B=\\n");
+    B.show();
 
-    gemm(A, B, C_expected);
+    gemm(A, B_dense, C_expected);
     {p.name}(A.values, B.values, C_actual.values);
     assert_equals(C_expected, C_actual);
 
@@ -62,7 +63,7 @@ def make_test(p) -> str:
         {p.name}(A.values, B.values, C_actual.values);
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    printf("{p.name}, {p.m}, {p.n}, {p.k}, {p.bm}, {p.bn}, {p.bk}, {p.nnz}, %lf\\n", microsecs(start,end)/3000.0);
+    printf("{p.name}, {p.m}, {p.n}, {p.k}, {p.bm}, {p.bn}, {p.bk}, {p.nnzs}, %lf\\n", microsecs(start,end)/3000.0);
     """
     return code
 

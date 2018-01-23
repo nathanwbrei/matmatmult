@@ -5,7 +5,7 @@
 #   2. Tiledsparse, square
 #   3. Tiledsparse, 
 
-from codegen.harness import *
+from experiments.harness import *
 
 from algorithms.parameters import *
 from algorithms.mntravelers import *

@@ -7,10 +7,10 @@
 # Then go back and try tilesparse with fringes
 
 
-from codegen.harness import *
+from experiments.harness import *
 
-from algorithms.parameters import *
-from algorithms.tiledsparse import make_mn_loop
+from parameters import *
+from generators.dxsp_tiled import make_alg as make_mn_loop
 
 from random import randint, seed
 
