@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-from deployment import *
+from experiments import *
 from experiments.unrolled_scaling.exp4 import make as make_unrolled_scaling
 from experiments.jump_penalty.exp5 import make as make_jump_penalty
 

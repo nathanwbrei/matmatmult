@@ -4,7 +4,7 @@ import subprocess
 from os import path
 from typing import List
 
-from deployment.database import *
+from experiments.database import *
 
 
 Status = Enum('Status', ['PENDING','RUNNING','SUSPENDED','CANCELLED','COMPLETING',
