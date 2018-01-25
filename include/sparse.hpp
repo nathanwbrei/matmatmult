@@ -1,3 +1,6 @@
+
+#pragma once
+
 #include "matrix.hpp"
 
 struct SparseMatrix : public Matrix {

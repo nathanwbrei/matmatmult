@@ -41,9 +41,6 @@ workbench: workbench/workbench.cpp workbench/gemms_libxsmm.c
 		build/gemms_libxsmm.o \
 		build/gemms_goto.o
 
-matrix_tests: dense_x_blocksparse/harness.c dense_x_blocksparse/blocksparse.h
-	gcc -g -std=c11 -O0 -o build/matrix_tests common/matrix_tests.c
-
 
 exp1:
 	#icpc -xCORE-AVX2 -std=c++11 -O3 -o build/baseline exp1/baseline.c -lrt -DNDEBUG
@@ -71,4 +68,18 @@ jumptable: src/jumptable/jumptable.cpp src/jumptable/jumptable_unrolled.cpp src/
 	objdump -D build/jumptable > src/jumptable/jumptable.asm
 	objdump -D build/jumptable_unrolled > src/jumptable/jumptable_unrolled.asm
 	objdump -D build/jumptable_looped > src/jumptable/jumptable_looped.asm
+
+test_matrixops: src/cpptests/test_matrixops.cpp
+	g++ -g -std=c++11 -O2 -o build/test_matrixops src/cpptests/test_matrixops.cpp
+	build/test_matrixops
+
+test_matrix_io: src/cpptests/test_matrix_io.cpp include/matrixops.hpp include/matrix_io.hpp
+	g++ -c -g -std=c++11 -O2 -o build/test_matrix_io.o src/cpptests/test_matrix_io.cpp
+	gcc -c -g -std=c11 -O2 -o build/mmio.o include/mmio.c
+	g++ -o build/test_matrix_io build/test_matrix_io.o build/mmio.o
+	build/test_matrix_io star.mtx
+
+
+
+
 

@@ -6,7 +6,9 @@
 
 from typing import TypeVar, Generic, Union, Tuple, overload, Any
 from scipy import full, matrix # type: ignore
+from scipy.sparse import csc_matrix
 from scipy.io import mmread, mmwrite
+from numpy import bool, float64
 
 T = TypeVar('T')
 class Matrix(Generic[T]):
@@ -68,13 +70,21 @@ class Matrix(Generic[T]):
     @classmethod
     def load_pattern(cls, filename) -> "Matrix[bool]":
         m = mmread(filename)
-        m = m != 0
+        m = m.astype(numpy.bool)
         m = m.todense()
         return Matrix(m)
 
-    def store_pattern(self, filename) -> None:
+    @classmethod
+    def load(cls, filename) -> "Matrix[float]":
+        m = mmread(filename)
+        m = m.astype(numpy.float64)
+        m = m.todense()
+        return Matrix(m)
+
+    def store(self, filename) -> None:
         m = self._underlying
-        mmwrite(filename, m, field="pattern")
+        mm = coo_matrix(m)
+        mmwrite(filename, mm)
 
 
 
