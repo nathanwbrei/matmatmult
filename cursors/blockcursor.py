@@ -60,25 +60,6 @@ class BlockCursorDef(CursorDef):
 
 
 
-    # Deprecated. What was I thinking? Delete all of this.
-    def old_broken_offset(self,
-               src_block: Coords,
-               dest_block: Coords = Coords(),
-               dest_cell: Coords = Coords()
-              ) -> int:
-
-        if (dest_cell.absolute and dest_block.down!=0 and dest_block.right!=0):
-            raise Exception("Cells may only be absolute if no logical block specified")
-
-        dest_block_abs = dest_block if dest_block.absolute else dest_block+src_block
-        dest_cell_abs = dest_cell + Coords(dest_block_abs.down * self.br,
-                                           dest_block_abs.right * self.bc,
-                                           absolute = True )
-
-        self._bounds_check(dest_cell_abs)
-        return self.offsets[dest_cell_abs.down, dest_cell_abs.right]
-
-
     def offset(self,
                src_loc: CursorLocation,
                dest_loc: CursorLocation
@@ -219,4 +200,8 @@ class BlockCursorDef(CursorDef):
         r, c = self.offsets.shape
         if ri >= r or ci >= c or ri < 0 or ci < 0:
             raise Exception(f"Entry {ri},{ci} outside matrix!")
+
+    def pattern(self) -> Matrix[bool]:
+        return Matrix(self.offsets._underlying != -1)
+
 

@@ -8,7 +8,7 @@ from typing import TypeVar, Generic, Union, Tuple, overload, Any
 from scipy import full, matrix # type: ignore
 from scipy.sparse import csc_matrix
 from scipy.io import mmread, mmwrite
-from numpy import bool, float64
+import numpy
 
 T = TypeVar('T')
 class Matrix(Generic[T]):
@@ -83,7 +83,8 @@ class Matrix(Generic[T]):
 
     def store(self, filename) -> None:
         m = self._underlying
-        mm = coo_matrix(m)
+        m = m.astype(numpy.int)
+        mm = csc_matrix(m)
         mmwrite(filename, mm)
 
 

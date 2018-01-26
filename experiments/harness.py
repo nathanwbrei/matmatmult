@@ -19,11 +19,10 @@ int main(int argc, char ** argv) {{
 """
 
     imports = """
-#include<stdio.h>
-#include<time.h>
-#include "../include/timing.h"
-#include "../include/colmajor.h"
-#include "../include/patternsparse.h"
+#include <stdio.h>
+#include "../../include/timing.h"
+#include "../../include/matrixops.hpp"
+
 """
 
     setup = ""
@@ -53,7 +52,7 @@ int main(int argc, char ** argv) {{
 
 
 
-    def make(self, destination: str = None) -> str:
+    def make(self, dest_dir: str, exp_name) -> str:
 
         algdefs = ""
         tests = ""
@@ -67,6 +66,13 @@ int main(int argc, char ** argv) {{
             # Generate the code which calls this
             tests += self.make_test(param) + "\n\n"
 
+            # Generate the MTX file
+            if (param.mtx_filename is not None):
+                pattern = param.B.pattern()
+                filename = dest_dir + "/generated/" + param.name + ".mtx"
+                pattern.store(filename)
+
+
         result = self.harness_template.format(
             imports = self.imports,
             algdefs = algdefs,
@@ -74,8 +80,9 @@ int main(int argc, char ** argv) {{
             tests = tests,
             teardown = self.teardown)
 
-        if destination is not None:
-            with open(destination,"w") as f:
+        if dest_dir is not None:
+            dest = dest_dir + "/generated/" + exp_name + ".cpp"
+            with open(dest,"w") as f:
                 f.write(result)
 
         return result

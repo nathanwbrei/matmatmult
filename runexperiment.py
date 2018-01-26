@@ -4,6 +4,8 @@ from experiments import *
 from experiments.unrolled_scaling.exp4 import make as make_unrolled_scaling
 from experiments.jump_penalty.exp5 import make as make_jump_penalty
 
+import os
+import time
 import argparse
 
 
@@ -29,13 +31,14 @@ def run(e: Experiment, generate: bool, deploy: bool, execute: bool, wait: bool,
 
     if generate:
         print(f"Generating...")
-        e.make_cpp(e.reldir + "/" + e.executable + ".cpp")
+        e.make_cpp(e.reldir, e.name)
         make_script(e,c)
         make_executable(e)
 
     if deploy:
         print(f"Deploying...")
-        send(e.reldir+"/"+e.script, c)
+        for filename in os.listdir(e.reldir + "/generated"):
+            send(e.reldir+"/generated/"+filename, c)
         send("build/"+e.executable, c)
 
     if execute:

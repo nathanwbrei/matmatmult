@@ -1,3 +1,4 @@
+#!/usr/local/bin/python3
 
 ### Experiment 5 ###
 
@@ -18,10 +19,9 @@ def random_pattern(nnz, k, n, seed):
 
 
 def defaults(nblocks=3, nnzs=10):
-
-    k = 8 * nblocks
     bn = 8
     bk = 8
+    k = bk * nblocks
     basic_params = Parameters(
         algorithm = "dxsp_general", 
         m = 8, n = 8, k = k,
@@ -38,60 +38,69 @@ def defaults(nblocks=3, nnzs=10):
     params.name = params.mtx_filename   # TODO: Handle this better throughout
     return params
 
+#def make_param_space():
+#    return [defaults(nblocks, nnzs) for nblocks in range(1,5)
+#                                    for nnzs in range(4,64,16)]
 def make_param_space():
-    return [defaults(nblocks, nnzs) for nblocks in range(1,5)
-                                    for nnzs in range(4,64,16)]
+    return [defaults(3, 16)]
 
 def make_test(p) -> str:
 
     code = f"""
     /***** Testing {p.name} *****/
+    {{
+      const int m = {p.m};
+      const int n = {p.n};
+      const int k = {p.k};
+      const int bk = {p.bk};
+      const int bn = {p.bn};
 
-    C_expected.clear();
-    C_actual.clear();
-    from_mtx(B_dense, "{p.mtx_filename}");
-    to_block_csc(B_dense, B, {p.bk}, {p.bn});
-    printf("Created B=\\n");
-    B.show();
+      MatrixXd a = MatrixXd::Random(m,k);
+      SparseMatrix<double, ColMajor> b;
+      loadMarket(b, "{p.name}.mtx");
+      VbcscMatrix vb(b, bk, bn);
+      MatrixXd c_expected = a * b;
+      MatrixXd c_actual = MatrixXd::Zero(m,n);
 
-    gemm(A, B_dense, C_expected);
-    {p.name}(A.values, B.values, C_actual.values);
-    assert_equals(C_expected, C_actual);
+      {p.name}(a.data(), vb.values, c_actual.data());
+      assert(c_expected == c_actual);
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    for (int t=0; t<3000; t++)
-        {p.name}(A.values, B.values, C_actual.values);
-    clock_gettime(CLOCK_MONOTONIC, &end);
+      clock_gettime(CLOCK_MONOTONIC, &start);
+      for (int t=0; t<3000; t++)
+          {p.name}(a.data(), vb.values, c_actual.data());
+      clock_gettime(CLOCK_MONOTONIC, &end);
 
-    printf("{p.name}, {p.m}, {p.n}, {p.k}, {p.bm}, {p.bn}, {p.bk}, {p.nnzs}, %lf\\n", microsecs(start,end)/3000.0);
+      std::cout << "{p.name}, " << microsecs(start,end)/3000.0 << std::endl;
+    }}
     """
     return code
 
 
-def make(destination: str = None) -> str:
+def make(dest_dir: str, exp_name: str) -> None:
 
     params = make_param_space()
-    m = params[0].m
-    n = params[0].n  # Are supposed to be constant for all samples
 
     harness = HarnessBuilder(make_alg, params)
+
     harness.make_test = make_test
-    harness.imports = """
-#include <stdio.h>
-#include "../include/timing.h"
-#include "../include/matrixops.hpp"
-#include "baseline.hpp"
+
+    harness.imports = f"""
+#include <iostream>
+#include <Eigen/Sparse>
+#include <Eigen/Dense>
+#include <unsupported/Eigen/SparseExtra>
+
+#include <timing.h>
+#include <VirtualSparse.hpp>
+
+using namespace Eigen; 
 """
 
     harness.setup = f"""
     struct timespec start, end;
-    DenseMatrix A = NULL;
-    SparseMatrix B_sparse = NULL;
-    SparseMatrix B_dense = NULL;
-    DenseMatrix C_expected({m},{n},{m});
-    DenseMatrix C_actual({m},{n},{m});
     """
-    return harness.make(destination)
+    return harness.make(dest_dir, exp_name)
 
 
-
+if __name__=="__main__":
+    make(".")
