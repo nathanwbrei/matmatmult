@@ -79,10 +79,16 @@ test_matrix_io: src/cpptests/test_matrix_io.cpp include/matrixops.hpp include/ma
 	g++ -o build/test_matrix_io build/test_matrix_io.o build/mmio.o
 	build/test_matrix_io star.mtx
 
-EIGEN_HOME = /usr/local/Cellar/eigen/3.3.4/include/eigen3
+#EIGEN_HOME = /usr/local/Cellar/eigen/3.3.4/include/eigen3
+EIGEN_HOME = ../eigen3
+
 test_eigen: src/cpptests/test_eigen.cpp
 	g++ -g -std=c++11 -O2 -I $(EIGEN_HOME) -o build/test_eigen src/cpptests/test_eigen.cpp
 	build/test_eigen
+
+test_generated: src/cpptests/test_generated.cpp
+	g++ -g -mavx512f -std=c++11 -O2 -I $(EIGEN_HOME) -o build/test_generated src/cpptests/test_generated.cpp
+	build/test_generated
 
 
 
