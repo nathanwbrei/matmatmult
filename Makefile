@@ -92,3 +92,25 @@ test_generated: src/cpptests/test_generated.cpp
 
 
 
+
+
+presentation:
+	cd doc; pdflatex -shell-escape -interaction=batchmode -halt-on-error -output-directory=../build presentation.tex
+
+presentation-verbose:
+	cd doc; pdflatex -shell-escape -interaction=nonstopmode -halt-on-error -output-directory=../build presentation.tex
+
+presentation-auto:
+	fswatch -0 -o -r -l 2 -e ".*" -i"\.tex" doc | xargs -0 -n 1 -I NONE make presentation
+
+thesis:
+	cd doc; pdflatex -shell-escape -interaction=nonstopmode -halt-on-error -output-directory=../build thesis.tex
+
+thesis-quiet:
+	cd doc; pdflatex -shell-escape -interaction=batchmode -halt-on-error -output-directory=../build thesis.tex
+
+thesis-auto:
+	fswatch -0 -o -r -l 2 -e ".*" -i"\.tex" doc | xargs -0 -n 1 -I NONE make thesis-quiet
+
+
+
