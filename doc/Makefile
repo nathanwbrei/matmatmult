@@ -3,7 +3,7 @@
 CC=/usr/bin/gcc
 CFLAGS=-fopenmp
 
-.PHONY: output presentation autorebuild
+.PHONY: output presentation autorebuild thesis
 
 all: presentation
 
@@ -26,3 +26,8 @@ output: executable
 assembly:
 	$(CC) $(CFLAGS) -S src/$(ex).c -o build/$(ex)
 
+thesis:
+	cd thesis; pdflatex -shell-escape -interaction=nonstopmode -halt-on-error -output-directory=../build main.tex
+
+thesis-quiet:
+	pdflatex -shell-escape -interaction=batchmode -halt-on-error -output-directory=build thesis/main.tex
