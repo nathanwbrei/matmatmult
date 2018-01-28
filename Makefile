@@ -112,5 +112,13 @@ thesis-quiet:
 thesis-auto:
 	fswatch -0 -o -r -l 2 -e ".*" -i"\.tex" doc | xargs -0 -n 1 -I NONE make thesis-quiet
 
+thesis-refs:
+	cd doc; pdflatex -shell-escape -interaction=nonstopmode -halt-on-error -output-directory=../build thesis.tex
+	cp doc/literature.bib build
+	cd build; bibtex thesis
+	cd doc; pdflatex -shell-escape -interaction=nonstopmode -halt-on-error -output-directory=../build thesis.tex
+
+	#https://tex.stackexchange.com/questions/12686/how-do-i-run-bibtex-after-using-the-output-directory-flag-with-pdflatex-when-f
+
 
 
