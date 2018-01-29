@@ -77,6 +77,16 @@ This peak performance is in practice merely an upper bound, as it assumes a stea
     \item Create a code generator which autotunes a sparse gemm algorithm for a reasonably arbitrary problem.
     \end{itemize}
 
+ Goals
+   - Explore the parameter space of different families of algorithms:
+     + dense-sparse csc, tiledcsc, blockcsc
+     + sparse-dense breuer, blended, shifted-load, scalar, gather-scatter
+
+   - Independent variables include matrix size, overall sparsity, sparsity patterns, block size, register usage, loop unroll depth, instruction reordering
+
+   - Identify bottlenecks and understand how they constrain the regions of parameter space in which they are useful
+
+   
     \section{Remainder of paper}
 
 

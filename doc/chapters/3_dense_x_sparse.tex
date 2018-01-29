@@ -30,6 +30,7 @@ However, this has the following limitations:
     \item Choice of row-major vs column-major format determines which of the two vectorizes nicely: $(AB)^T = B^T A^T$
 \end{itemize}
 
+
 \section{Unrolled dense-by-sparse multiplication}
 
 Generate sparse microkernels for each (k,n) block of B, and unroll these into the instruction stream.
@@ -44,6 +45,22 @@ Generate sparse microkernels for each (k,n) block of B, and unroll these into th
       \item[$-$] Total number of nonzeros is limited by size of instruction cache.
 
 \end{itemize}
+
+The basic idea behind SparseMicrokernel is to extend the dense outer-product formulation (used
+by libxsmm, GotoBLAS, and others) to perform dense-by-sparse matrix multiplication in way which
+takes advantage of the AVX512 vector registers. The original algorithm loads an entire block of A
+
+
+The SparseMicrokernel algorithm is a straightforward modification: FMA instructions which operate on 
+broadcasted zero entries are eliminated, and the memory addresses of the nonzero entries are 
+shifted so that a sparse matrix format with better memory locality can be used. If an entire 
+row of B is zero, the corresponding column of A is not needed, so the corresponding load 
+operation is removed. Traversing the sparse matrix, finding the nonzeros, and finding the correct
+memory address for each cell is done using a high-level cursor abstraction, as described elsewhere.   
+
+Eliminating the unnecessary instructions reduces both computational intensity and memory traffic.
+
+
 \begin{figure}[ht]
       \begin{minted}[fontsize=\footnotesize]{text}
         {text}
@@ -72,6 +89,45 @@ Generate sparse microkernels for each (k,n) block of B, and unroll these into th
 
 
 \section{Tiled dense-by-sparse multiplication}
+
+     The basic idea behind TiledSparse is to scale the FullyUnrolledSparse algorithm to 
+matrices with more than 3100 nonzeros by assuming that the sparsity pattern is perfectly regular. 
+Specifically, we assume that there is a single sparsity pattern which tiles over the entire matrix
+and can be encoded as either a SparseMicrokernel or a FullyUnrolledSparse. The former, of course,
+subjects the tiled sparsity pattern to register block size constraints, whereas the latter merely 
+subjects it to number-of-nonzeros constraints. Our tiling assumption can be made without loss 
+of generality because we can always fill in zeros until we arrive at a regular pattern. (One
+way to do this is to partition the original matrix with a desired blocksize, and then take the 
+logical union of the sparsity patterns in each block.) The assumption does result in a loss of 
+practicality, however, as often the pattern will degenerate to dense. If the pattern is dense, 
+and the pattern-blocksize is chosen sensibly, the resulting algorithm will be very similar to 
+libxsmm.
+
+There are several ways in which this algorithm may be modified. The first design variable is the
+choice of loops to unroll. Because each pattern-block occupies the same amount of memory, the 
+loops need only update the pointer to the current block, and thus may be unrolled trivially. 
+The optimal amount of unrolling depends mainly on the number of nonzeros in the sparsity pattern.
+
+The second design variable is the representation of the sparse matrix in memory. The choice will
+directly affect both memory locality and FMA instruction size. (As discussed elsewhere, it is 
+helpful to keep the pointer's offset under 128, as FMA instructions above that threshold are
+10 bytes and below are 7 bytes.) A key constraint is regularity: This algorithm assumes it is
+possible to traverse the matrix block-by-block using simple pointer arithmetic, which constrains 
+the main layouts to (V){CSR, CSC, BCSR, BCSC}. (This assumption will be relaxed in 
+later algorithms.) The layout which best suits the memory accesses made by TiledSparse 
+is VBCSR. If the layout is prescribed externally as something other than (V){BCSR, BCSC), 
+or if the pattern contains more than 128 nonzeros, it is recommended to use multiple cursors in 
+order to keep the FMA instruction size down. One possible interoperability trick is to store 
+the matrix in COO format, but order the values according to VBCSR. Of course, this is fragile 
+if the matrix gets modified.
+
+As mentioned earlier, the main limitation to this algorithm is the tendency for the block pattern to 
+fill in until it becomes mostly dense. Otherwise, it is limited to having fewer than ~3000 nonzeros 
+in the pattern. It does not require the tiling to be perfect (where the bottommost and rightmost 
+tiles are full sized), although this makes the generator more complicated and reduces the allowed 
+number of nonzeros in the pattern to $3000 - nnz(top_right) - nnz(bottom_right) - nnz(bottom_left)$. 
+
+
 
         Assume there exists a sparse pattern which tiles perfectly over B.
         \begin{itemize}
