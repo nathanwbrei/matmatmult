@@ -20,11 +20,27 @@
 	\item Inspiration from older languages
 \end{itemize}
 
+\begin{itemize}
+    \item Python domain-specific language for directly generating assembly
+    \item Includes rich assembly AST: \texttt{Operand} $\leftarrow$ \texttt{Statement} $\leftarrow$ \texttt{Block} 
+    \item Higher-level forms such as loops, subroutines, and jump tables
+          implemented as plain Python functions which return a \texttt{Block}
+    \item Pretty-printing, analysis, simulation are implemented using Visitor Pattern
+    \item Interesting theoretical problem: Moving information from runtime to compile time in a general way
+\end{itemize}
+
 \section{Components}
 \subsection{Register blocks}
 \subsection{Microkernels}
 
 \section{Cursors}
+    A high-level abstraction for traversing and examining a sparse blocked matrix using \emph{logical coordinates}, automatically translated to physical memory offsets, for a given sparsity pattern and format. 
+    \begin{itemize}
+    \item \verb|has_nonzero_block(pointer, block_coords) -> bool|
+    \item \verb|has_nonzero_cell(pointer, cell_coords) -> bool|
+    \item \verb|move(pointer, block_coords) -> (new_pointer, statement)|
+    \item \verb|look(pointer, cell_coords) -> (new_pointer, memory_address)|
+    \end{itemize}
 
 \section{Symbolic execution and reification}
 
