@@ -13,6 +13,7 @@ struct DenseMatrix : public Matrix {
 
   DenseMatrix(int rows, int cols, int ld) : ld(ld) {
 
+    assert(ld >= rows);
     this->rows = rows;
     this->cols = cols;
     int result = posix_memalign(reinterpret_cast<void **>(&values), 64, ld*cols*sizeof(double));
@@ -55,6 +56,9 @@ struct DenseMatrix : public Matrix {
   }
 
   virtual double get(int row, int col) const {
+    if (row >= rows || col >= cols) {
+      throw std::invalid_argument("Out of bounds matrix read");
+    }
     return values[ld*col + row];
   }
 

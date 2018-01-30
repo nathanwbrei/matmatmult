@@ -82,9 +82,9 @@ test_matrixops: src/cpptests/test_matrixops.cpp
 	g++ -g -std=c++11 -O2 -o build/test_matrixops src/cpptests/test_matrixops.cpp
 	build/test_matrixops
 
-test_matrix_io: src/cpptests/test_matrix_io.cpp include/DenseMatrix.hpp include/SparseMatrix.hpp include/Matrix.hpp
-	g++ -g -std=c++11 -O2 -o build/test_matrix_io src/cpptests/test_matrix_io.cpp
-	build/test_matrix_io star.mtx
+test_matrix: src/cpptests/test_matrix.cpp include/DenseMatrix.hpp include/SparseMatrix.hpp include/Matrix.hpp
+	g++ -g -std=c++11 -O2 -o build/test_matrix src/cpptests/test_matrix.cpp
+	build/test_matrix star.mtx
 
 test_eigen: src/cpptests/test_eigen.cpp
 	g++ -g -std=c++11 -O2 -I $(EIGEN_HOME) -o build/test_eigen src/cpptests/test_eigen.cpp

@@ -86,9 +86,34 @@ void test_convert_bcsc() {
     assertEqual(1.0, sm->values[12]);
 }
 
+
+void test_gemm() {
+
+    const char * filename = "src/cpptests/8x6.mtx";
+    DenseMatrix db(filename);
+    unique_ptr<SparseMatrix> sb = to_bcsc(db,4,2);
+    assert_equals(db, *sb);
+
+    DenseMatrix a(9,8,9);
+    a.random();
+
+    DenseMatrix c_expected(9,6,9);
+    c_expected.zero();
+    DenseMatrix c_actual(9,6,9);
+    c_actual.zero();
+
+    gemm(a, *sb, c_actual);
+    gemm(a, db, c_expected);
+//    cout << c_actual;
+
+    assert_equals(c_expected, c_actual);
+}
+
 int main(int argc, char ** argv) {
     test_load_mtx();
     test_convert_csc();
     test_convert_bcsc();
+    test_gemm();
+    cout << "All tests pass." << endl;
 }
 
