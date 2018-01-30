@@ -26,27 +26,24 @@ struct DenseMatrix : public Matrix {
 
     // Skip first two lines, ignore formatting info
     char throwaway[1000];
-    int result;
-
     fgets(throwaway, 1000, f);
-    std::cout << "Read: " << throwaway << std::endl;
     fgets(throwaway, 1000, f);
-    std::cout << "Read: " << throwaway << std::endl;
 
     // Read rows, cols, nnzs
     int nnzs;
+    int result;
     result = fscanf(f, "%d %d %d\n", &rows, &cols, &nnzs);
-    std::cout << "Read dimensions " << rows << "," << cols << "," << nnzs << std::endl;
+    ld = rows;
 
     // Allocate buffer
     result = posix_memalign(reinterpret_cast<void **>(&values), 64, ld*cols*sizeof(double));
+    zero();
 
     // Fill with sparse entries from file
     int ri, ci;
     double value;
     for (int i=0; i<nnzs; i++) {
       result = fscanf(f, "%d %d %lg\n", &ri, &ci, &value);
-      std::cout << "Read entry " << ri << "," << ci << "," << value << std::endl;
       values[(ri-1) + ld*(ci-1)] = value;
       // MTX is one-indexed, we are zero-indexed
     }

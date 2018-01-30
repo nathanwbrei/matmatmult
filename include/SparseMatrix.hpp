@@ -38,6 +38,7 @@ struct SparseMatrix : public Matrix {
   }
 
   virtual void set(int row, int col, double val) {
+
     bool found = false;
     for (int x=0; x<nnzs; x++) {
       if (row_idx[x] == row && col_idx[x] == col) {
@@ -71,6 +72,7 @@ unique_ptr<SparseMatrix> to_csc(const Matrix & m) {
     for (int ri=0; ri<m.rows; ri++) {
       double x = m.get(ri,ci);
       if (fabs(x) > epsilon) {
+        //std::cout << "Found nonzero " << ri << "," << ci << std::endl;
         result->set(ri, ci, x);
       }
     }
