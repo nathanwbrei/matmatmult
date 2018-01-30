@@ -1,7 +1,9 @@
+#include <iostream>
 
-#include <stdio.h>
-#include "../../include/matrixops.hpp"
-#include "../../include/matrix_io.hpp"
+#include "../../include/DenseMatrix.hpp"
+#include "../../include/SparseMatrix.hpp"
+
+using namespace std;
 
 // Expects a single arg providing path to mtx file
 int main(int argc, char ** argv) {
@@ -11,26 +13,39 @@ int main(int argc, char ** argv) {
         exit(1);
     }
 
-    unique_ptr<SparseMatrix> B = from_mtx(argv[1]);
+    DenseMatrix B_dense(argv[1]);
+    cout << "Rows=" << B_dense.rows << endl;
+    cout << "Columns=" << B_dense.cols << endl;
+    unique_ptr<SparseMatrix> B_bcsc = to_csc(B_dense);
+
     int m = 16;
-    int n = B->cols;
-    int k = B->rows;
+    int n = B_dense.cols;
+    int k = B_dense.rows;
+
     DenseMatrix A(m,k,m);
-    DenseMatrix C(m,n,m);
+    A.fill(1,2);
+
+    DenseMatrix C_expected(m,n,m);
+    C_expected.zero();
+
+    DenseMatrix C_actual(m,n,m);
+    C_actual.zero();
     
-    fill(A, 1, 2);
-    gemm(A, *B, C);
+    gemm(A, B_dense, C_expected);
+    gemm(A, *B_bcsc, C_actual);
 
-    printf("=================================\n");
-    printf("A: R(%d x %d)\n", A.rows, A.cols);
-    A.show();
+    cout << "A " << A.rows << "x" << A.cols << ":" << endl;
+    cout << A << endl << endl;
 
-    printf("=================================\n");
-    printf("B: R(%d x %d), %d nnzs\n", B->rows, B->cols, B->nnz);
-    B->show();
+    cout << "B_dense " << B_dense.rows << "x" << B_dense.cols << ":" << endl;
+    cout << B_dense << endl << endl;
 
-    printf("=================================\n");
-    printf("C: R(%d x %d)\n", C.rows, C.cols);
-    C.show();
+    cout << "B_bcsc " << B_bcsc->rows << "x" << B_bcsc->cols << ":" << endl;
+    cout << *B_bcsc << endl << endl;
 
+    cout << "C_expected " << C_expected.rows << "x" << C_expected.cols << ":" << endl;
+    cout << C_expected << endl << endl;
+
+    cout << "C_actual " << C_actual.rows << "x" << C_actual.cols << ":" << endl;
+    cout << C_actual << endl << endl;
 }

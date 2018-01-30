@@ -2,6 +2,9 @@
 
 LDFLAGS_MACOS = -arch x86_64 -macosx_version_min 10.10 -lSystem -no_pie 
 
+#EIGEN_HOME = /usr/local/Cellar/eigen/3.3.4/include/eigen3
+EIGEN_HOME = ../eigen3
+
 .PHONY: exp1 exp2 exp4 exp5
 
 docker-image:
@@ -61,6 +64,9 @@ exp4:
 exp5:
 	PYTHONPATH="." python3 exp5/exp5.py
 
+
+
+
 jumptable: src/jumptable/jumptable.cpp src/jumptable/jumptable_unrolled.cpp src/jumptable/jumptable_looped.cpp
 	g++ -g -mavx512f -std=c++11 -O3 -o build/jumptable src/jumptable/jumptable.cpp
 	g++ -g -mavx512f -std=c++11 -O3 -o build/jumptable_unrolled src/jumptable/jumptable_unrolled.cpp
@@ -69,18 +75,16 @@ jumptable: src/jumptable/jumptable.cpp src/jumptable/jumptable_unrolled.cpp src/
 	objdump -D build/jumptable_unrolled > src/jumptable/jumptable_unrolled.asm
 	objdump -D build/jumptable_looped > src/jumptable/jumptable_looped.asm
 
+
+
+
 test_matrixops: src/cpptests/test_matrixops.cpp
 	g++ -g -std=c++11 -O2 -o build/test_matrixops src/cpptests/test_matrixops.cpp
 	build/test_matrixops
 
-test_matrix_io: src/cpptests/test_matrix_io.cpp include/matrixops.hpp include/matrix_io.hpp
-	g++ -c -g -std=c++11 -O2 -o build/test_matrix_io.o src/cpptests/test_matrix_io.cpp
-	gcc -c -g -std=c11 -O2 -o build/mmio.o include/mmio.c
-	g++ -o build/test_matrix_io build/test_matrix_io.o build/mmio.o
+test_matrix_io: src/cpptests/test_matrix_io.cpp include/DenseMatrix.hpp include/SparseMatrix.hpp include/Matrix.hpp
+	g++ -g -std=c++11 -O2 -o build/test_matrix_io src/cpptests/test_matrix_io.cpp
 	build/test_matrix_io star.mtx
-
-#EIGEN_HOME = /usr/local/Cellar/eigen/3.3.4/include/eigen3
-EIGEN_HOME = ../eigen3
 
 test_eigen: src/cpptests/test_eigen.cpp
 	g++ -g -std=c++11 -O2 -I $(EIGEN_HOME) -o build/test_eigen src/cpptests/test_eigen.cpp
