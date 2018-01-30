@@ -55,19 +55,22 @@ def make_test(p) -> str:
       const int bk = {p.bk};
       const int bn = {p.bn};
 
-      MatrixXd a = MatrixXd::Random(m,k);
-      SparseMatrix<double, ColMajor> b;
-      loadMarket(b, "{p.name}.mtx");
-      VbcscMatrix vb(b, bk, bn);
-      MatrixXd c_expected = a * b;
-      MatrixXd c_actual = MatrixXd::Zero(m,n);
+      DenseMatrix a(m,k,m);
+      a.random();
 
-      {p.name}(a.data(), vb.values, c_actual.data());
-      assert(c_expected == c_actual);
+      DenseMatrix db("{p.name}.mtx");
+      auto b = to_bcsc(db, bk, bn);
+
+      DenseMatrix c_expected(m,n,m);
+      DenseMatrix c_actual(m,n,m);
+
+      gemm(a, db, c_expected);
+      {p.name}(a.values, b->values, c_actual.values);
+      assert_equals(c_expected, c_actual);
 
       clock_gettime(CLOCK_MONOTONIC, &start);
       for (int t=0; t<3000; t++)
-          {p.name}(a.data(), vb.values, c_actual.data());
+        {p.name}(a.values, b->values, c_actual.values);
       clock_gettime(CLOCK_MONOTONIC, &end);
 
       std::cout << "{p.name}, " << microsecs(start,end)/3000.0 << std::endl;
@@ -90,8 +93,9 @@ def make(dest_dir: str, exp_name: str) -> None:
 #include <Eigen/Dense>
 #include <unsupported/Eigen/SparseExtra>
 
-#include <timing.h>
-#include <VirtualSparse.hpp>
+#include "SparseMatrix.hpp"
+#include "DenseMatrix.hpp"
+#include "timing.h"
 
 using namespace Eigen; 
 """

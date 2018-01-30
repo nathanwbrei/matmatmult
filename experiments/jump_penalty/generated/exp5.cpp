@@ -5,8 +5,9 @@
 #include <Eigen/Dense>
 #include <unsupported/Eigen/SparseExtra>
 
-#include "../../../include/timing.h"
-#include "../../../include/VirtualSparse.hpp"
+#include "SparseMatrix.hpp"
+#include "DenseMatrix.hpp"
+#include "timing.h"
 
 using namespace Eigen; 
  
@@ -160,19 +161,22 @@ int main(int argc, char ** argv) {
       const int bk = 8;
       const int bn = 8;
 
-      MatrixXd a = MatrixXd::Random(m,k);
-      SparseMatrix<double, ColMajor> b;
-      loadMarket(b, "dxsp_general_8x8x24_16.mtx");
-      VbcscMatrix vb(b, bk, bn);
-      MatrixXd c_expected = a * b;
-      MatrixXd c_actual = MatrixXd::Zero(m,n);
+      DenseMatrix a(m,k,m);
+      a.random();
 
-      dxsp_general_8x8x24_16(a.data(), vb.values, c_actual.data());
-      assert(c_expected == c_actual);
+      DenseMatrix db("dxsp_general_8x8x24_16.mtx");
+      auto b = to_bcsc(db, bk, bn);
+
+      DenseMatrix c_expected(m,n,m);
+      DenseMatrix c_actual(m,n,m);
+
+      gemm(a, db, c_expected);
+      dxsp_general_8x8x24_16(a.values, b->values, c_actual.values);
+      assert_equals(c_expected, c_actual);
 
       clock_gettime(CLOCK_MONOTONIC, &start);
       for (int t=0; t<3000; t++)
-          dxsp_general_8x8x24_16(a.data(), vb.values, c_actual.data());
+        dxsp_general_8x8x24_16(a.values, b->values, c_actual.values);
       clock_gettime(CLOCK_MONOTONIC, &end);
 
       std::cout << "dxsp_general_8x8x24_16, " << microsecs(start,end)/3000.0 << std::endl;

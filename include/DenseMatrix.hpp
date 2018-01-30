@@ -27,8 +27,9 @@ struct DenseMatrix : public Matrix {
 
     // Skip first two lines, ignore formatting info
     char throwaway[1000];
-    fgets(throwaway, 1000, f);
-    fgets(throwaway, 1000, f);
+    char * res;
+    res = fgets(throwaway, 1000, f);
+    res = fgets(throwaway, 1000, f);
 
     // Read rows, cols, nnzs
     int nnzs;

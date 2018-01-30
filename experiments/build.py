@@ -38,7 +38,7 @@ def make_executable(e:Experiment):
     src = path.join(e.reldir, "generated", e.executable+".cpp")
     dest = path.join("build", e.executable)
 
-    cmds = [f"./linux g++ -mavx512f -I ../eigen3 -std=c++11 -O3 -DNDEBUG -lrt -o {dest} {src}"]
+    cmds = [f"./linux g++ -O3 -mavx512f -I ../eigen3 -I include -DNDEBUG -std=c++11 -lrt -o {dest} {src}"]
 
     output = run(cmds, stdout=PIPE, stderr=PIPE, shell=True)
 
