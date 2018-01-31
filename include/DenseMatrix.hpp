@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <iomanip>
-#include "matrix.hpp"
+#include "Matrix.hpp"
 
 struct DenseMatrix : public Matrix {
 

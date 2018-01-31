@@ -62,8 +62,9 @@ exp4:
 	PYTHONPATH="." python3 exp4/exp4.py
 
 exp5:
-	PYTHONPATH="." python3 exp5/exp5.py
-
+	icpc -O3 -xMIC-AVX512 -I include -DNDEBUG -std=c++11 -lrt -o build/exp5 experiments/jump_penalty/generated/exp5.cpp
+	#g++ -O3 -mavx512f -I include -DNDEBUG -std=c++11 -lrt -o build/exp5 experiments/jump_penalty/generated/exp5.cpp
+	objdump -D build/exp5 > build/exp5.asm
 
 
 

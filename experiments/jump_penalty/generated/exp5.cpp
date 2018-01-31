@@ -1,16 +1,9 @@
 
 
 #include <iostream>
-#include <Eigen/Sparse>
-#include <Eigen/Dense>
-#include <unsupported/Eigen/SparseExtra>
-
-#include "SparseMatrix.hpp"
-#include "DenseMatrix.hpp"
-#include "timing.h"
-
-using namespace Eigen; 
- 
+#include <SparseMatrix.hpp>
+#include <DenseMatrix.hpp>
+#include <timing.h>
 
 
 
