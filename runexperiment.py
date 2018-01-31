@@ -2,7 +2,7 @@
 
 from experiments import *
 from experiments.unrolled_scaling.exp4 import make as make_unrolled_scaling
-from experiments.jump_penalty.exp5 import make as make_jump_penalty
+from experiments.jump_penalty.jump_penalty import make as make_jump_penalty
 
 import os
 import time
@@ -15,7 +15,7 @@ exps = [
                reldir = "experiments/unrolled_scaling",
                make_cpp = make_unrolled_scaling),
 
-    Experiment(name = "exp5", 
+    Experiment(name = "exp5jp", 
                text = "DxSpGeneral indirect jump penalty",
                reldir = "experiments/jump_penalty",
                make_cpp = make_jump_penalty)]

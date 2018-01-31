@@ -38,6 +38,8 @@ class GeneralParameters(Parameters):
         self.C = DenseCursorDef("C", rdx, self.m, self.n, self.ldc, self.bm, self.bn)
         self.A_regs, self.C_regs = make_reg_blocks(self.bm, self.bn, self.bk)
 
+    def make(self):
+        return make_alg(self)
 
 
 def choose_params(params: Parameters) -> GeneralParameters:
