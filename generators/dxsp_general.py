@@ -44,7 +44,6 @@ class GeneralParameters(Parameters):
 
 def choose_params(params: Parameters) -> GeneralParameters:
 
-    print("dxsp_general.choose_params")
     pattern = Matrix.load_pattern(params.mtx_filename)
 
     #TODO: Choose bk,bn better
@@ -84,7 +83,6 @@ def minicursor(name: str, base_ptr: Register, pattern: Matrix[bool]):
 
 
 def make_alg(p: GeneralParameters) -> Block:
-    print("dxsp_general.make_alg")
 
     Bm = (p.m // p.bm)
     Bn = (p.n // p.bn)

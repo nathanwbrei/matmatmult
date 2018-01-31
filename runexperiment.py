@@ -15,7 +15,7 @@ exps = [
                reldir = "experiments/unrolled_scaling",
                make_cpp = make_unrolled_scaling),
 
-    Experiment(name = "exp5jp", 
+    Experiment(name = "exp5", 
                text = "DxSpGeneral indirect jump penalty",
                reldir = "experiments/jump_penalty",
                make_cpp = make_jump_penalty)]

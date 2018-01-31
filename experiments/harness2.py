@@ -7,8 +7,9 @@ class HarnessBuilder:
 {imports} \n
 {algdefs} \n
 {tests} \n
-void main(int argc, char** argv) {{
+int main(int argc, char** argv) {{
 {main}
+    return 0;
 }}
 """
 
@@ -21,9 +22,20 @@ void main(int argc, char** argv) {{
 #include "timing.h"
 """
 
-    def make_test(p):
+    def make_test(self, p):
+
+        if p.mtx_format == "csc":
+            format_matrix = "auto b = to_csc(db);"
+
+        elif p.mtx_format == "bcsc":
+            format_matrix = "auto b = to_bcsc(db, bk, bn);"
+            
+        else:
+            raise Exception("Need to specify an actual matrix format!")
+
+
         return f"""
-void test_{p.name} {{
+void test_{p.output_funcname}() {{
     const int m = {p.m};
     const int n = {p.n};
     const int k = {p.k};
@@ -35,21 +47,21 @@ void test_{p.name} {{
     a.random();
 
     DenseMatrix db("{p.mtx_filename}");
-    auto b = to_{p.mtx_format}(db, bk, bn);
+    {format_matrix}
 
-    DenseMatrix (m,n,m);
+    DenseMatrix c_expected(m,n,m);
     DenseMatrix c_actual(m,n,m);
 
     gemm(a, db, c_expected);
-    {p.name}(a.values, b->values, c_actual.values);
+    {p.output_funcname}(a.values, b->values, c_actual.values);
     assert_equals(c_expected, c_actual);
 
     clock_gettime(CLOCK_MONOTONIC, &start);
     for (int t=0; t<3000; t++)
-        {p.name}(a.values, b->values, c_actual.values);
+        {p.output_funcname}(a.values, b->values, c_actual.values);
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    std::cout << "{p.name}, " << microsecs(start,end)/3000.0 << std::endl;
+    std::cout << "{p.output_funcname}, " << microsecs(start,end)/3000.0 << std::endl;
 }}
 
 """
@@ -69,10 +81,14 @@ void test_{p.name} {{
         for param in self.params:
 
             # Generate C/asm for each alg variant
-            algdefs += param.make() + "\n"
+            alg = param.make()
+            if alg is not None:
+                alg_text = make_cfunc(param.output_funcname, alg)
+                algdefs += alg_text + "\n"
 
             # Generate the corresponding test harness
             tests += self.make_test(param) + "\n"
+            main += "    test_" + param.output_funcname + "();\n"
 
         result = self.harness_template.format(
             imports = self.imports,

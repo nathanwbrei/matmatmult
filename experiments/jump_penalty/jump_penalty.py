@@ -1,5 +1,6 @@
 
 import random
+import os
 
 from experiments.harness2 import HarnessBuilder
 from generators.dxsp_general import choose_params as general_params
@@ -33,7 +34,6 @@ class Scenario:
         self.basic_params = Parameters(
             algorithm = "dxsp_general",
             mtx_filename = self.mtx_filename,
-            output_filename = self.name + ".cpp",
             output_funcname = self.name,
             m = 8, 
             n = 8, 
@@ -50,14 +50,20 @@ class Scenario:
 
     def make_libxsmm_test(self):
         pp = libxsmm_params(self.basic_params)
-        pp.output_filename = "libxsmm_gemms.h"
+        pp.mtx_format = "csc"
+        pp.output_funcname = self.name + "_libxsmm"
+        pp.output_filename = EXP5_HOME+"libxsmm_gemms.h"
+        pp.ldb = pp.k
         return pp
 
 #    def make_unrolled_test(self):
 #        return self.params
 
     def make_jump_test(self):
-        return general_params(self.basic_params)
+        pp = general_params(self.basic_params)
+        pp.mtx_format = "bcsc"
+        pp.output_funcname = self.name + "_general"
+        return pp
 
     def all_params(self):
         yield self.make_libxsmm_test()
@@ -71,7 +77,6 @@ def all_scenarios():
     yield Scenario(50,2)
     yield Scenario(50,4)
     yield Scenario(50,8)
-    yield Scenario(50,16)
 
     yield Scenario(100,2)
     yield Scenario(100,4)
@@ -88,6 +93,8 @@ def all_scenarios():
 
 # TODO: Drop dest_dir, exp_name from this
 def make(dest_dir: str, exp_name: str) -> None:
+
+    os.remove(EXP5_HOME+"libxsmm_gemms.h")
 
     for scenario in all_scenarios():
         scenario.make_mtx()

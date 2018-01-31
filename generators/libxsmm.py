@@ -29,29 +29,29 @@ class LibxsmmParameters(Parameters):
         self.precision = precision
 
     def make(self):
-        result = subprocess.run([path_to_libxsmm, 
-                                 "dense" if p.dense else "sparse", 
-                                 p.output_filename, 
-                                 p.output_funcname,
-                                 str(p.m),
-                                 str(p.n), 
-                                 str(p.k), 
-                                 str(p.lda), 
-                                 str(p.ldb), 
-                                 str(p.ldc),
-                                 str(p.alpha), 
-                                 str(p.beta), 
-                                 "1" if p.align_a else "0", 
-                                 "1" if p.align_c else "0",
-                                 p.arch, 
-                                 p.prefetch, 
-                                 p.precision])
+        args = [path_to_libxsmm,
+                "dense" if self.dense else "sparse", 
+                self.output_filename, 
+                self.output_funcname,
+                str(self.m),
+                str(self.n),
+                str(self.k), 
+                str(self.lda), 
+                str(self.ldb),
+                str(self.ldc),
+                str(self.alpha), 
+                str(self.beta), 
+                "1" if self.align_a else "0", 
+                "1" if self.align_c else "0",
+                self.arch, 
+                self.prefetch, 
+                self.precision]
+        print(" ".join(args))
+        result = subprocess.run(args)
 
 
 
 def choose_params(p: Parameters) -> LibxsmmParameters:
-
-    print("libxsmm.choose_params")
 
     if p.output_filename is None:
         p.output_filename = "libxsmm_gemms.h"
