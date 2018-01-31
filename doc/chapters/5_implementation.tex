@@ -1,17 +1,35 @@
+
 \chapter{Implementation}
 \label{chapter:implementation}
 
+This chapter covers the decomposition of the algorithm generators described previously and the resulting layout of the codebase. The first section discusses some key design decisions and the constraints driving them. The second section describes the various entry points into the codebase and doubles as a brief usage guide. The subsequent sections build up the machinery used for algorithm generation, moving from low-level to high-level. The foundation is a Python abstract syntax tree for assembly programs. These basic building blocks are aggregated and parameterized to create reusable components for subtasks such as manipulating register blocks. In order to manage the complexity of generating a traversal of a matrix with both a nontrivial sparsity pattern and a nontrivial memory layout, a \emph{matrix cursor} abstraction is introduced. This raises the possibility of a more general approach to moving information from runtime to compile time. The chapter ends with a summary of each software module's purpose and dataflow.
+
+\section{Design Drivers}
+
+- Choice of assembly
+- Choice of Python
+
+
 \section{Frontends}
+
 \subsection{sparsemmgen}
+
+\texttt{sparsemmgen} is the primary entry point for the program 
+
 \subsection{libxsmmproxy}
+
+While \texttt{sparsemmgen} is designed to allow the user to control the algorithm generator precisely, it suffers from two drawbacks. Firstly, the burden of choosing the best algorithm and tuning it correctly is put entirely on the user. As the following chapter will show, performance heuristics can be derived and verified experimentally. This allows the program to automatically determine the best parameters for each algorithm, and ultimately determine the choice of algorithm as well. Secondly, if an existing codebase has been sufficiently optimized such that its developers would consider using the tools developed here, the integration would likely be very difficult. \texttt{sparsemmgen} requires information which is simply not likely to be available upstream. On the other hand, codebases that could benefit from this work are likely already using \texttt{libxsmm}. 
+
+\texttt{libxsmmproxy} 
+
 \begin{itemize}
 	\item Auto-choosing parameters
 	\item Hardcoding parameters
 \end{itemize}
+
 \subsection{runexperiment}
-\begin{itemize}
-	\item Running via SLURM
-\end{itemize}
+The third main entry point is \texttt{runexperiment}, which generates a 
+
 
 
 \section{Code generation}
@@ -34,6 +52,9 @@
 \subsection{Microkernels}
 
 \section{Cursors}
+
+
+
     A high-level abstraction for traversing and examining a sparse blocked matrix using \emph{logical coordinates}, automatically translated to physical memory offsets, for a given sparsity pattern and format. 
     \begin{itemize}
     \item \verb|has_nonzero_block(pointer, block_coords) -> bool|
@@ -44,3 +65,4 @@
 
 \section{Symbolic execution and reification}
 
+One advantage to expressing a complete AST in Python

@@ -1,7 +1,8 @@
 \chapter{Dense-by-Sparse Algorithms}
 \label{chapter:algs}
 
-Why do we focus on this? 
+The main focus of this thesis is on improving the performance of small \emph{dense-by-sparse} matrix multiplication by encoding the sparsity pattern into the instruction stream while still using vector registers and caches as efficiently as possible. 
+
 
 Show the flowchart of different options
 
@@ -179,5 +180,38 @@ number of nonzeros in the pattern to $3000 - nnz(top_right) - nnz(bottom_right) 
           \end{array}
           \right]
       \]
+
+
+* What are the performance bottlenecks?
+* What sparse matrix format constraints?
+* What block size constraints?
+* On which matrices is this likely to be efficient? On which matrices is this likely to be inefficient?
+
+
 \section{General dense-by-sparse multiplication}
-\section{Dense-by-sparse multiplication with an extracted diagonal}
+
+The general dense-by-sparse algorithm comes from relaxing \emph{both} of the TiledSparse constraints: There can be any number of different blocks, and each block may contain any number of nonzeros. GeneralSparse maintains a collection of SparseMicrokernel GEMMs 
+
+This algorithm is subject to the following constraints:
+
+\begin{enumerate}
+
+  \item The total number of indirect jumps must be minimized. This implies that the total number of nonzero blocks should be as small as possible. 
+
+  \item The routine must fit in the 32kB instruction cache, which constrains both the sum of nonzeros in each \emph{unique} block, as well as the total number of nonzero blocks. The latter constraint could possibly be finessed by storing the pointers to the start of each block and the corresponding GEMM routine in an array in the data cache instead of unrolling it into the instruction stream.
+
+  \item The sparse matrix should be stored in \emph{block} compressed sparse row or column format in order to have good data locality.
+
+  \item Blocks should be uniformly sized. This is an implementation detail; the constraint may be removed in the future by implementing another MatrixCursor as described in Section X.XX.
+
+\end{enumerate}
+
+Automatically choosing GeneralSparse parameters is ...
+
+GeneralSparse degrades gracefully, similar to TiledSparse. As the matrices grow larger and denser, satisfying constraints (1) and (2) will lead to the unique blocks merging (and thereby filling in) until the algorithm resembles BlockSparse or TiledSparse. However, the overhead due to the indirect jumps means that BlockSparse or TiledSparse will prove to be more performant choice past a certain size.
+
+
+
+\section{Extracted diagonal}
+
+One pattern which emerges in sparse matrices is to 
