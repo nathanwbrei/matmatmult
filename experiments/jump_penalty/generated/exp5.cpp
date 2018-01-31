@@ -1,9 +1,10 @@
 
 
 #include <iostream>
-#include <SparseMatrix.hpp>
-#include <DenseMatrix.hpp>
-#include <timing.h>
+#include "SparseMatrix.hpp"
+#include "DenseMatrix.hpp"
+#include "timing.h"
+ 
 
 
 
@@ -108,17 +109,17 @@ void dxsp_general_8x8x24_16 (const double* A, const double* B, double* C) {
         "vmovapd 384(%%rdx), %%zmm30\r\n"                           // C [0,0] [0,6]
         "vmovapd 448(%%rdx), %%zmm31\r\n"                           // C [0,0] [0,7]
       "movq $BLOCK_0_%=, %%r10\r\n"
-      "movq $0, %%rsi\r\n"                                        // Move B to (d=0,r=0, absolute)
+      "addq $0, %%rsi\r\n"                                        // Move B to (d=0,r=0, absolute)
       "addq $0, %%rdi\r\n"                                        // Move A to (d=0,r=0, absolute)
       "jmp CASE_0_%=\r\n"
       "BLOCK_0_%=:\r\n"
       "movq $BLOCK_1_%=, %%r10\r\n"
-      "movq $128, %%rsi\r\n"                                      // Move B to (d=1,r=0, absolute)
+      "addq $128, %%rsi\r\n"                                      // Move B to (d=1,r=0, absolute)
       "addq $512, %%rdi\r\n"                                      // Move A to (d=0,r=1, absolute)
       "jmp CASE_1_%=\r\n"
       "BLOCK_1_%=:\r\n"
       "movq $BLOCK_2_%=, %%r10\r\n"
-      "movq $128, %%rsi\r\n"                                      // Move B to (d=2,r=0, absolute)
+      "addq $128, %%rsi\r\n"                                      // Move B to (d=2,r=0, absolute)
       "addq $512, %%rdi\r\n"                                      // Move A to (d=0,r=2, absolute)
       "jmp CASE_2_%=\r\n"
       "BLOCK_2_%=:\r\n"

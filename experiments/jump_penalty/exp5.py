@@ -89,15 +89,11 @@ def make(dest_dir: str, exp_name: str) -> None:
 
     harness.imports = f"""
 #include <iostream>
-#include <Eigen/Sparse>
-#include <Eigen/Dense>
-#include <unsupported/Eigen/SparseExtra>
+#include <memory>
 
 #include "SparseMatrix.hpp"
 #include "DenseMatrix.hpp"
 #include "timing.h"
-
-using namespace Eigen; 
 """
 
     harness.setup = f"""

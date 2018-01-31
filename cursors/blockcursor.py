@@ -106,11 +106,8 @@ class BlockCursorDef(CursorDef):
             dest_loc = self.start_location(dest_block + src_loc.current_block)
 
         offset_bytes = self.offset(src_loc, dest_loc) * self.scalar_bytes
-
-        if dest_block.absolute:
-            return mov(offset_bytes, ptr_to_move, False, comment), dest_loc
-        else:
-            return add(offset_bytes, ptr_to_move, comment), dest_loc
+        
+        return add(offset_bytes, ptr_to_move, comment), dest_loc
 
 
     def look(self,
