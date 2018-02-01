@@ -98,6 +98,66 @@ Generate sparse microkernels for each (k,n) block of B, and unroll these into th
 
 \end{itemize}
 
+\begin{figure}[tb]
+  \centering
+  \begin{subfigure}[b]{0.32\textwidth}
+    \centering
+          \[
+      \left[
+          \begin{array}{c c c | c c c }
+          0 &   &   & 10 &   &   \\
+          1 & 2 &   & 11& 12&   \\
+            & 3 & 4 &   & 13& 14  \\
+          \hline
+          5 &   &   & 15  &   &   \\
+          6 & 7 &   & 16  &17   &   \\
+            & 8 & 9 &   & 18  &19   \\
+          \end{array}
+          \right]
+      \]
+    \caption{TiledSparse}
+    \label{fig:tiledblocks}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.32\textwidth}
+    \centering
+      \[
+      \left[
+          \begin{array}{c c c | c c c }
+          0 &   &   &    &    &    \\
+          1 & 2 &   &    &    &    \\
+            & 3 & 4 &    &    &    \\
+          \hline
+          5 &   &   & 10 &    &    \\
+          6 & 7 &   & 11 & 12 &    \\
+            & 8 & 9 &    & 13 & 14 \\
+          \end{array}
+          \right]
+      \]    \caption{BlockedSparse}
+    \label{fig:blockedblocks}
+  \end{subfigure}
+    \begin{subfigure}[b]{0.32\textwidth}
+    \centering
+      \[
+      \left[
+          \begin{array}{c c c | c c c }
+          0 &   &   &    &    &    \\
+          1 & 2 &   &    &    &    \\
+            & 3 & 4 &    &    &    \\
+          \hline
+          5  & 6  & 7  &    &  14& 15  \\
+          8  & 9  & 10 &    &    & 16 \\
+          11 & 12 & 13 &    &    &    \\
+          \end{array}
+          \right]
+      \]    \caption{GeneralSparse}
+    \label{fig:generalblocks}
+  \end{subfigure}
+  \caption{Sample matrices illustrating the blocking constraints for different GEMM algorithms. As shown in~\ref{fig:tiledblocks}, TiledSparse
+  admits only a single block pattern which is tiled perfectly over the entire matrix. BlockedSparse admits a single block pattern along with empty blocks. GeneralSparse relaxes further to admit multiple different patterns. The numbers indicate the cell's index when using a block compressed-sparse-row format. }
+  \label{fig:matrixblocks}
+
+\end{figure}
+
 
 \section{Tiled dense-by-sparse multiplication}
 
@@ -149,19 +209,7 @@ number of nonzeros in the pattern to $3000 - nnz(top_right) - nnz(bottom_right) 
         \end{itemize}
 
 
-      \[
-      \left[
-          \begin{array}{c c c | c c c }
-          0 &   &   & 10 &   &   \\
-          1 & 2 &   & 11& 12&   \\
-            & 3 & 4 &   & 13& 14  \\
-          \hline
-          5 &   &   & 15  &   &   \\
-          6 & 7 &   & 16  &17   &   \\
-            & 8 & 9 &   & 18  &19   \\
-          \end{array}
-          \right]
-      \]
+
 
 \section{Block dense-by-sparse multiplication}
 
@@ -177,19 +225,7 @@ number of nonzeros in the pattern to $3000 - nnz(top_right) - nnz(bottom_right) 
     \end{itemize}
   \end{itemize}
 
-      \[
-      \left[
-          \begin{array}{c c c | c c c }
-          0 &   &   &    &    &    \\
-          1 & 2 &   &    &    &    \\
-            & 3 & 4 &    &    &    \\
-          \hline
-          5 &   &   & 10 &    &    \\
-          6 & 7 &   & 11 & 12 &    \\
-            & 8 & 9 &    & 13 & 14 \\
-          \end{array}
-          \right]
-      \]
+
 
 
 * What are the performance bottlenecks?
