@@ -54,14 +54,49 @@ The third main entry point is \texttt{runexperiment}, which generates a
 \section{Cursors}
 
 
+    The \emph{matrix cursor} is an abstraction that allows the code generators to cleanly traverse a sparse matrix and access its contents while only using logical coordinates. The name was chosen because of its similarities to the cursor in a text editor, which must translate movement and insert commands from 2D screen coordinates into a 1D memory location which depends on the lengths on the neighboring lines. The term 'cursor' has already been overloaded to describe a kind of iterator into a database; this is also a kind of iterator. MatrixCursor performs the following tasks:
 
-    A high-level abstraction for traversing and examining a sparse blocked matrix using \emph{logical coordinates}, automatically translated to physical memory offsets, for a given sparsity pattern and format. 
+    \begin{description}
+
+    \item[Traversing a matrix by blocks.] MatrixCursor translates logical block coordinates \texttt{(Bki, Bni)} into a movement instruction. This instruction updates a register pointing to the start of the `active' block. The logical block coordinates may be either absolute or relative to the active block.
+
+    \item[Optionally tracking which block is active.] Generating a GEMM is much simpler if the generator can model the state of the machine while deciding which code to emit in order to modify said state. Not all generators implemented currently do this; some emit loops which do not get simulated, and then assume that the loops maintain certain invariants. This is the start of a more theoretical discussion in Section X.XX. 
+
+    \item[Accessing cells within a block.] MatrixCursor translates logical cell coordinates \texttt{(bki, bni)} into a \texttt{MemoryAddress} operand. Cell coordinates are relative to the top-left-corner of the active block. It also generates a comment string (which can be rendered alongside the assembly) indicating which logical coordinates lie behind the otherwise inscrutable memory address.
+
+    \item[Handling the case of empty blocks and cells.] The generators may directly query whether a given block or cell exists. If the generators attempt to move to an empty block or access an empty cell, the MatrixCursor will throw an exception because there is no meaningful memory address which can be associated with that logical location. Pre-emptively checking for these cases makes the generation code much cleaner.
+
+    \item[Retrieving information about the active block.] This information includes the block shape \texttt{bk, bn}, sparsity pattern, and pattern index. This is inessential, but has proven convenient for implementing GeneralSparse.
+
+    \end{description}
+
+
+
+    - Transparently handling different sparsity patterns
+        - Transparently handle different block decompositions
+        - Transparently handling different layouts such as column-major dense,CSC, BCSC, BCSR, etc
+        - Transparently handling different memory addressing schemes such as pointer-offset and scale-index
+
+
+    What does the matrix cursor interface look like?
+
     \begin{itemize}
     \item \verb|has_nonzero_block(pointer, block_coords) -> bool|
     \item \verb|has_nonzero_cell(pointer, cell_coords) -> bool|
     \item \verb|move(pointer, block_coords) -> (new_pointer, statement)|
     \item \verb|look(pointer, cell_coords) -> (new_pointer, memory_address)|
     \end{itemize}
+
+
+    What cursors exist?
+
+    * Minicursor
+    * DenseCursor
+    * TiledCursor
+    * BlockCursor
+    
+    * BCSR
+    * SIBlockCursor
 
 \section{Symbolic execution and reification}
 

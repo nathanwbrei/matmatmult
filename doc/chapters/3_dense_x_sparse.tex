@@ -1,10 +1,7 @@
 \chapter{Dense-by-Sparse Algorithms}
 \label{chapter:algs}
 
-The main focus of this thesis is on improving the performance of small \emph{dense-by-sparse} matrix multiplication by encoding the sparsity pattern into the instruction stream while still using vector registers and caches as efficiently as possible. 
-
-
-Show the flowchart of different options
+The main focus of this thesis is on improving the performance of small dense-by-sparse matrix multiplication algorithms. It is necessary to finesse around the bottlenecks that constrain the approaches described in the previous chapter. The extra information which makes this possible is the sparsity pattern known at compile time. Figure~\ref{fig:dxsp} shows the different algorithms under consideration and the relationship between them. The starting point is the outer-product formulation generated from \texttt{libxsmm}. This can be immediately adapted into SparseMicrokernel, 
 
 \begin{figure}[H]
   \centering
@@ -15,13 +12,28 @@ Show the flowchart of different options
 
 
 \section{Sparse Microkernel}
-Idea: Build off of the state of the art for small dense gemm
+
+The SparseMicrokernel is our first attempt to account for the sparsity pattern while building off of the state of the art for dense matrix multiplication. Our key assumption is that the matrices A and C are small enough to fit entirely in registers: $(n + k) * (m/8) <= 32$. Generating the dense GEMM for this problem effectively extracts the dense microkernel. This microkernel has no loops (otherwise it couldn't amortize the cost of loading and storing A and C) and this makes it easy to modify.
+
+The sparse microkernel is a straightforward modification of the dense microkernel. All FMA instructions \texttt{C[:,ni] += A[:,ki] .* B[ki, ni]} where \texttt{B[ki, ni] = 0} due to the sparsity pattern are removed. This is tricky to do in a general way; an abstraction designed for the purpose is described at length in Section X.XX. Next, any loads of a column of A corresponding to an empty row of B are removed. Finally, any loads and stores of a column of C corresponding to an empty column of B are removed. This last step is often not desirable, as shall be discussed later, so the option is controlled by a parameter.
+
+Now we consider the format of the sparse matrix B. Keeping B dense is suboptimal because the algorithm will be streaming adjacent nonzeros and it would be helpful if they occupied the same cache line. Breuer and Heinecke used a \emph{virtual} compressed sparse column format, where the nonzeros were laid out in a plain 1D array ordered by columns. For SparseMicrokernel, a virtual compressed row format might yield the best locality, but this is insignificant because few cache lines are involved on sparse matrices of this size. Having chosen the format, the next step is to choose an addressing scheme for the elements of the sparse matrix. The simplest scheme is to use pointer-offset addressing, where the pointer is in a register and the offset is hardcoded, such as \texttt{rsi + 22}. The downside of this approach is that when the offset is greater than 128*8, (i.e. there are more than 128 nonzeros in B), the resulting FMA instructions take up 10 bytes, which will cause a bottleneck as described in section X.XX. A more sophisticated scheme uses scale-index addressing, which uses two registers and two hardcoded values, such as \texttt{B + 8*i + 22}. These FMA instructions only take up 7 bytes; their main downside is that the generated code becomes harder to understand.
+
+Another question is alignment. The alignment of B is not particularly important because its elements are loaded one at a time, but very important for A and C, which are loaded in a vectorwise fashion. If not aligned on a 64-byte boundary, the vector load operation will suffer a delay because the data is split across two cache lines. Using the aligned vector load operation \texttt{vmovapd} will trigger a segmentation fault if the pointer is not actually aligned. On the other hand, the unaligned version \texttt{vmovupd} can handle both the aligned and unaligned case, and will not incur the penalty if the pointer is in fact aligned. 
+
+The performance of SparseMicrokernel shall be explored in Section X.XX. It is clear that removing the FMA instructions decreases the arithmetic intensity, and if the nonzeros are evenly distributed, there will be no accompanying decrease in memory bandwidth. Nevertheless the algorithm remains compute-bound and hence experiences an improved time-to-solution compared to its dense counterpart. Regardless of performance, SparseMicrokernel has limited utility in real problems, since it can only be applied to extremely small matrices. It is valuable primarily as a building block for the more complex algorithms developed next.
+
+* What does the pseudocode look like?
+
 \begin{itemize}
-    \item Assume A is dense, B is sparse
+    \item Assume a dense A and a sparse B, with a fixed pattern known at compile time. As discussed in Section X.XX, 
     \item Pack B into a virtual compressed-sparse-row or column format
-    \item Remove all FMA and load instructions which are not needed
+    \item Remove all fused-multiply-add and load instructions which are not needed
     \item Make this the basic building block for more complicated algorithms 
 \end{itemize}
+
+
+
 
 However, this has the following limitations:
 \begin{itemize}
@@ -32,24 +44,6 @@ However, this has the following limitations:
 \end{itemize}
 
 
-\section{Unrolled dense-by-sparse multiplication}
-
-Generate sparse microkernels for each (k,n) block of B, and unroll these into the instruction stream.
-\begin{itemize}
-      \item[$+$] Supports arbitrary matrix sizes
-      \item[$+$] Dense-style register blocking for a dense $\times$ sparse algorithm.
-      \item[$+$] Does not fill in any zeros -- no wasted flops
-
-      \item[$-$] Generates an FMA instruction for each nonzero
-      \item[$-$] These FMA instructions are 10B, too large to stream
-      \item[$-$] Irregular location of blocks in memory prevents using tricks to reduce instruction size
-      \item[$-$] Total number of nonzeros is limited by size of instruction cache.
-
-\end{itemize}
-
-The basic idea behind SparseMicrokernel is to extend the dense outer-product formulation (used
-by libxsmm, GotoBLAS, and others) to perform dense-by-sparse matrix multiplication in way which
-takes advantage of the AVX512 vector registers. The original algorithm loads an entire block of A
 
 
 The SparseMicrokernel algorithm is a straightforward modification: FMA instructions which operate on 
@@ -87,6 +81,22 @@ Eliminating the unnecessary instructions reduces both computational intensity an
            move C down 1 block
       \end{minted}
 \end{figure}
+
+
+\section{Unrolled dense-by-sparse multiplication}
+
+Generate sparse microkernels for each (k,n) block of B, and unroll these into the instruction stream.
+\begin{itemize}
+      \item[$+$] Supports arbitrary matrix sizes
+      \item[$+$] Dense-style register blocking for a dense $\times$ sparse algorithm.
+      \item[$+$] Does not fill in any zeros -- no wasted flops
+
+      \item[$-$] Generates an FMA instruction for each nonzero
+      \item[$-$] These FMA instructions are 10B, too large to stream
+      \item[$-$] Irregular location of blocks in memory prevents using tricks to reduce instruction size
+      \item[$-$] Total number of nonzeros is limited by size of instruction cache.
+
+\end{itemize}
 
 
 \section{Tiled dense-by-sparse multiplication}
