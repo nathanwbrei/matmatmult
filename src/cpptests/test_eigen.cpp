@@ -4,7 +4,7 @@
 #include <Eigen/Sparse>
 #include <unsupported/Eigen/SparseExtra>
 
-#include "../../include/VirtualSparse.hpp"
+#include "../../include/EigenBindings.hpp"
 
 using namespace Eigen;
 
@@ -20,7 +20,7 @@ int main()
   std::cout << m << std::endl;
 
   SparseMatrix<double, ColMajor> mm;
-  loadMarket(mm, "star.mtx");
+  loadMarket(mm, "src/cpptests/star.mtx");
   mm *= 2.0;
   std::cout << "Loaded from MTX" << std::endl;
   std::cout << mm * 1.0 << std::endl;
@@ -42,8 +42,8 @@ int main()
   std::cout << "Comparison: " << std::endl;
   std::cout << (d == c) << std::endl;
 
-  VcscMatrix v(mm);
-  std::cout << "VirtualSparse: " << v << std::endl;
+  auto v = to_csc(mm);
+  std::cout << "VirtualSparse: " << *v << std::endl;
   
 }
 

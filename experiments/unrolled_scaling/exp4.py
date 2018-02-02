@@ -11,6 +11,7 @@ from experiments.harness import *
 
 from parameters import *
 from generators.dxsp_tiled import make_alg as make_mn_loop
+from codegen.matrix import Matrix
 
 from random import randint, seed
 
@@ -114,17 +115,4 @@ def make(m=128, n=28, k=128, bm=8, bn=28, bk=4, iters=35*2, dnnz=50) -> str:
     B_dense.clear();
     """
     return harness.make("exp4/exp4.cpp")
-
-
-#make()
-
-
-
-if __name__=="__main__":
-    print("Generating exp4.cpp ...")
-    make()
-    print("Compiling and deploying to cluster ...")
-    from deployment import *
-    e = Experiment("exp4")
-    run(e)
 

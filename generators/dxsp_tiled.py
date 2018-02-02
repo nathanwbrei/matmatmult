@@ -1,6 +1,6 @@
 
-from algorithms.registerblocks import *
-from algorithms.matmults import make_gemm
+from components.registerblock import *
+from components.microkernel import make_microkernel
 from cursors import *
 from codegen import *
 from codegen.forms import loop
@@ -100,7 +100,7 @@ def make_kt_unroll(p: TiledParameters,
         to_A_block = Coords(right=Bki)
         to_B_block = to_B_panel + Coords(down=Bki)
         if p.B.has_nonzero_block(B_ptr, to_B_block):
-            asm.add(make_gemm(p, A_ptr, to_A_block, B_ptr, to_B_block))
+            asm.add(make_microkernel(p.A, p.B, A_ptr, B_ptr, p.A_regs, p.C_regs, to_A_block, to_B_block))
 
     asm.add(move_register_block(p.C, C_ptr, Coords(), p.C_regs, mask, store=True))
     return asm

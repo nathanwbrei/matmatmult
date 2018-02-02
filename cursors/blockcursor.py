@@ -202,3 +202,10 @@ class BlockCursorDef(CursorDef):
         return Matrix(self.offsets._underlying != -1)
 
 
+
+def minicursor(name: str, base_ptr: Register, pattern: Matrix[bool]):
+    rows, cols = pattern.shape
+    cursor = BlockCursorDef(name, base_ptr, rows, cols, rows, cols, Matrix([[0]]), [pattern])
+    return cursor
+
+

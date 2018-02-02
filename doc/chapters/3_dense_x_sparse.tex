@@ -12,6 +12,7 @@ Another point of confusion is naming iteration variables. This work adopts the f
     <units>     ::= b | B | v | V
     <dimension> ::= m | n | k | l
   \end{minted}
+
 The units indicates what is being counted or iterated over:
 
     \begin{tabular}{cll}
@@ -298,11 +299,11 @@ This algorithm is subject to the following constraints:
 
 \end{enumerate}
 
-Automatically choosing GeneralSparse parameters is ...
 
 GeneralSparse degrades gracefully, similar to TiledSparse. As the matrices grow larger and denser, satisfying constraints (1) and (2) will lead to the unique blocks merging (and thereby filling in) until the algorithm resembles BlockSparse or TiledSparse. However, the overhead due to the indirect jumps means that BlockSparse or TiledSparse will prove to be more performant choice past a certain size.
 
 
+How do we automatically choose GeneralSparse parameters?
 
 \section{Extracted diagonal}
 

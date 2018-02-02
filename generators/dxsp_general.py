@@ -1,6 +1,6 @@
 
-from algorithms.registerblocks import *
-from algorithms.matmults import make_microkernel
+from components.registerblock import *
+from components.microkernel import make_microkernel
 
 from cursors import *
 from codegen.ast import *
@@ -14,12 +14,12 @@ from parameters import Parameters
 
 class GeneralParameters(Parameters):
 
-    A: CursorDef
-    B: CursorDef
-    C: CursorDef
+    A: DenseCursorDef
+    B: BlockCursorDef
+    C: DenseCursorDef
     A_regs: Matrix[Register]
     C_regs: Matrix[Register]
-    blocks: Matrix[float]
+    blocks: Matrix[int]
     patterns: List[Matrix[bool]]
 
 
@@ -75,11 +75,6 @@ def choose_params(params: Parameters) -> GeneralParameters:
     return GeneralParameters(params, blocks, patterns)
 
 
-
-def minicursor(name: str, base_ptr: Register, pattern: Matrix[bool]):
-    rows, cols = pattern.shape
-    cursor = BlockCursorDef(name, base_ptr, rows, cols, rows, cols, Matrix([[0]]), [pattern])
-    return cursor
 
 
 def make_alg(p: GeneralParameters) -> Block:

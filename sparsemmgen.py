@@ -5,7 +5,7 @@ import argparse
 from codegen import *
 from codegen.ccode import make_cfunc
 from parameters import Parameters
-from generators import dxsp_auto, dxsp_general, dxsp_tiled, dxsp_unrolled, dxsp_blocked
+from generators import dxsp_auto, dxsp_general, dxsp_tiled, dxsp_unrolled, dxsp_blocked, dxsp_microkernel
 
 
 mtx_formats = ['any','csc','csr','bsc','bsr','bcsc','bcsr']
@@ -14,6 +14,7 @@ output_formats = ['cpp','gas','pretty']
 
 generator_dict = {
 			"auto":     dxsp_auto,
+			"micro":    dxsp_microkernel,
 			"unrolled": dxsp_unrolled,
 			"tiled":    dxsp_tiled,
 			"blocked":  dxsp_blocked,

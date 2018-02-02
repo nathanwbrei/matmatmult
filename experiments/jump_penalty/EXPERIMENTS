@@ -1,0 +1,15 @@
+EXPERIMENTS
+
+1. KNL dense vs sparse vs unrolled (Is there an ots sparse gemm I can use?)
+2. Instruction cache saturation for unrolled
+3. Breaking past the instruction cache saturation problem: Cost of an indirect jump
+4. Performance of Seissol proxy
+
+
+
+* Tiled vs blocked vs padded vs general
+* padded vs padded with extracted diagonal
+* Diagonal?
+* Tensor?
+
+* Beta=0
