@@ -1,7 +1,50 @@
 \chapter{Dense-by-Sparse Algorithms}
 \label{chapter:algs}
 
-The main focus of this thesis is on improving the performance of small dense-by-sparse matrix multiplication algorithms. It is necessary to finesse around the bottlenecks that constrain the approaches described in the previous chapter. The extra information which makes this possible is the sparsity pattern known at compile time. Figure~\ref{fig:dxsp} shows the different algorithms under consideration and the relationship between them. The starting point is the outer-product formulation generated from \texttt{libxsmm}. This can be immediately adapted into SparseMicrokernel, 
+The main focus of this thesis is on improving the performance of small dense-by-sparse matrix multiplication algorithms. It is necessary to finesse around the bottlenecks that constrain the approaches described in the previous chapter. The extra information which makes this possible is the sparsity pattern known at compile time. Figure~\ref{fig:dxsp} shows the different algorithms under consideration and the relationship between them. The starting point is the outer-product formulation generated from \texttt{libxsmm}. This forms the basis of SparseMicrokernel. 
+
+There exist well-established conventions for naming variables inside matrix multiplication algorithms. 
+The use of the letters m,n,k is unavoidable. However, the conventions become less clear when the loops are nested over blocks, vectors, and cells.
+Another point of confusion is naming iteration variables. This work adopts the following naming conventions:
+
+  \begin{minted}[fontsize=\footnotesize]{text} 
+    <var>       ::= [<units>] <dimension> [i]
+    <units>     ::= b | B | v | V
+    <dimension> ::= m | n | k | l
+  \end{minted}
+The units indicates what is being counted or iterated over:
+
+    \begin{tabular}{cll}
+\toprule
+Units    & Mnemonic & Meaning \\
+\midrule
+
+none  & Cell          & Cells in the matrix      \\
+b     & Intra-block   & Cells in a block         \\
+B     & Inter-block   & Blocks in the matrix     \\
+v     & Intra-vector  & Cells in a block         \\
+V     & Inter-vector  & Vectors in a block       \\
+\bottomrule
+\end{tabular}
+
+The dimension indicates 
+
+\begin{tabular}{cl}
+\toprule
+Dimension    & Meaning \\
+\midrule
+m & Rows of A and C \\
+n & Columns of B and C \\
+k & Columns of A, rows of B \\
+l & The third dimension of A and C\\
+\bottomrule
+\end{tabular}
+
+
+Finally, 'i' indicates that this is an iteration variable.
+For example, one may confidently assume that the variable $bni \in [0, bn-1]$ iterates cell-by-cell across columns of B and C within the current block.
+
+
 
 \begin{figure}[H]
   \centering
@@ -9,6 +52,9 @@ The main focus of this thesis is on improving the performance of small dense-by-
   \label{fig:dxspfamilies}
   \caption{Relationships between different dense-by-sparse multiplication algorithms}
 \end{figure}
+
+
+
 
 
 \section{Sparse Microkernel}
