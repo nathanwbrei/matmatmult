@@ -19,6 +19,9 @@ class MicroParameters(Parameters):
 
         self.A_regs, self.C_regs = make_reg_blocks(self.m, self.n, self.k)
 
+    def make(self):
+        return make_alg(self)
+
 
 
 def choose_params(p: Parameters) -> Parameters:

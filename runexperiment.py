@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3
 
 from experiments import *
+from experiments.proof_of_concept.exp1 import make as make_proof_of_concept
 from experiments.unrolled_scaling.exp4 import make as make_unrolled_scaling
 from experiments.jump_penalty.jump_penalty import make as make_jump_penalty
 
@@ -10,6 +11,11 @@ import argparse
 
 
 exps = [
+    Experiment(name = "exp1", 
+               text = "Proof of concept",
+               reldir = "experiments/proof_of_concept",
+               make_cpp = make_proof_of_concept),
+
     Experiment(name = "exp3", 
                text = "DxSpUnrolled scaling study",
                reldir = "experiments/unrolled_scaling",
