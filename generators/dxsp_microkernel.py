@@ -1,39 +1,57 @@
 
 
 from codegen import *
-from cursors import DenseCursorDef
-from components import microkernel
+from cursors import *
+from components.microkernel import make_microkernel
+from components.registerblock import *
 from parameters import Parameters
 
 
-def MicroParameters(Parameters):
+class MicroParameters(Parameters):
 
-	def __init__(self, basic_params: Parameters):
+    def __init__(self, basic_params: Parameters, pattern: Matrix[bool]) -> None:
 
-		super().__init__(**basic_params.__dict__)
+        super().__init__(**basic_params.__dict__)
 
-		self.A = DenseMatrixCursor()
-		self.B = None
-		self.A_regs = None
-		self.C_regs = None
+        self.A = DenseCursorDef("A", rdi, self.m, self.k, self.lda, self.m, self.k)
+        self.B = minicursor("B", rsi, pattern)
+        self.C = DenseCursorDef("C", rdx, self.m, self.n, self.ldc, self.m, self.n)
 
-
-
-def choose_params(params: Parameters) -> Parameters:
-    print("dxsp_microkernel.choose_params")
-    return params
+        self.A_regs, self.C_regs = make_reg_blocks(self.m, self.n, self.k)
 
 
 
-def make_alg(params: Parameters) -> Block:
+def choose_params(p: Parameters) -> Parameters:
 
-	A_ptr = CursorLocation(Coords(), Coords())
-	B_ptr = self.B.get_start_location()
-	C_ptr = CursorLocation(Coords(), Coords())
+    pattern = Matrix.load_pattern(p.mtx_filename)
+    pp = MicroParameters(p, pattern)
 
-	asm = BlockBuilder("MicroSparse GEMM")
-	asm.include(microkernel.make_alg(self.A, self.B, A_ptr, B_ptr, self.A_regs, self.C_regs, to_A_block, to_C_block))
-	return asm
+    if pp.output_funcname is None:
+        pp.output_funcname = f"microsparse_{p.m}x{p.n}x{p.k}"
 
+    # TODO: Ensure MTX matches provided m,k
+    # TODO: Ensure whole thing fits
+
+    return pp
+
+
+
+def make_alg(self: MicroParameters) -> Block:
+
+    A_ptr = CursorLocation(Coords(0,0,absolute=True), Coords())
+    B_ptr = self.B.start_location()
+    C_ptr = CursorLocation(Coords(0,0,absolute=True), Coords())
+    to_A_block = Coords()
+    to_B_panel = Coords()
+    to_C_block = Coords()
+
+    mask = C_mask(self.C_regs, self.C, C_ptr, Coords(), self.B, B_ptr, to_B_panel, tiled=False)
+
+    asm = block("MicroSparse GEMM")
+    asm.add(move_register_block(self.C, C_ptr, Coords(), self.C_regs, mask, store=False))
+    asm.add(make_microkernel(self.A, self.B, A_ptr, B_ptr, self.A_regs, self.C_regs, to_A_block, to_C_block))
+    asm.add(move_register_block(self.C, C_ptr, Coords(), self.C_regs, mask, store=True))
+
+    return asm
 
 
