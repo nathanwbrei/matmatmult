@@ -1,6 +1,6 @@
 
 from codegen import *
-from parameters import Parameters
+from components.parameters import Parameters
 
 def choose_params(params: Parameters) -> Parameters:
     print("dxsp_auto.choose_params")

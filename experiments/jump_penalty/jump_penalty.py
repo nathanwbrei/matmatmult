@@ -6,7 +6,7 @@ from experiments.harness2 import HarnessBuilder
 from generators.dxsp_general import choose_params as general_params
 from generators.libxsmm import choose_params as libxsmm_params
 from codegen.matrix import Matrix
-from parameters import Parameters
+from components.parameters import Parameters
 
 def random_pattern(nnz, k, n, seed):
     random.seed(seed)

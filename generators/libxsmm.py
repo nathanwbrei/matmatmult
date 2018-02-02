@@ -1,5 +1,5 @@
 from typing import NamedTuple
-from parameters import Parameters
+from components.parameters import Parameters
 import subprocess
 
 path_to_libxsmm = "../libxsmm/bin/libxsmm_gemm_generator"

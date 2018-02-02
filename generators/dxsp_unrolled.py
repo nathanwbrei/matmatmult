@@ -1,4 +1,4 @@
-from parameters import Parameters
+from components.parameters import Parameters
 from codegen import *
 
 def choose_params(params: Parameters) -> Parameters:

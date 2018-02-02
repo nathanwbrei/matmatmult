@@ -9,7 +9,7 @@ import traceback
 from sys import argv
 
 import sparsemmgen
-from parameters import Parameters
+from components.parameters import Parameters
 
 
 def delegate():

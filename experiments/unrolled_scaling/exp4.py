@@ -6,14 +6,12 @@
 # Next thing to try is unrolling the n loop! => 256x256x256
 # Then go back and try tilesparse with fringes
 
-
-from experiments.harness import *
-
-from parameters import *
-from generators.dxsp_tiled import make_alg as make_mn_loop
-from codegen.matrix import Matrix
-
 from random import randint, seed
+
+from codegen.matrix import Matrix
+from components.parameters import Parameters
+from experiments.harness import *
+from generators.dxsp_tiled import make_alg as make_mn_loop
 
 
 

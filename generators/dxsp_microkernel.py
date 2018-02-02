@@ -4,7 +4,7 @@ from codegen import *
 from cursors import *
 from components.microkernel import make_microkernel
 from components.registerblock import *
-from parameters import Parameters
+from components.parameters import Parameters
 
 
 class MicroParameters(Parameters):

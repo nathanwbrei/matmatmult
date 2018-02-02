@@ -1,15 +1,13 @@
 
 from components.registerblock import *
 from components.microkernel import make_microkernel
+from components.parameters import Parameters
 
 from cursors import *
 from codegen.ast import *
 from codegen.sugar import *
 from codegen.forms import *
 
-
-
-from parameters import Parameters
 
 
 class GeneralParameters(Parameters):

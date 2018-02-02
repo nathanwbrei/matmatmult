@@ -4,7 +4,7 @@ import argparse
 
 from codegen import *
 from codegen.ccode import make_cfunc
-from parameters import Parameters
+from components.parameters import Parameters
 from generators import dxsp_auto, dxsp_general, dxsp_tiled, dxsp_unrolled, dxsp_blocked, dxsp_microkernel
 
 

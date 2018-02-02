@@ -2,7 +2,7 @@
 from codegen import *
 from cursors import *
 from components.registerblock import make_reg_blocks
-from parameters import Parameters
+from components.parameters import Parameters
 
 
 class BlockedParameters(Parameters):
