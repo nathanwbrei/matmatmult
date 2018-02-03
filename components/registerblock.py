@@ -1,9 +1,6 @@
 
-from codegen.coords import Coords
-from codegen.sugar import *
-from codegen.matrix import *
-
-from cursors.abstractcursor import *
+from codegen import *
+from cursors import *
 
 
 

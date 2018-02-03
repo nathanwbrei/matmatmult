@@ -8,7 +8,7 @@
 
 from random import randint, seed
 
-from codegen.matrix import Matrix
+from cursors.matrix import Matrix
 from components.parameters import Parameters
 from experiments.harness import *
 from generators.dxsp_tiled import make_alg as make_mn_loop

@@ -1,13 +1,8 @@
-
-
-from cursors.abstractcursor import CursorDef, CursorLocation, BlockInfo
-from codegen.ast import AsmStmt
-from codegen.sugar import add
-from codegen.operands import Register, MemoryAddress
-from codegen.matrix import Matrix
-from codegen.coords import Coords
-
 from typing import List, Tuple, cast
+
+from codegen import *
+from cursors import *
+
 
 
 class TiledCursorDef(CursorDef):

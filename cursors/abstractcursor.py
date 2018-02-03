@@ -1,7 +1,7 @@
 from codegen.operands import MemoryAddress, Register
 from codegen.ast import AsmStmt, Command
-from codegen.matrix import Matrix
-from codegen.coords import Coords
+from cursors.matrix import Matrix
+from cursors.coords import Coords
 
 from typing import NamedTuple, List, Tuple
 

@@ -2,7 +2,7 @@
 import random
 import os
 
-from codegen.matrix import Matrix
+from cursors.matrix import Matrix
 from components.parameters import Parameters
 from experiments.harness2 import HarnessBuilder
 from generators.dxsp_microkernel import choose_params as micro_params

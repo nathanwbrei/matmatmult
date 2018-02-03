@@ -6,7 +6,7 @@ import random
 from experiments.harness import *
 from generators.dxsp_general import make_alg, GeneralParameters
 from components.parameters import Parameters
-from codegen.matrix import Matrix
+from cursors.matrix import Matrix
 
 def random_pattern(nnz, k, n, seed):
     random.seed(seed)

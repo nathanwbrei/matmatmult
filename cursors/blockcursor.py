@@ -1,4 +1,7 @@
 from cursors.abstractcursor import *
+from cursors.matrix import Matrix
+from cursors.coords import Coords
+
 from codegen.sugar import *
 from typing import cast # TODO: Use function overloads correctly now that I know how
 
