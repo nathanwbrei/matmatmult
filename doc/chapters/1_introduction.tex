@@ -25,13 +25,18 @@
 
 \section{Hardware Constraints}
 
-Although the motivation is straightforward, it is growing increasingly difficult to implement in practice because it is working against current trends in computer architecture. An increasing number of the top500 computers are using GPUs or Xeon Phis. This trend is likely to continue because it allows greater parallelism at a lower energy cost. It was desired to run the code on LRZ's CoolMUC3 cluster, which uses Knights Landing.
+Although the motivation is straightforward, it is growing increasingly difficult to implement in practice because it is working against current trends in computer architecture. An growing number of the top500 computers are using GPUs or Xeon Phis. This trend is likely to continue because it allows greater parallelism at a lower energy cost. It was desired to run the code on LRZ's CoolMUC3 cluster, which uses Knights Landing.
 
-Knights Landing (KNL) is the second-generation Intel Xeon Phi, a manycore processor. Unlike its predecessor, Knights Corner, KNL is a host processor rather than a coprocessor, which means that it can run the entire x86-64 instruction set, albeit with a performance penalty for some operations. Each processor contains \~64 cores with 4 hyperthreads per core, resulting in 256 logical CPUs. The instruction-level parallelism is similarly impressive, being the first processor to implement the AVX-512 instruction set extensions. These provide 32 vector registers, each of which holds 64 bytes, allowing 8 double-precision floating point numbers to be operated on simultaneously in each vector processing unit (VPU). Instruction-level performance is further enhanced by a more featureful fused-multiply-add (FMA) instruction, which performs $c := c + a*b$ in a single cycle, optionally including a broadcast and a mask. Thus the theoretical peak performance of a single core is given as:
+Knights Landing (KNL) is the second-generation Intel Xeon Phi, a manycore processor that offers greater parallelism and less power consumption in exchange for a slower clock speed. An overview is given by~\cite{Sodani2016KnightsLS} and a more comprehensive resource is given by~\cite{Jeffers:2016:IXP:3050856}. Unlike its predecessor, Knights Corner, KNL is a host processor rather than a coprocessor, which means that it can run the entire x86-64 instruction set, albeit with a performance penalty for some operations. KNL has two kinds of memory, a high-bandwidth MCDRAM and a high-capacity DDR4. Each processor contains \~64 cores with 4 hyperthreads per core, resulting in 256 logical CPUs. The instruction-level parallelism is similarly impressive, being the first processor to implement the AVX-512 instruction set extensions. These provide 32 vector registers, each of which holds 64 bytes, allowing 8 double-precision floating point numbers to be operated on simultaneously in each vector processing unit (VPU). Instruction-level performance is further enhanced by an enhanced fused-multiply-add (FMA) instruction, which performs $c := c + a*b$ in a single cycle, optionally including a broadcast and a mask. Thus the theoretical peak performance of a single core is given as:
 
-\[2 \frac{VPUs}{core} \times  = 3 {double TFlop}{sec}\]
+\begin{equation}
+  2 \frac{VPUs}{core} \times  = 3 {double TFlop}{sec}
+  \label{eq:knl_peak_perf}
+\end{equation}
 
-This peak performance is in practice merely an upper bound, as it assumes a steady-state throughput of 2 FMAs per cycle. The only algorithms which performs anywhere near this bound are dense matrix multiplication and (to a lesser extent) LU and Cholesky factorization. If the algorithm is not able to be vectorized at all, the attainable performance drops by a factor of 8, and if it cannot use the FMA instructions, it drops by a further factor of 2. The standard sparse multiplication algorithms rely heavily on. 
+\[\]
+
+This peak performance is in practice merely an upper bound, as it assumes a steady-state throughput of 2 FMAs per cycle. The only algorithms which come close to achieving this are dense matrix multiplication and (to a lesser extent) LU and Cholesky factorization. If the algorithm is not able to be vectorized at all, the attainable performance drops by a factor of 8, and if it cannot use the FMA instructions, it drops by a further factor of 2. This fundamentally limits 
 
 \begin{itemize}
     \item Scalar operations limited to 1/8 peak performance
@@ -39,6 +44,12 @@ This peak performance is in practice merely an upper bound, as it assumes a stea
     \item Bottleneck with instruction cache, decoder: min(16B/cycle, 2 instructions)
     \item \textbf{Out-of-order execution pipeline can only issue 2 instructions per cycle}
 \end{itemize}
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=\textwidth]{images/knl_arch.pdf}
+\caption{Block diagram of the Knights Landing architecture, taken from~\cite{Sodani2016KnightsLS}. As shown in (a), each processor is divided into 36 tiles connected in a 2D mesh. As shown in (b), each tile contains 2 cores and a shared L2 cache. Each core has two VPUs and its own L1 caches.}
+\end{figure}
 
 \section{Previous approaches}
 
@@ -92,10 +103,6 @@ This peak performance is in practice merely an upper bound, as it assumes a stea
 
 \comment{You can also put comments in the margins for you or your advisor}
 
-\begin{equation}
-	\pi = \mathrm{e}^{i\cdot\phi}
-	\label{eq:equation1}
-\end{equation}
 
 \begin{listing}
 	%the language syntax can be declared here.
