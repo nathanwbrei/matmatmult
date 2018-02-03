@@ -103,33 +103,6 @@ memory address for each cell is done using a high-level cursor abstraction, as d
 Eliminating the unnecessary instructions reduces both computational intensity and memory traffic.
 
 
-\begin{figure}[ht]
-      \begin{minted}[fontsize=\footnotesize]{text}
-        {text}
-        loop over m blocks:
-
-           unroll loop over n blocks:
-
-              load C block into registers
-
-              unroll loop over k blocks:
-
-                 load A block into registers
-                 microkernel for current B block
-                 move A right 1 block
-                 move B down 1 block
-
-              store C block from registers
-              move A to far left
-              move B to top + right 1 block
-              move C right 1 block
-
-           move A down 1 block
-           move C down 1 block
-      \end{minted}
-\end{figure}
-
-
 \section{Unrolled dense-by-sparse multiplication}
 
 
@@ -245,11 +218,74 @@ Generate sparse microkernels for each (k,n) block of B, and unroll these into th
       \]    \caption{GeneralSparse}
     \label{fig:generalblocks}
   \end{subfigure}
-  \caption{Sample matrices illustrating the blocking constraints for different GEMM algorithms. As shown in~\ref{fig:tiledblocks}, TiledSparse
-  admits only a single block pattern which is tiled perfectly over the entire matrix. BlockedSparse admits a single block pattern along with empty blocks. GeneralSparse relaxes further to admit multiple different patterns. The numbers indicate the cell's index when using a block compressed-sparse-row format. }
+  \caption{Sample matrices illustrating the blocking constraints for different GEMM algorithms. TiledSparse admits only a single block pattern which is tiled perfectly over the entire matrix. BlockedSparse admits a single block pattern along with empty blocks. GeneralSparse relaxes further to admit multiple different patterns. The numbers indicate the cell's index when using a block compressed-sparse-row format. }
   \label{fig:matrixblocks}
 
 \end{figure}
+
+
+
+
+\begin{figure}[ht]
+  \begin{subfigure}[b]{0.45\textwidth}
+      \begin{minted}[linenos=false,fontsize=\footnotesize]{text}
+        loop over m blocks:
+
+           unroll loop over n blocks:
+
+              load C block into registers
+
+              unroll loop over k blocks:
+
+                 load A block into registers
+                 blockwise C += A * B
+                 move A right 1 block
+                 move B down 1 block
+
+              store C block from registers
+              move A to far left
+              move B to top + right 1 block
+              move C right 1 block
+
+           move A down 1 block
+           move C down 1 block
+      \end{minted}    
+      \caption{Pseudocode for UnrolledSparse}
+    \label{fig:pseudocode_unrolled}
+  \end{subfigure}
+  ~~~~~~
+  \begin{subfigure}[b]{0.45\textwidth}
+      \begin{minted}[linenos=false,fontsize=\footnotesize]{text}
+        loop over m blocks:
+
+           loop over n blocks:
+
+              load C block into registers
+
+              unroll loop over k blocks:
+
+                 load A block into registers
+                 blockwise C += A * B
+                 move A right 1 block
+                 move B down 1 block
+
+              store C block from registers
+              move A to far left
+              move B to top + right 1 block
+              move C right 1 block
+
+           move A down 1 block
+           move C down 1 block
+      \end{minted}    
+      \caption{Pseudocode for TiledSparse}
+    \label{fig:pseudocode_tiled}
+
+  \end{subfigure}
+    \caption{Pseudocode for UnrolledSparse and TiledSparse. UnrolledSparse unrolls two inner loops, emitting a microkernel for every block of B. TiledSparse unrolls only the innermost loop, emitting a microkernel for every (identical) block in one panel of B.}
+    \label{fig:pseudocode_unrolled_tiled}
+
+\end{figure}
+
 
 
 \section{Tiled dense-by-sparse multiplication}

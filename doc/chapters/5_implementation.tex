@@ -36,6 +36,8 @@ The third main entry point is \texttt{runexperiment}, which generates a
 \begin{itemize}
 	\item Choice of language/patterns
 	\item Inspiration from older languages
+    \item AST
+
 \end{itemize}
 
 \begin{itemize}
@@ -66,35 +68,80 @@ The third main entry point is \texttt{runexperiment}, which generates a
 
     \item[Handling the case of empty blocks and cells.] The generators may directly query whether a given block or cell exists. If the generators attempt to move to an empty block or access an empty cell, the MatrixCursor will throw an exception because there is no meaningful memory address which can be associated with that logical location. Pre-emptively checking for these cases makes the generation code much cleaner.
 
-    \item[Retrieving information about the active block.] This information includes the block shape \texttt{bk, bn}, sparsity pattern, and pattern index. This is inessential, but has proven convenient for implementing GeneralSparse.
+    \item[Retrieving information about the active block.] This information includes the block shape \texttt{bk, bn}, sparsity pattern, and pattern index. This is inessential, but has proven convenient for implementing nested block decompositions.
 
     \end{description}
 
+    This is achieved through the following interface:
+    \begin{listing}
+        \begin{minted}{python}
 
+            class Cursor:
+                def has_nonzero_cell(self, 
+                                     current_block: CursorLocation, 
+                                     target_block: Coords, 
+                                     target_cell: Coords) -> bool:
+                    pass
 
-    - Transparently handling different sparsity patterns
-        - Transparently handle different block decompositions
-        - Transparently handling different layouts such as column-major dense,CSC, BCSC, BCSR, etc
-        - Transparently handling different memory addressing schemes such as pointer-offset and scale-index
+                def has_nonzero_block(self, 
+                                      current_block: CursorLocation, 
+                                      dest_block: Coords) -> bool:
+                    pass
 
+                def move(self, 
+                         current_block: CursorLocation, 
+                         target_block: Coords) -> Tuple[AsmStmt, CursorLocation]:
+                    pass
 
-    What does the matrix cursor interface look like?
+                def look(self, 
+                         current_block: CursorLocation, 
+                         target_block: Coords, 
+                         target_cell: Coords) -> Tuple[MemoryAddress, str]:
+                    pass
 
-    \begin{itemize}
-    \item \verb|has_nonzero_block(pointer, block_coords) -> bool|
-    \item \verb|has_nonzero_cell(pointer, cell_coords) -> bool|
-    \item \verb|move(pointer, block_coords) -> (new_pointer, statement)|
-    \item \verb|look(pointer, cell_coords) -> (new_pointer, memory_address)|
-    \end{itemize}
+                def start_location(self, target_block: Coords) -> CursorLocation:
+                    pass
 
+                def get_block(self, current_block: CursorLocation, target_block: Coords) -> BlockInfo
+                    pass
+        \end{minted}
+        \caption{MatrixCursor interface}
+        \label{lst:matrixcursor_interface}
+    \end{listing}
 
-    What cursors exist?
+    The purpose of a matrix cursor is to separate concerns in order to keep the algorithm generation logic as clean and simple as possible. Otherwise there would be a proliferation of minor variations of the same few algorithms. The complexity which is encapsulated includes the following considerations:
 
-    * Minicursor
-    * DenseCursor
-    * TiledCursor
-    * BlockCursor
-    
+    \begin{description}
+        \item[Handling different sparsity patterns] The sparsity pattern enters the code generator as either an MTX file or a \texttt{Matrix[bool]}, and immediately gets processed by a \texttt{Cursor}. The generation algorithm interacts with the sparsity pattern primarily by calling \mintinline{python}{cursor.has_nonzero_cell(...)}. On the other hand, if the generation algorithm needs a \emph{recursive} block decomposition, it is free to extract the sparsity pattern for a given block and wrap that in a new Cursor. 
+
+        \item[Handling different block decompositions] The generation algorithm is free to iterate over m, n, and k blocks without having to explicitly consider their shape or number. It can also cleanly handle the case of non-constant block sizes, but this option must always be opt-in, as some generators, particularly TiledSparse, make regularity assumptions that this would violate. 
+
+        \item[Handling different matrix formats] Various cursors currently support column-major dense, column-major sparse, CSC, CSR, BCSC, and BCSR matrix formats. Future work could readily extend this to support diagonal formats as well. It is also important here that the generators validate that they can handle the choice of format. 
+
+        \item[Handling different memory addressing schemes] The choice of memory addressing scheme strongly affects instruction size, notably in the case of FMAs. A common optimization is to use scale-index addressing, which looks as follows:
+
+         \begin{minted}{python}
+         base_register + (scale_constant * index_register) + offset_constant
+         \end{minted}
+
+         The downside is that this involves using an unknown number of scalar registers and obfuscates the code. The generator itself is agnostic to the format of address given.
+
+    \end{description}
+
+Internally, the cursors all maintain an implicit or explicit table of offsets, mapping 
+    The following cursor implementations play various roles 
+
+    \begin{description}
+        \item[DenseCursor] supports column-major and row-major dense matrix formats including padding. It is used to traverse every dense matrix. Under the hood, it is a facade around TiledCursor.
+
+        \item[MiniCursor] handles the case of a sparse matrix which has not been divided into blocks. Under the hood, it is also a facade around TiledCursor.
+
+        \item[TiledCursor] 
+
+        \item[BlockCursor]
+        \item[GeneralBlockCursor] Note: While this has not yet been implemented, it is technically straightforward.
+    \end{description}
+
     * BCSR
     * SIBlockCursor
     * Irregular blocksize cursor. BlockedSparse and GeneralSparse
