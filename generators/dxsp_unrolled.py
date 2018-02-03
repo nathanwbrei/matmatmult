@@ -1,84 +1,112 @@
 from components.parameters import Parameters
+from components.microkernel import make_microkernel
+from components.registerblock import *
 from codegen import *
+from cursors import *
+from codegen.forms import loop
 
+#DEPRECATED
 def choose_params(params: Parameters) -> Parameters:
-    print("dxsp_unrolled.choose_params")
-    return params
+    pattern = Matrix.load(params.mtx_filename)
+    return UnrolledParameters(params, pattern)
 
-def make_alg(params: Parameters) -> Block:
-    print("dxsp_unrolled.make_alg")
-    return make_mnt_loop(params, make_kt_unroll, outer_regular=False)
+#DEPRECATED
+def make_alg(params: "UnrolledParameters") -> Block:
+    return params.make()
 
 
+def decompose_pattern(pattern:Matrix[bool], bk:int, bn:int) -> Tuple[Matrix[int], List[Matrix[bool]]]:
+    k,n = pattern.shape
+    Bk,Bn = k//bk, n//bn
+    patterns : List[Matrix[bool]] = []
+    blocks = Matrix.full(Bk,Bn,-1)
+    x = 0
 
-def make_kt_unroll(p: Parameters, Bni: int) -> Block:
-    """ Use case: SparseSparse.
-        Requirements: None
-        Choices: Move once or move on every block? For now, move on each (prep for jumping version)
-    """
-    if Bni is None:  # This means that the mnt is a loop and doesn't know its Bni
-        to_B_panel = Coords(absolute=False)
-    else:
-        to_B_panel = Coords(right=Bni, absolute=True)
+    for Bni in range(Bn):
+        for Bki in range(Bk):
+            block = pattern[(Bki*bk):((Bki+1)*bk), (Bni*bn):((Bni+1)*bn)]
+            found = False
+            for pi in range(len(patterns)):
+                if patterns[pi] == block:
+                    blocks[Bki,Bni] = pi
+                    found = True
+            if not found:
+                blocks[Bki,Bni] = x
+                x += 1
+                patterns.append(block)
 
-    Bk = (p.k // p.bk) + (p.k % p.bk != 0)
-    asm = BlockBuilder("KT unrolled " + p.name)
-    asm.include(load_register_block(p.C, p.C_regs, C_mask(p.C_regs, p.C, p.B)))
-
-    for Bki in range(0,Bk):
-        to_block = to_B_panel + Coords(down=Bki)
-        if p.B.has_nonzero_block(to_block):
-            asm.include(MatMult(p, to_A=Coords(right=Bki), to_B=to_block))
-
-    asm.include(store_register_block(p.C, p.C_regs, C_mask(p.C_regs, p.C, p.B)))
-    return asm
-
+    return blocks, patterns
 
 
 
+class UnrolledParameters(Parameters):
 
-def make_mnt_loop(p:Parameters, make_ktraveler, outer_regular=True) -> Block:
+    def __init__(self, basic_params: Parameters, pattern: Matrix[bool]) -> None:
+        super().__init__(**basic_params.__dict__)
 
-    Bm = (p.m // p.bm)
-    Bn = (p.n // p.bn)
-    if outer_regular:
-        move_B = BlockBuilder("Moving B, because it is outer-regular and we are looped.")
-        move_B.include(p.B.move(Coords(right=1), iters=1)),
-    else:
-        move_B = BlockBuilder("Not moving B, because it is outer-regular, so kt has to do a lookup")
+        blocks,patterns = decompose_pattern(pattern, self.bk, self.bn)
+        self.A = DenseCursorDef("A", rdi, self.m, self.k, self.lda, self.bm, self.bk)
+        self.B = BlockCursorDef("B", rsi, self.k, self.n, self.bk, self.bn, blocks, patterns)
+        self.C = DenseCursorDef("C", rdx, self.m, self.n, self.ldc, self.bm, self.bn)
 
-    # Undo the state change on B cursor
-    p.B.reset()
+        self.A_regs, self.C_regs = make_reg_blocks(self.bm, self.bn, self.bk)
 
-    asm = BlockBuilder(f"MNTraveler looped for {p.name}").body([
-        loop(r(13), 0, Bn*p.bn, p.bn).body([
-            loop(r(12), 0, Bm, 1).body([
 
-                make_ktraveler(p, None),
-                p.A.move(Coords(down=1), iters=Bm),
-                p.C.move(Coords(down=1), iters=Bm),
-                # TODO: Might be able to achieve A,C moves simultaneously with
-                # loop updates by using scale-index addressing.
-            ]),
-            p.A.move(Coords(down=-Bm)),
-            p.C.move(Coords(down=-Bm, right=1)),
-            move_B
-        ])
-    ])
-    print(f"A is pointing at {p.A._src_block}")
-    print(f"B is pointing at {p.B._src_block}")
-    print(f"C is pointing at {p.C._src_block}")
 
-    if p.B.bottom_fringe:
-        fringe_asm = BlockBuilder(f"Loop over right-hand fringe").body([
-            loop(r(12), 0, Bm, 1).body([  # Right-hand fringe. #TODO: Cursors need to be set correctly.
+    def make_nk_unroll(p):
 
-                make_ktraveler(p, None),
-                p.A.move(Coords(down=1), iters=Bm),
-                p.C.move(Coords(down=1), iters=Bm),
-            ])
-        ])
-        asm.include(fringe_asm)
-    return asm
+        asm = block("Unrolling over bn and bk")
+        A_ptr = CursorLocation()
+        B_ptr = p.B.start_location()
+        C_ptr = CursorLocation()
+        Bn = p.n // p.bn
+        Bk = p.k // p.bk
+
+        for Bni in range(0,Bn):
+
+            asm.add(move_register_block(p.C, C_ptr, Coords(), p.C_regs, None, False))
+
+            for Bki in range(0,Bk):
+
+                to_A = Coords(right=Bki)
+                to_B = Coords(right=Bni, down=Bki)
+
+                if p.B.has_nonzero_block(B_ptr, to_B):
+                    asm.add(make_microkernel(p.A, p.B, A_ptr, B_ptr, p.A_regs, p.C_regs, to_A, to_B))
+
+            asm.add(move_register_block(p.C, C_ptr, Coords(), p.C_regs, None, True))
+
+            if (Bni != Bn-1):
+                move_C, C_ptr = p.C.move(C_ptr, Coords(right=1))
+                asm.add(move_C)
+
+        return asm
+
+
+
+    def make(p):
+        
+        A_ptr = CursorLocation()
+        C_ptr = CursorLocation()
+
+        Bm = p.m // p.bm
+        Bn = p.n // p.bn
+
+        asm = block(f"unrolled_{p.m}x{p.n}x{p.k}",
+
+            loop(r(12), 0, Bm, 1).body(
+                p.make_nk_unroll(),
+                p.A.move(A_ptr, Coords(down=1, right=1-Bn))[0],
+                p.C.move(C_ptr, Coords(down=1, right=1-Bn))[0]
+            )
+        )
+        return asm
+
+
+
+    def validate(self):
+        pass
+
+
 
 

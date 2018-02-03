@@ -1,3 +1,7 @@
+# TODO: Plot unrolledSparse choice of block size
+# TODO: Try to forcefeed a bajillion FMA instructions
+
+
 Acronyms
 --------
 GEMM

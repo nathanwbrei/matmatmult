@@ -132,6 +132,52 @@ Eliminating the unnecessary instructions reduces both computational intensity an
 
 \section{Unrolled dense-by-sparse multiplication}
 
+
+
+0. Use the sparsemicrokernel internally. Decompose the matrix into blocks, 
+  - Switch from m,n,k to bm,bn,bk.
+
+Stream A into a ring buffer instead of loading everything at once and then storing.
+
+  - also used by libxsmm
+  - constraint on the block size to bm=8, bn=30, bk=2 => k can be arbitrary
+  - The choice of block sizes will have no effect on the 
+
+Because we aren't making any assumptions about the sparsity pattern's regularity, we must unroll the n, k loops. On the other hand, the sparsity pattern is invariant with respect to m, so there is no need to unroll the m loop. 
+
+It is essential that Bk be the innermost loop because this lets us accumulate changes to the block C[Bmi, Bni], and then store the entire block exactly once. Otherwise, the repeated storing of each block of C becomes the primary bottleneck. 
+
+Putting the $m$ loop on the outside is the best choice for two reasons. Firstly, it consolidates instructions that are free of control dependencies, which improves pipeline efficiency and gives the processor more room to amortize loads of A and C. Secondly, it dramatically reduces the number of branches. Even if branches are predicted perfectly, KNL's issue-width bottleneck ensures that the instructions to increment and compare the counter register would displace FMAs, reducing performance. 
+
+Thus there is only one reasonable ordering for our loop nest. At the innermost level we unroll over the $k$ loop, laying down a sequence of sparse microkernels corresponding to a traversal of one panel of B, moving from top to bottom in short, fat slices. In the middle level, we unroll over Bn, corresponding to a traversal across panels of B from left to right. Finally, at the outermost level, we loop over m: horizontal panels of A and C from top to bottom. This is described more precisely via pseudocode in Listing X.XX.
+
+This loop nesting looks very similar to what Goto calls GEPM\_VAR2, depicted in Figure~\ref{fig:gepm}. Note that Goto rejects this algorithm within one paragraph, making the exact opposite argument as we have made above, regarding the repeated storing of the C block. This is because Goto is focusing on a much larger scale: his C blocks fit only in the L2 cache, whereas ours fit entirely in registers: we get our inner ``GEPDot'' for free whereas his is very costly.
+
+The UnrolledSparse algorithm has three additional tuning parameters which must be chosen. These are the blocksizes bm, bn, and bk. They are subject to the following constraints:
+
+\begin{minted}{text}
+(bk + bn) * (bm / 8) <= 32  == The blocks must fit in registers
+bm % 8 = 0. The A and C blocks fit in registers
+m % 8 = 0. For now, A and C must be zero-padded. However, it is simple to extend this algorithm to mask the final row.
+1<=bk<=4, == The ring buffer is quite sufficient, and KNL has plenty of slots for register renaming.
+\end{minted}
+
+Choosing these variables automatically 
+
+There is one final constraint. Each nonzero in the sparsity pattern produces one FMA instruction. 
+
+Constraint on the number of nonzeros. Because the entire sparsity pattern is unrolled, the choice of blocksize has no effect on the amount of computation. However, it does impact the pattern of memory movement. This is difficult to predict because KNL  by the reorder buffer and hardware prefetching.
+
+
+* Take steps to avoid unnecessary numerical operations: 
+-- minimal cursor movements. E.g. B never needs to be moved at all due to hardcoded addresses. It may still be desirable to decrease the size of the generated FMAs, but this can be achieved using scale-index addressing 
+
+-- use while instead of for so that A pointer doubles as loop counter.
+
+
+* Discuss choice of block size
+
+
 Generate sparse microkernels for each (k,n) block of B, and unroll these into the instruction stream.
 \begin{itemize}
       \item[$+$] Supports arbitrary matrix sizes
