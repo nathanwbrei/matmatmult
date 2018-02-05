@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from components.parameters import Parameters
 from components.microkernel import make_microkernel
 from components.registerblock import *

@@ -66,7 +66,7 @@ if __name__=="__main__":
 
 	parser.add_argument("arch", type=str, help="Machine architecture", choices=['knl'])
 	parser.add_argument("prefetch", type=str, help="Prefetching strategy", choices=['nopf'])
-	parser.add_argument("precision", type=str, help="Prefetching strategy", choices=['SP','DP'])
+	parser.add_argument("precision", type=str, help="Floating point precision", choices=['SP','DP'])
 
 	parser.add_argument("mtx_filename", help="Path to MTX file describing the sparse matrix", nargs="?", default=None)
 	args = parser.parse_args()

@@ -2,7 +2,7 @@
 from typing import cast
 
 from codegen.sugar import *
-from codegen.coords import Coords
+from cursors.coords import Coords
 
 from components.registerblock import *
 

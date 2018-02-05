@@ -99,7 +99,9 @@
 % Set global Minted options
 \setminted{linenos, autogobble, frame=lines, framesep=2mm}
 % Inline C++ (optional)
-\newcommand{\incpp}[1]{\mintinline{c++}{#1}}
+\newcommand{\cpp}[1]{\mintinline{c++}{#1}}
+\newcommand{\py}[1]{\mintinline{python}{#1}}
+
 \newenvironment{code}{\captionsetup{type=listing}}{}
 \SetupFloatingEnvironment{listing}{name=Source Code}
 

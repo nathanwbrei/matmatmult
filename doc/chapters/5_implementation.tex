@@ -18,21 +18,35 @@ This chapter covers the decomposition of the algorithm generators described prev
 
 \subsection{libxsmmproxy}
 
-While \texttt{sparsemmgen} is designed to allow the user to control the algorithm generator precisely, it suffers from two drawbacks. Firstly, the burden of choosing the best algorithm and tuning it correctly is put entirely on the user. As the following chapter will show, performance heuristics can be derived and verified experimentally. This allows the program to automatically determine the best parameters for each algorithm, and ultimately determine the choice of algorithm as well. Secondly, if an existing codebase has been sufficiently optimized such that its developers would consider using the tools developed here, the integration would likely be very difficult. \texttt{sparsemmgen} requires information which is simply not likely to be available upstream. On the other hand, codebases that could benefit from this work are likely already using \texttt{libxsmm}. 
+While \py{sparsemmgen} is designed to allow the user to control the algorithm generator precisely, it suffers from two drawbacks. Firstly, the burden of choosing the best algorithm and tuning it correctly is put entirely on the user. Secondly, if an existing codebase has been sufficiently optimized such that its developers would consider using the tools developed here, the integration would likely be very difficult, since the information \py{sparsemmgen} needs is unlikely to be present. Reducing the barrier to integration increases the likelihood of this tool being used.
 
-\texttt{libxsmmproxy} 
+\py{libxsmmproxy} addresses both of these points. It is a command-line program which matches the interface of \py{libxsmm_gemm_generator} exactly and can be integrated into an existing codebase by changing a path or adding a symbolic link. (No plans for creating a JIT version exist at this time.) The program analyzes its arguments and decides whether to use the \py{sparsemmgen} implementation or to simply delegate to the original \py{libxsmm_gemm_generator}.
 
+Unfortunately, the information which the \py{libxsmm_gemm_generator} interface provides only partially overlaps with the information which \py{sparsemmgen} needs. On one hand, \py{libxsmm_gemm_generator} does not know about our generators or their parameters such as block sizes. On the other, it supports different microarchitectures, single precision, and different prefetching strategies, which this work currently does not. Thus the proxy must pattern-match for the KNL architecture, double precision, and no prefetching strategy, and delegate all other requests. Then it must conjure the generator choice and its parameters.
+
+There are two approaches to supplying the missing information, one manual and one automatic. The manual approach is a whitelist, in pure Python, which maps specific MTX files to \py{Parameters} objects. It is advantageous insofar as it gives the user precise control, and disadvantageous insofar as it is repetitive and requires knowledge of the system. It is best combined with the automatic system described next.
+
+In theory, automatically choosing the best generator involves determining, for each generator:
 \begin{itemize}
-	\item Auto-choosing parameters
-	\item Hardcoding parameters
+  \item{Can the generator handle the posed problem at all?}
+  \item{What is the best choice of parameters for this (problem, generator)?}
+  \item{What is the expected performance of this choice?}
 \end{itemize}
+and then choosing the (generator, parameters) which offer the best performance. In the general case this is a combinatorial optimization problem, but in practice the matrix sizes are very small and the parameter space is very constrained, particularly when only allowing perfect tilings. Thus a brute-force approach would be satisfactory for the time being. 
+
+In the case of dense-by-sparse multiplication, a brute-force approach is not even necessary most of the time. If the number of nonzeros in the B matrix is less than the limit imposed by the instruction cache, there is no reason to use any generator besides UnrolledSparse. If it is greater, UnrolledSparse is out of the question, and the controller need only choose between TiledSparse, BlockedSparse, GeneralSparse, and dense. TiledSparse and BlockedSparse are likely to perform very well on certain sparsity patterns but not in the general case, so the automatic system can default to using GeneralSparse. There will be a point at which the penalty of performing indirect jumps outweighs the saved FLOPs, in which point the system should simply use the dense algorithm. This we can determine experimentally.
+
 
 \subsection{runexperiment}
 The third main entry point is \texttt{runexperiment}, which generates a 
 
 
 
+
 \section{Code generation}
+
+
+
 \begin{itemize}
 	\item Choice of language/patterns
 	\item Inspiration from older languages
@@ -146,6 +160,37 @@ Internally, the cursors all maintain an implicit or explicit table of offsets, m
     * SIBlockCursor
     * Irregular blocksize cursor. BlockedSparse and GeneralSparse
 
+
+
 \section{Symbolic execution and reification}
+
+
+In a very general sense, the GEMM generators implemented here all take information which was previously discovered at runtime and move it to compile time. Up until now, this activity has been denoted by the verb ``unroll''. However, this term is somewhat misleading. It comes from the concept of loop unrolling, a standard compiler optimization[ref to book]. Unrolling a loop is a path-independent transformation of an abstract syntax tree which has no access to new information. Unrolling a sparsity pattern is a path-dependent transformation of an (even more) abstract syntax tree which depends on the local program state space. A better word for this activity might be \emph{reification}. 
+
+The pseudocode for UnrolledSparse and TiledSparse differ only by a single line, but their implementations differ substantially. This is because there is a deep asymmetry between how a looped block and an unrolled block interact with MatrixCursor. The critical question is ``Is a MatrixCursor stateful or not?'' An unrolled block which traverses a MatrixCursor needs to track the current CursorLocation one way or another. (Even a simple iteration variable is in effect simulating the state of the program's runtime.) On the other hand, a looped block knows nothing about
+
+It is possible, but nontrivial and inelegant, to thread the MatrixCursor state 
+
+Due to Python's eager evaluation of expressions, it is nontrivial and inelegant. An elegant solution does exist, and will be described below, even though it is beyond the scope of this work.
+
+
+0. Weirdness surrounding unrolling, threading through machine state. 
+
+1. AST->Symbolic execution
+
+2. Concept of a command. Concept of a virtual machine outputting 
+
+3. Recast Matrix, MatrixCursor, RegisterBlocks as a virtual machine
+
+4. Computer algebra system as a virtual machine. Work already being done 
+
+5. Formally verifying?
+
+6. Design space of correct algorithms. Creating an 'optimal' GEMM instead of an 'optimized' one
+
+
+
+
+
 
 One advantage to expressing a complete AST in Python
