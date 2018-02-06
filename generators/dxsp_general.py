@@ -91,14 +91,15 @@ def make_alg(p: GeneralParameters) -> Block:
     x = 0
     cases = []
     for pattern in p.B.patterns:
-        case_label = f"CASE_{x}"
-        cases.append(case_label)
-        asm.add(label(case_label))
-        BB = minicursor(f"block_{x}", p.B.base_ptr, pattern)
-        BB_ptr = BB.start_location()
-        asm.add(make_microkernel(p.A,BB,A_ptr,BB_ptr,p.A_regs,p.C_regs))
-        asm.add(indirect_jump(jump_reg))
-        x += 1
+        if pattern.nnz() != 0:
+            case_label = f"CASE_{x}"
+            cases.append(case_label)
+            asm.add(label(case_label))
+            BB = minicursor(f"block_{x}", p.B.base_ptr, pattern)
+            BB_ptr = BB.start_location()
+            asm.add(make_microkernel(p.A,BB,A_ptr,BB_ptr,p.A_regs,p.C_regs))
+            asm.add(indirect_jump(jump_reg))
+            x += 1
 
     asm.add(label("END_SWITCH"))
 

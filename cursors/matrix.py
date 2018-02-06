@@ -4,11 +4,12 @@
 # Lists of lists are too cumbersome, and scipy does not understand typing.
 # Also don't want to introduce a hard dependence on scipy if not necessary.
 
-from typing import TypeVar, Generic, Union, Tuple, overload, Any
+from typing import TypeVar, Generic, Union, Tuple, List, overload, Any
 from scipy import full, matrix # type: ignore
 from scipy.sparse import csc_matrix
 from scipy.io import mmread, mmwrite
 import numpy
+import random
 
 T = TypeVar('T')
 class Matrix(Generic[T]):
@@ -60,6 +61,9 @@ class Matrix(Generic[T]):
     def __or__(self, other):
         return Matrix(self._underlying | other._underlying)
 
+    def __and__(self, other):
+        return Matrix(self._underlying & other._underlying)
+
     def any(self, axis=None, out=None):
         return self._underlying.any(axis, out)
 
@@ -86,6 +90,69 @@ class Matrix(Generic[T]):
         m = m.astype(numpy.int)
         mm = csc_matrix(m)
         mmwrite(filename, mm)
+
+
+    # TODO: This currently only supports a perfect tiling
+
+    def to_blocks(self, bn, bk) -> Tuple["Matrix[int]", List["Matrix[bool]"]]:
+
+        k,n = self.shape
+        Bk,Bn = k//bk, n//bn
+        patterns : List[Matrix[bool]] = []
+        blocks = Matrix.full(Bk,Bn,-1)
+        x = 0
+
+        for Bni in range(Bn):
+            for Bki in range(Bk):
+                block = self[(Bki*bk):((Bki+1)*bk), (Bni*bn):((Bni+1)*bn)]
+                found = False
+                for pi in range(len(patterns)):
+                    if patterns[pi] == block:
+                        blocks[Bki,Bni] = pi
+                        found = True
+                if not found:
+                    blocks[Bki,Bni] = x
+                    x += 1
+                    patterns.append(block)
+
+        return blocks, patterns
+
+
+    # TODO: Use generics correctly. Right now this only works on Matrix[bool]
+
+    @classmethod
+    def from_blocks(cls, blocks:"Matrix[int]", patterns:List["Matrix[bool]"]) -> "Matrix[bool]":
+
+        # Compute final matrix size
+        # TODO: This assumes a perfect tiling
+        br, bc = patterns[0].shape
+        Br, Bc = blocks.shape
+
+        # Create final matrix
+        m = Matrix.full(br*Br, bc*Bc, False)
+
+        # Paste each pattern in the correct place
+        for Bci in range(Bc):
+            for Bri in range(Br):
+                for bci in range(bc):
+                    for bri in range(br):
+                        m[Bri*br+bri, Bci*bc+bci] = patterns[blocks[Bri,Bci]][bri,bci]
+
+        return m
+
+
+    @classmethod
+    def rand_bool(cls, nnz, m, n, seed):
+
+        random.seed(seed)
+        urn = [(ri,ci) for ri in range(m) for ci in range(n)]
+        samples = [urn.pop(random.randint(0,len(urn)-1)) for x in range(nnz)]
+        pattern = Matrix.full(m,n,False)
+        for sample in samples:
+            pattern[sample[0], sample[1]] = True
+        return pattern
+
+
 
 
 

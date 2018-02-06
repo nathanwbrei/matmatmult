@@ -29,6 +29,9 @@ int main(int argc, char** argv) {{
 
         elif p.mtx_format == "bcsc":
             format_matrix = "auto b = to_bcsc(db, bk, bn);"
+
+        elif p.mtx_format == "dense":
+            format_matrix = "auto b = &db;"
             
         else:
             raise Exception("Need to specify an actual matrix format!")
@@ -81,6 +84,7 @@ void test_{p.output_funcname}() {{
         for param in self.params:
 
             # Generate C/asm for each alg variant
+            print("Generating " + param.output_funcname)
             alg = param.make()
             if alg is not None:
                 alg_text = make_cfunc(param.output_funcname, alg)

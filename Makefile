@@ -78,6 +78,9 @@ jumptable: src/jumptable/jumptable.cpp src/jumptable/jumptable_unrolled.cpp src/
 
 
 
+generate_gen256:
+	./sparsemmgen.py general 256 256 256 256 0 256 experiments/jump_penalty/generated/jump_penalty_1_200.mtx --bm 8 --bn 16 --bk 16
+
 
 test_matrixops: src/cpptests/test_matrixops.cpp
 	g++ -g -std=c++11 -O2 -o build/test_matrixops src/cpptests/test_matrixops.cpp

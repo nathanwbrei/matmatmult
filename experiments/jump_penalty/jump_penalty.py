@@ -4,18 +4,11 @@ import os
 
 from experiments.harness2 import HarnessBuilder
 from generators.dxsp_general import choose_params as general_params
+from generators.dxsp_unrolled import choose_params as unrolled_params
 from generators.libxsmm import choose_params as libxsmm_params
 from cursors.matrix import Matrix
 from components.parameters import Parameters
 
-def random_pattern(nnz, k, n, seed):
-    random.seed(seed)
-    urn = [(ri,ci) for ri in range(k) for ci in range(n)]
-    samples = [urn.pop(random.randint(0,len(urn)-1)) for x in range(nnz)]
-    pattern = Matrix.full(k,n,False)
-    for sample in samples:
-        pattern[sample[0], sample[1]] = True
-    return pattern
 
 EXP5_NAME = "exp5"
 EXP5_HOME = "experiments/jump_penalty/generated/"
@@ -25,39 +18,56 @@ class Scenario:
     
     def __init__(self, nnzs:int, njumps:int):
 
-        self.name = f"jump_penalty_{njumps}_{nnzs}"
-        k = njumps * 8
+        bm = 8
+        bn = 16
+        bk = 16
+        m = 256
+        n = 256
+        k = 256
 
-        self.pattern = random_pattern(nnzs, k, 8, 2222)
+        self.name = f"jump_penalty_{njumps}_{nnzs}"
+        self.patterns = [Matrix.full(bk, bn, False)]
+        self.blocks = Matrix.full(k//bk, n//bn, 0)
+
+
+        for j in range(1, njumps+1):
+            self.patterns.append(Matrix.rand_bool(nnzs//njumps, bk, bn, j))
+            self.blocks[j-1,j-1] = j
+
         self.mtx_filename = EXP5_HOME + self.name + ".mtx"
 
         self.basic_params = Parameters(
             algorithm = "dxsp_general",
             mtx_filename = self.mtx_filename,
             output_funcname = self.name,
-            m = 8, 
-            n = 8, 
+            m = m, 
+            n = n, 
             k = k,
-            lda = 8, 
+            lda = m,
             ldb = 0, 
-            ldc = 8,
-            bm = 8,
-            bn = 8,
-            bk = 8)
+            ldc = m,
+            bm = bm,
+            bn = bn,
+            bk = bk)
 
     def make_mtx(self):
-        self.pattern.store(self.mtx_filename)
+        m = Matrix.from_blocks(self.blocks, self.patterns)
+        m.store(self.mtx_filename)
 
     def make_libxsmm_test(self):
         pp = libxsmm_params(self.basic_params)
-        pp.mtx_format = "csc"
+        pp.mtx_format = "dense"
         pp.output_funcname = self.name + "_libxsmm"
         pp.output_filename = EXP5_HOME+"libxsmm_gemms.h"
         pp.ldb = pp.k
         return pp
 
-#    def make_unrolled_test(self):
-#        return self.params
+    def make_unrolled_test(self):
+        pp = unrolled_params(self.basic_params)
+        pp.mtx_format = "bcsc"        
+        pp.output_funcname = self.name + "_unrolled"
+        pp.ldb = 0
+        return pp
 
     def make_jump_test(self):
         pp = general_params(self.basic_params)
@@ -67,34 +77,23 @@ class Scenario:
 
     def all_params(self):
         yield self.make_libxsmm_test()
-#        yield self.make_unrolled_test()
+        yield self.make_unrolled_test()
         yield self.make_jump_test()
 
 
 def all_scenarios():
-
-    yield Scenario(50,1)
-    yield Scenario(50,2)
-    yield Scenario(50,4)
-    yield Scenario(50,8)
-
-    yield Scenario(100,2)
-    yield Scenario(100,4)
-    yield Scenario(100,8)
-    yield Scenario(100,16)
-
-    yield Scenario(200,4)
-    yield Scenario(200,8)
-    yield Scenario(200,16)
-
-    yield Scenario(400,8)
-    yield Scenario(400,16)
+    for njumps in [1,2,4,8]:
+        for nnzs in range(200, 4200, 400):
+            if (nnzs <= njumps * 16 * 16):
+                yield Scenario(nnzs, njumps)
 
 
 # TODO: Drop dest_dir, exp_name from this
 def make(dest_dir: str, exp_name: str) -> None:
 
-    os.remove(EXP5_HOME+"libxsmm_gemms.h")
+    libxsmm_file = EXP5_HOME+"libxsmm_gemms.h"
+    if (os.path.isfile(libxsmm_file)):
+        os.remove(libxsmm_file)
 
     for scenario in all_scenarios():
         scenario.make_mtx()
