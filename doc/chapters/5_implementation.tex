@@ -14,7 +14,7 @@ This chapter covers the decomposition of the algorithm generators described prev
 
 \subsection{sparsemmgen}
 
-\texttt{sparsemmgen} is the primary entry point for the program 
+\texttt{sparsemmgen} is the primary entry point for the program. It takes a minimal set of parameters which the user 
 
 \subsection{libxsmmproxy}
 
@@ -44,27 +44,46 @@ The third main entry point is \texttt{runexperiment}, which generates a
 
 
 \section{Code generation}
-
-
-
+\subsection{Concept}
+\subsection{Python Assembly AST}
 \begin{itemize}
-	\item Choice of language/patterns
-	\item Inspiration from older languages
-    \item AST
+  \item Operands: Label interning, Registers and register arrays, MemoryAddress, Immediates. Type information: Currently attached to registers, not really used
+
+  \item AsmStmt base class. 
+  \item Data, Jump, Label, Cmp, Add
+  \item Mov, Fma
+  \item
+
+  \item Sugar to decouple data models from convenient Python syntax,
+    \py{vmov(zmm0, rax+22) ==> vmovapd()}. Potential to determine from parameters instead of from dsl. 
+
+  \item Blocks. ==> enables reusable components, comments, stack traces, etc. Currently utterly lacking in type safety. Slightly better than a preprocessor, functions which make a component generally contain a bunch of asserts beforehand. Many components are simply a function which returns a block. This is how unrolling is currently implemented in the generators.
+
+  \item Forms ==> Sort of an unhygenic macro with arguments. Somehow rearranges or transforms its sub-blocks while otherwise behaving like a block. Completely independent of the program execution state. It is possible to make this hygenic by using abstract registers and adding a register assignment step. Currently used for loops and jump tables, which shall be discussed later. Extends Block, overrides contents(). Stateless.
+
+  \item Commands ==> not really used at the present. The goal is to express higher-level ideas which require knowledge of the program's state at runtime. This allows information from runtime to be moved to compile time, For instance, matrixcursor movement commands, loop unroll commands. Might also allow . Will be discussed later. Stateful.
 
 \end{itemize}
 
+\subsection{Visitors}
+Quick overview of visitor pattern. Decoupling of operations over syntax tree from tree itself. Tree only contains data, each 'verb' receives its own Python module.
+
 \begin{itemize}
-    \item Python domain-specific language for directly generating assembly
-    \item Includes rich assembly AST: \texttt{Operand} $\leftarrow$ \texttt{Statement} $\leftarrow$ \texttt{Block} 
-    \item Higher-level forms such as loops, subroutines, and jump tables
-          implemented as plain Python functions which return a \texttt{Block}
-    \item Pretty-printing, analysis, simulation are implemented using Visitor Pattern
-    \item Interesting theoretical problem: Moving information from runtime to compile time in a general way
+  \item Generating GAS, pretty, C++. Comments. Potential to generate C++ intrinsics.
+  \item Detecting registers which have been modified
+  \item Type safety, register allocation
+  \item Simulation
 \end{itemize}
+
 
 \section{Components}
 \subsection{Register blocks}
+\begin{itemize}
+  \item Load, store, mask
+  \item Mask computation
+  \item Sparse microkernel
+\end{itemize}
+
 \subsection{Microkernels}
 
 \section{Cursors}
