@@ -21,18 +21,17 @@ class Scenario:
         bm = 8
         bn = 16
         bk = 16
-        m = 256
-        n = 256
-        k = 256
+        m = 128
+        n = 128
+        k = 128
 
         self.name = f"jump_penalty_{njumps}_{nnzs}"
         self.patterns = [Matrix.full(bk, bn, False)]
-        self.blocks = Matrix.full(k//bk, n//bn, 0)
-
 
         for j in range(1, njumps+1):
             self.patterns.append(Matrix.rand_bool(nnzs//njumps, bk, bn, j))
-            self.blocks[j-1,j-1] = j
+
+        self.blocks = Matrix.rand_int(njumps, k//bk, n//bn, 22)
 
         self.mtx_filename = EXP5_HOME + self.name + ".mtx"
 

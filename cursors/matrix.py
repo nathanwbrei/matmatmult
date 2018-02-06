@@ -153,6 +153,17 @@ class Matrix(Generic[T]):
         return pattern
 
 
+    @classmethod
+    def rand_int(cls, nnz, m, n, seed):
+
+        random.seed(seed)
+        urn = [(ri,ci) for ri in range(m) for ci in range(n)]
+        samples = [urn.pop(random.randint(0,len(urn)-1)) for x in range(nnz)]
+        pattern = Matrix.full(m,n,0)
+        for x,sample in enumerate(samples):
+            pattern[sample[0], sample[1]] = x+1
+        return pattern
+
 
 
 
