@@ -40,6 +40,9 @@ class GeneralParameters(Parameters):
         return make_alg(self)
 
 
+
+
+
 def choose_params(params: Parameters) -> GeneralParameters:
 
     pattern = Matrix.load_pattern(params.mtx_filename)
@@ -88,39 +91,57 @@ def make_alg(p: GeneralParameters) -> Block:
     asm = block(f"Unrolled FullyGeneralSparse")
     asm.add(jump("END_SWITCH", "jmp"))
 
-    x = 0
     cases = []
-    for pattern in p.B.patterns:
-        if pattern.nnz() != 0:
-            case_label = f"CASE_{x}"
-            cases.append(case_label)
+    for x,pattern in enumerate(p.B.patterns):
+        case_label = f"CASE_{x}"
+        cases.append(case_label)
+
+        if pattern.nnz() > 0:
             asm.add(label(case_label))
             BB = minicursor(f"block_{x}", p.B.base_ptr, pattern)
             BB_ptr = BB.start_location()
             asm.add(make_microkernel(p.A,BB,A_ptr,BB_ptr,p.A_regs,p.C_regs))
             asm.add(indirect_jump(jump_reg))
-            x += 1
+    
 
     asm.add(label("END_SWITCH"))
 
-    mask = C_mask_untiled(p.C_regs, p.C, C_ptr, Coords())
-    asm.add(move_register_block(p.C, C_ptr, Coords(), p.C_regs, mask, store=False))
+    for Bmi in range(Bm):
+        for Bni in range(Bn):
 
-    for Bk in range(Bkf):   # For each k-block
+            panel_needed = False
+            for Bki in range(Bkf):
+                if p.B.has_nonzero_block(B_ptr, Coords(down=Bki, right=Bni, absolute=True)):
+                    panel_needed = True
 
-        current_block = Coords(Bk,0,absolute=True)
-        if (p.B.has_nonzero_block(B_ptr, current_block)):
-            block_label = f"BLOCK_{Bk}"
-            asm.add(mov(Label(block_label), jump_reg, False))
-            move_B_stmt, B_ptr = p.B.move(B_ptr, current_block)
-            asm.add(move_B_stmt)
-            move_A_stmt, A_ptr = p.A.move(A_ptr, Coords(0,Bk,absolute=True))
-            asm.add(move_A_stmt)
-            block_index = p.B.blocks[Bk,0]
-            asm.add(jump(cases[block_index], "jmp"))
-            asm.add(label(block_label))
+            if panel_needed:
+                move_C_stmt, C_ptr = p.C.move(C_ptr, Coords(down=Bmi, right=Bni, absolute=True))
+                asm.add(move_C_stmt)
 
-    asm.add(move_register_block(p.C, C_ptr, Coords(), p.C_regs, mask, store=True))
+                mask = C_mask_untiled(p.C_regs, p.C, C_ptr, Coords())
+                asm.add(move_register_block(p.C, C_ptr, Coords(), p.C_regs, mask, False))
+
+                for Bki in range(Bkf):
+
+                    to_A = Coords(down=Bmi, right=Bki, absolute=True)
+                    to_B = Coords(down=Bki, right=Bni, absolute=True)
+
+                    if p.B.has_nonzero_block(B_ptr, to_B):
+
+                        block_label = f"BLOCK_{Bki}_{Bni}"
+                        asm.add(mov(Label(block_label), jump_reg, False))
+
+                        move_B_stmt, B_ptr = p.B.move(B_ptr, to_B)
+                        asm.add(move_B_stmt)
+
+                        move_A_stmt, A_ptr = p.A.move(A_ptr, to_A)
+                        asm.add(move_A_stmt)
+
+                        block_index = p.B.blocks[Bki,Bni]
+                        asm.add(jump(cases[block_index], "jmp"))
+                        asm.add(label(block_label))
+
+                asm.add(move_register_block(p.C, C_ptr, Coords(), p.C_regs, mask, True))
 
     return asm
 

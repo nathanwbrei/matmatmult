@@ -82,8 +82,8 @@ class Scenario:
 
 
 def all_scenarios():
-    for njumps in [1,2,4,8]:
-        for nnzs in range(200, 4200, 400):
+    for njumps in [1,2,4,8,16]:
+        for nnzs in range(200, 4200, 200):
             if (nnzs <= njumps * 16 * 16):
                 yield Scenario(nnzs, njumps)
 
