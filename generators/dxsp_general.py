@@ -84,7 +84,7 @@ def make_alg(p: GeneralParameters) -> Block:
     Bn = (p.n // p.bn)
     Bkf = (p.k // p.bk) + (p.k % p.bk != 0)
     A_ptr = p.A.start_location()
-    B_ptr = p.B.start_location()
+    B_ptr = p.B.start()
     C_ptr = p.C.start_location()
     jump_reg = r(10)
 

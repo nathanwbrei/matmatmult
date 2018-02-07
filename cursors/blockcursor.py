@@ -194,6 +194,17 @@ class BlockCursorDef(CursorDef):
         raise Exception(f"Block {dest_block} has no starting location because it is empty!")
 
 
+    def start(self) -> CursorLocation:
+
+        Br, Bc = self.blocks.shape
+        for Bri in range(Br):
+            for Bci in range(Bc):
+                target_block = Coords(down=Bri, right=Bci, absolute=True)
+                if self.has_nonzero_block(None, target_block):
+                    return self.start_location(target_block)
+        raise Exception("Matrix is completely empty!")
+
+
 
     def _bounds_check(self, abs_cells: Coords) -> None:
         ri,ci = abs_cells.down, abs_cells.right

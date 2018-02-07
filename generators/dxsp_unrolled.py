@@ -59,7 +59,7 @@ class UnrolledParameters(Parameters):
 
         asm = block("Unrolling over bn and bk")
         A_ptr = CursorLocation()
-        B_ptr = p.B.start_location()
+        B_ptr = p.B.start()
         C_ptr = CursorLocation()
         Bn = p.n // p.bn
         Bk = p.k // p.bk
@@ -71,7 +71,7 @@ class UnrolledParameters(Parameters):
             for Bki in range(0,Bk):
 
                 to_A = Coords(right=Bki)
-                to_B = Coords(right=Bni, down=Bki)
+                to_B = Coords(right=Bni, down=Bki, absolute=True)
 
                 if p.B.has_nonzero_block(B_ptr, to_B):
                     asm.add(make_microkernel(p.A, p.B, A_ptr, B_ptr, p.A_regs, p.C_regs, to_A, to_B))
