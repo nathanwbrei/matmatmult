@@ -197,8 +197,8 @@ class BlockCursorDef(CursorDef):
     def start(self) -> CursorLocation:
 
         Br, Bc = self.blocks.shape
-        for Bri in range(Br):
-            for Bci in range(Bc):
+        for Bci in range(Bc):
+            for Bri in range(Br):
                 target_block = Coords(down=Bri, right=Bci, absolute=True)
                 if self.has_nonzero_block(None, target_block):
                     return self.start_location(target_block)

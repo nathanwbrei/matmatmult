@@ -128,7 +128,7 @@ def make_alg(p: GeneralParameters) -> Block:
 
                     if p.B.has_nonzero_block(B_ptr, to_B):
 
-                        block_label = f"BLOCK_{Bki}_{Bni}"
+                        block_label = f"BLOCK_{Bmi}_{Bni}_{Bki}"
                         asm.add(mov(Label(block_label), jump_reg, False))
 
                         move_B_stmt, B_ptr = p.B.move(B_ptr, to_B)

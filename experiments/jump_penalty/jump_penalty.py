@@ -21,9 +21,12 @@ class Scenario:
         bm = 8
         bn = 16
         bk = 16
-        m = 128
-        n = 128
-        k = 128
+        m = 16*2
+        n = 16*2
+        k = 16*3
+        #m = 128
+        #n = 128
+        #k = 128
 
         self.name = f"jump_penalty_{njumps}_{nnzs}"
         self.patterns = [Matrix.full(bk, bn, False)]
@@ -31,7 +34,8 @@ class Scenario:
         for j in range(1, njumps+1):
             self.patterns.append(Matrix.rand_bool(nnzs//njumps, bk, bn, j))
 
-        self.blocks = Matrix.rand_int(njumps, k//bk, n//bn, 22)
+        #self.blocks = Matrix.rand_int(njumps, k//bk, n//bn, 22)
+        self.blocks = Matrix([[0,1],[0,0],[2,0]])
 
         self.mtx_filename = EXP5_HOME + self.name + ".mtx"
 
@@ -81,10 +85,11 @@ class Scenario:
 
 
 def all_scenarios():
-    for njumps in [1,2,4,8,16]:
-        for nnzs in range(200, 4200, 200):
-            if (nnzs <= njumps * 16 * 16):
-                yield Scenario(nnzs, njumps)
+    yield Scenario(20,2)
+    #for njumps in [1,2,4,8,16]:
+    #    for nnzs in range(200, 4200, 200):
+    #        if (nnzs <= njumps * 16 * 16):
+    #            yield Scenario(nnzs, njumps)
 
 
 # TODO: Drop dest_dir, exp_name from this
@@ -95,6 +100,7 @@ def make(dest_dir: str, exp_name: str) -> None:
         os.remove(libxsmm_file)
 
     for scenario in all_scenarios():
+        print(f"Generating {scenario.name} MTX file")
         scenario.make_mtx()
 
     param_space = [x for sc in all_scenarios() 

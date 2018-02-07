@@ -93,12 +93,13 @@ class UnrolledParameters(Parameters):
 
         Bm = p.m // p.bm
         Bn = p.n // p.bn
+        Bk = p.k // p.bk
 
         asm = block(f"unrolled_{p.m}x{p.n}x{p.k}",
 
             loop(r(12), 0, Bm, 1).body(
                 p.make_nk_unroll(),
-                p.A.move(A_ptr, Coords(down=1, right=1-Bn))[0],
+                p.A.move(A_ptr, Coords(down=1))[0],
                 p.C.move(C_ptr, Coords(down=1, right=1-Bn))[0]
             )
         )
