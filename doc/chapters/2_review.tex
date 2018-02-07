@@ -1,4 +1,4 @@
-\chapter{Review of Concepts}
+\chapter{Background}
 \label{chapter:review}
 
 \section{Matrix multiplication}
@@ -46,11 +46,59 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 
 \section{Small dense matrix kernels}
 
-
-
 \section{Sparsity pattern unrolling}
+
+\section{Memory addressing schemes}
+
+The simplest scheme is to use pointer-offset addressing, where the pointer is in a register and the offset is hardcoded, such as \texttt{rsi + 22}. The downside of this approach is that when the offset is greater than 128*8, (i.e. there are more than 128 nonzeros in B), the resulting FMA instructions take up 10 bytes, which will cause a bottleneck as described in section X.XX. A more sophisticated scheme uses scale-index addressing, which uses two registers and two hardcoded values, such as \texttt{B + 8*i + 22}. These FMA instructions only take up 7 bytes; their main downside is that the generated code becomes harder to understand.
+
 
 
 
 \section{Dense-by-sparse vs sparse-by-dense asymmetry}
+
+\section{Variable naming conventions}
+
+
+There exist well-established conventions for naming variables inside matrix multiplication algorithms. 
+The use of the letters m,n,k is unavoidable. However, the conventions become less clear when the loops are nested over blocks, vectors, and cells.
+Another point of confusion is naming iteration variables. This work adopts the following naming conventions:
+
+  \begin{minted}[fontsize=\footnotesize]{text} 
+    <var>       ::= [<units>] <dimension> [i]
+    <units>     ::= b | B | v | V
+    <dimension> ::= m | n | k | l
+  \end{minted}
+
+The units indicates what is being counted or iterated over:
+
+    \begin{tabular}{cll}
+\toprule
+Units    & Mnemonic & Meaning \\
+\midrule
+
+none  & Cell          & Cells in the matrix      \\
+b     & Intra-block   & Cells in a block         \\
+B     & Inter-block   & Blocks in the matrix     \\
+v     & Intra-vector  & Cells in a block         \\
+V     & Inter-vector  & Vectors in a block       \\
+\bottomrule
+\end{tabular}
+
+The dimension indicates 
+
+\begin{tabular}{cl}
+\toprule
+Dimension    & Meaning \\
+\midrule
+m & Rows of A and C \\
+n & Columns of B and C \\
+k & Columns of A, rows of B \\
+l & The third dimension of A and C\\
+\bottomrule
+\end{tabular}
+
+
+Finally, 'i' indicates that this is an iteration variable.
+For example, one may confidently assume that the variable $bni \in [0, bn-1]$ iterates cell-by-cell across columns of B and C within the current block.
 
