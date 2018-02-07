@@ -5,6 +5,8 @@
 build
 doc/build
 tests/cpptests/build
+experiments/jump_penalty/generated/*
+experiments/jump_scaling/generated/*
 __pycache__
 .mypy_cache
 
