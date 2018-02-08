@@ -25,17 +25,10 @@ class JumpPenaltyExperiment:
         if (os.path.isfile(libxsmm_file)):
             os.remove(libxsmm_file)
 
-        for scenario in Scenario.all_scenarios(self.reldir):
-            print(f"Generating {scenario.name} MTX file")
-            scenario.make_mtx()
-
-        param_space = [x for sc in Scenario.all_scenarios(self.reldir)
-                         for x in sc.all_params() ]
-
         harness = HarnessBuilder()
         harness.imports += '#include "libxsmm_gemms.h"\n'
 
-        for param in param_space:
+        for param in self.all_params():
             harness.add_test(param)
 
         cpp_filename = self.reldir + self.name + ".cpp"
@@ -43,34 +36,33 @@ class JumpPenaltyExperiment:
 
 
 
+    def all_params(self):
+        for nnzs in range(12, 193, 12):
+
+            yield Scenario(self.reldir, nnzs, 1).make_libxsmm_test()
+            yield Scenario(self.reldir, nnzs, 1).make_unrolled_test()
+
+            for njumps in [1,2,3,4,6,8,12,24]:
+                if (nnzs <= njumps * 16 * 16):
+                    s = Scenario(self.reldir, nnzs, njumps)
+                    s.make_mtx()
+                    yield s.make_jump_test()
+
+
 class Scenario:
 
-    @classmethod
-    def all_scenarios(cls, reldir:str):
-        for njumps in [1,2,4,8,16]:
-            for nnzs in range(200, 4200, 200):
-                if (nnzs <= njumps * 16 * 16):
-                    yield Scenario(reldir, nnzs, njumps)
-
-    
     def __init__(self, reldir:str, nnzs:int, njumps:int):
 
         bm = 8
-        bn = 16
-        bk = 16
-        m = 128
-        n = 128
-        k = 128
+        bn = 8
+        bk = 24//njumps
+        m = 8
+        n = 8
+        k = 24
 
         self.name = f"jump_penalty_{njumps}_{nnzs}"
         self.reldir = reldir
-        self.patterns = [Matrix.full(bk, bn, False)]
-
-        for j in range(1, njumps+1):
-            self.patterns.append(Matrix.rand_bool(nnzs//njumps, bk, bn, j))
-
-        self.blocks = Matrix.rand_int(njumps, k//bk, n//bn, 22)
-
+        self.pattern = Matrix.rand_bool(nnzs, k, n, 1066)
         self.mtx_filename = reldir + self.name + ".mtx"
 
         self.basic_params = Parameters(
@@ -88,8 +80,14 @@ class Scenario:
             bk = bk)
 
     def make_mtx(self):
-        m = Matrix.from_blocks(self.blocks, self.patterns)
-        m.store(self.mtx_filename)
+        self.pattern.store(self.mtx_filename)
+
+    def make_unrolled_test(self):
+        pp = unrolled_params(self.basic_params)
+        pp.mtx_format = "bcsc"        
+        pp.output_funcname = self.name + "_unrolled"
+        pp.ldb = 0
+        return pp
 
     def make_libxsmm_test(self):
         pp = libxsmm_params(self.basic_params)
@@ -99,20 +97,8 @@ class Scenario:
         pp.ldb = pp.k
         return pp
 
-    def make_unrolled_test(self):
-        pp = unrolled_params(self.basic_params)
-        pp.mtx_format = "bcsc"        
-        pp.output_funcname = self.name + "_unrolled"
-        pp.ldb = 0
-        return pp
-
     def make_jump_test(self):
         pp = general_params(self.basic_params)
         pp.mtx_format = "bcsc"
         pp.output_funcname = self.name + "_general"
         return pp
-
-    def all_params(self):
-        yield self.make_libxsmm_test()
-        yield self.make_unrolled_test()
-        yield self.make_jump_test()
