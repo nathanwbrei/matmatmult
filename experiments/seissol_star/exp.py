@@ -1,77 +1,103 @@
 
-### Experiment 3 ###
-# Run SeisSol-Star using different decompositions:
-#   1. Tiledsparse, fully unrolled
-#   2. Tiledsparse, square
-#   3. Tiledsparse, 
+import random
+import os
 
-from experiments.harness import *
-
-from algorithms.parameters import *
-from algorithms.mntravelers import *
-from algorithms.ktravelers import *
-
-from scenarios import seissol_star
-
-def make_gemm(p:Parameters):
-    make_kt = make_kt_unroll
-    asm = make_mnt_loop(p, make_kt)
-    return asm
-
-params = [seissol_star.tiled_full]
+from experiments.harness2 import HarnessBuilder
+from generators.dxsp_general import choose_params as general_params
+from generators.dxsp_unrolled import choose_params as unrolled_params
+from generators.libxsmm import choose_params as libxsmm_params
+from cursors.matrix import Matrix
+from components.parameters import Parameters
 
 
-def make_code() -> str:
 
-    harness = HarnessBuilder(make_gemm, params)
+seissol_star: Matrix[bool] = Matrix(
+    [[0,0,0, 0,0,0, 1,0,0, 0,0,0, 0,0,0],
+     [0,0,0, 0,0,0, 0,1,0, 0,0,0, 0,0,0],
+     [0,0,0, 0,0,0, 0,0,1, 0,0,0, 0,0,0],
 
-    harness.make_test = lambda p: f"""
-    /***** Testing {p.name} *****/
+     [0,0,0, 0,0,0, 1,1,1, 0,0,0, 0,0,0],
+     [0,0,0, 0,0,0, 0,1,1, 0,0,0, 0,0,0],
+     [0,0,0, 0,0,0, 1,0,1, 0,0,0, 0,0,0],
 
-    reset(&C_expected);
-    reset(&C_actual);
+     [1,1,1, 1,0,1, 0,0,0, 1,0,0, 1,0,1],
+     [1,1,1, 1,1,0, 0,0,0, 0,1,0, 1,1,0],
+     [1,1,1, 0,1,1, 0,0,0, 0,0,1, 0,1,1]])
 
-    ddmm(&A, &B_dense, &C_expected);
-    {p.name}(A.values, B.values, C_actual.values);
-    assert_equals(&C_expected, &C_actual);
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    for (int t=0; t<3000; t++)
-        {p.name}(A.values, B.values, C_actual.values);
-    clock_gettime(CLOCK_MONOTONIC, &end);
 
-    printf("{p.name}, %lf\\n",
-        1.0e-3 * (1000000000L * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec ));
-    """
+class SeisSolStarExperiment:
 
-    harness.setup = """
-    struct timespec start, end;
-    struct colmajor A = zeros(40, 9);
-    struct colmajor C_expected = zeros(40, 15);
-    struct colmajor C_actual = zeros(40, 15);
-    struct patternsparse B = create_patternsparse(9, 15, 9, 15);
-    struct colmajor B_dense = zeros(9,15);
-    fill(&A, 1, 2);
+    name = "exp_seissol_star"
+    reldir = "experiments/seissol_star/generated/"
+    text = "SeisSol star kernel experiment"
+    executable = name
+    script = name + ".sh"
 
-    """
+    mtx_filename = reldir + "seissol_star.mtx"
+    libxsmm_filename = reldir + "libxsmm_gemms.h"
 
-    pattern = seissol_star.full_pattern
-    for ci in range(pattern.cols):
-        for ri in range(pattern.rows):
-            if pattern[ri,ci] != 0:
-                harness.setup += f"    update_pattern(&B, {ri}, {ci}, 1);\n"
-    harness.setup += f"""\
-    fill_sparse(&B, 1, 2);
-    sparse2dense(&B, &B_dense);
-    """
-    return harness.make()
+    params = Parameters(algorithm = "dxsp_unrolled",
+                        mtx_filename = mtx_filename,
+                        output_funcname = name,
+                        m = 40, 
+                        n = 15, 
+                        k = 9,
+                        lda = 40,
+                        ldb = 0, 
+                        ldc = 40,
+                        bm = 8,
+                        bn = 3,
+                        bk = 3)
 
-def make():
-    harness = make_code()
-    with open("exp3/exp.c","w") as f:
-        f.write(harness)
 
-make()
+    def make(self):
+
+        if (os.path.isfile(self.libxsmm_filename)):
+            os.remove(self.libxsmm_filename)
+
+        seissol_star.store(self.mtx_filename)
+
+        param_space = [self.make_libxsmm_test(),
+                       self.make_unrolled_test(8),
+                       self.make_unrolled_test(40),
+                       self.make_jump_test(8),
+                       self.make_jump_test(40) ]
+
+        harness = HarnessBuilder()
+        harness.imports += '#include "libxsmm_gemms.h"\n'
+
+        for param in param_space:
+            harness.add_test(param)
+
+        cpp_filename = self.reldir + self.name + ".cpp"
+        harness.make(cpp_filename)
+
+
+    def make_libxsmm_test(self):
+        p = libxsmm_params(self.params)
+        p.mtx_format = "dense"
+        p.output_funcname = "libxsmm"
+        p.output_filename = self.reldir + "libxsmm_gemms.h"
+        p.ldb = p.k
+        return p
+
+    def make_unrolled_test(self, bm):
+        pp = unrolled_params(self.params)
+        pp.mtx_format = "bcsc"
+        pp.output_funcname = f"unrolled_{bm}"
+        pp.ldb = 0
+        pp.bm = bm
+        return pp
+
+    def make_jump_test(self, bm):
+        pp = general_params(self.params)
+        pp.mtx_format = "bcsc"
+        pp.output_funcname = f"general_{bm}"
+        pp.bm = bm
+        return pp
+
+
 
 
 

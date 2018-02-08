@@ -1,4 +1,4 @@
-void seissol_star_knl(const double* A, const double* B, double* C) {
+void libxsmm(const double* A, const double* B, double* C) {
 #ifdef __AVX512F__
   __asm__ __volatile__("movq %0, %%rdi\n\t"
                        "movq %1, %%rsi\n\t"

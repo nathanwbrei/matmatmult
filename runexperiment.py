@@ -1,9 +1,9 @@
 #!/usr/local/bin/python3
 
 from experiments import *
-from experiments.proof_of_concept.exp1 import make as make_proof_of_concept
 from experiments.unrolled_scaling.exp4 import make as make_unrolled_scaling
 
+from experiments.seissol_star.exp import SeisSolStarExperiment
 from experiments.jump_penalty.exp import JumpPenaltyExperiment
 from experiments.jump_scaling.exp import JumpScalingExperiment
 
@@ -12,7 +12,8 @@ import time
 import argparse
 
 
-exps = [JumpPenaltyExperiment(),
+exps = [SeisSolStarExperiment(),
+        JumpPenaltyExperiment(),
         JumpScalingExperiment()
         ]
 
