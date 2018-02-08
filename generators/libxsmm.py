@@ -46,12 +46,16 @@ class LibxsmmParameters(Parameters):
                 self.arch, 
                 self.prefetch, 
                 self.precision]
+
+        if not self.dense:
+            args.append(self.mtx_filename)
+
         print(" ".join(args))
         result = subprocess.run(args)
 
 
 
-def choose_params(p: Parameters) -> LibxsmmParameters:
+def choose_params(p: Parameters, dense: bool = True) -> LibxsmmParameters:
 
     if p.output_filename is None:
         p.output_filename = "libxsmm_gemms.h"
@@ -59,7 +63,7 @@ def choose_params(p: Parameters) -> LibxsmmParameters:
     if p.output_funcname is None:
         p.output_funcname = f"gemm_{p.m}x{p.n}x{p.k}" 
 
-    return LibxsmmParameters(p)
+    return LibxsmmParameters(p, dense)
 
 
 

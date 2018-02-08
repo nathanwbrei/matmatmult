@@ -1,0 +1,4 @@
+libxsmm, 0.331486
+breuer, 0.679244
+Row mismatch! Expected 40, got 0
+Column mismatch! Expected 15, got 1072693248

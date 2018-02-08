@@ -38,6 +38,6 @@ def make_microkernel(A: CursorDef,
                 to_cell = Coords(down=bki, right=bni)
                 if B.has_nonzero_cell(B_ptr, to_B_block, to_cell):
                     B_cell_addr, B_comment = B.look(B_ptr, to_B_block, to_cell)
-                    comment = f"C[{Vmi},{bni}] += A[{Vmi},{bki}]*{B_comment}"
+                    comment = f"C[{Vmi*8}:{Vmi*8+8},{bni}] += A[{Vmi*8}:{Vmi*8+8},{bki}]*{B_comment}"
                     asm.add(fma(B_cell_addr, A_regs[Vmi, bki], C_regs[Vmi, bni], comment=comment))
     return asm

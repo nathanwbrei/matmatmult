@@ -206,3 +206,53 @@ libxsmm_num_total_flops += 10800;
 #endif
 }
 
+void breuer(const double* A, const double* B, double* C) {
+  unsigned int l_m = 0;
+
+  #pragma simd vectorlength(32)
+  #pragma vector aligned
+  for ( l_m = 0; l_m < 40; l_m++) {
+    C[0+l_m] += A[240+l_m] * B[0];
+    C[0+l_m] += A[280+l_m] * B[1];
+    C[0+l_m] += A[320+l_m] * B[2];
+    C[40+l_m] += A[240+l_m] * B[3];
+    C[40+l_m] += A[280+l_m] * B[4];
+    C[40+l_m] += A[320+l_m] * B[5];
+    C[80+l_m] += A[240+l_m] * B[6];
+    C[80+l_m] += A[280+l_m] * B[7];
+    C[80+l_m] += A[320+l_m] * B[8];
+    C[120+l_m] += A[240+l_m] * B[9];
+    C[120+l_m] += A[280+l_m] * B[10];
+    C[160+l_m] += A[280+l_m] * B[11];
+    C[160+l_m] += A[320+l_m] * B[12];
+    C[200+l_m] += A[240+l_m] * B[13];
+    C[200+l_m] += A[320+l_m] * B[14];
+    C[240+l_m] += A[0+l_m] * B[15];
+    C[240+l_m] += A[120+l_m] * B[16];
+    C[240+l_m] += A[200+l_m] * B[17];
+    C[280+l_m] += A[40+l_m] * B[18];
+    C[280+l_m] += A[120+l_m] * B[19];
+    C[280+l_m] += A[160+l_m] * B[20];
+    C[320+l_m] += A[80+l_m] * B[21];
+    C[320+l_m] += A[120+l_m] * B[22];
+    C[320+l_m] += A[160+l_m] * B[23];
+    C[320+l_m] += A[200+l_m] * B[24];
+    C[360+l_m] += A[240+l_m] * B[25];
+    C[400+l_m] += A[280+l_m] * B[26];
+    C[440+l_m] += A[320+l_m] * B[27];
+    C[480+l_m] += A[240+l_m] * B[28];
+    C[480+l_m] += A[280+l_m] * B[29];
+    C[520+l_m] += A[280+l_m] * B[30];
+    C[520+l_m] += A[320+l_m] * B[31];
+    C[560+l_m] += A[240+l_m] * B[32];
+    C[560+l_m] += A[320+l_m] * B[33];
+  }
+
+#ifndef NDEBUG
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+libxsmm_num_total_flops += 2720;
+#endif
+}
+

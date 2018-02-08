@@ -59,6 +59,7 @@ class SeisSolStarExperiment:
         seissol_star.store(self.mtx_filename)
 
         param_space = [self.make_libxsmm_test(),
+                       self.make_breuer_test(),
                        self.make_unrolled_test(8),
                        self.make_unrolled_test(40),
                        self.make_jump_test(8),
@@ -82,15 +83,24 @@ class SeisSolStarExperiment:
         p.ldb = p.k
         return p
 
+    def make_breuer_test(self):
+        p = libxsmm_params(self.params, False)
+        p.mtx_format = "csc"
+        p.output_funcname = "breuer"
+        p.output_filename = self.reldir + "libxsmm_gemms.h"
+        p.ldb = 0
+        return p
+
     def make_unrolled_test(self, bm):
+        self.params.bm = bm
         pp = unrolled_params(self.params)
         pp.mtx_format = "bcsc"
         pp.output_funcname = f"unrolled_{bm}"
         pp.ldb = 0
-        pp.bm = bm
         return pp
 
     def make_jump_test(self, bm):
+        self.params.bm = bm
         pp = general_params(self.params)
         pp.mtx_format = "bcsc"
         pp.output_funcname = f"general_{bm}"

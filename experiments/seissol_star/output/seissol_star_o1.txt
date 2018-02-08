@@ -1,0 +1,5 @@
+libxsmm, 0.331944
+unrolled_8, 0.179746
+unrolled_40, 0.190276
+general_8, 0.661218
+general_40, 0.203083

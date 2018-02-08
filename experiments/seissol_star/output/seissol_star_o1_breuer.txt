@@ -1,0 +1,6 @@
+libxsmm, 0.34438
+breuer, 2.49337
+unrolled_8, 0.180658
+unrolled_40, 0.190183
+general_8, 0.661041
+general_40, 0.203049
