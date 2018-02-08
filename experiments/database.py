@@ -19,11 +19,10 @@ class Job:
         return self.experiment.name+"."+self.jobid+".out"
 
 class Experiment:
-    def __init__(self, name, text, reldir, make_cpp):
+    def __init__(self, name, text, reldir):
         self.name = name
         self.text = text
         self.reldir = reldir
-        self.make_cpp = make_cpp
 
         self.executable = name
         self.script = name + ".sh"

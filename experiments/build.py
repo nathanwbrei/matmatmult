@@ -23,7 +23,7 @@ source /etc/profile.d/modules.sh
 
 def make_script(e:Experiment, c:Cluster):
 
-    destination = path.join(e.reldir, "generated", e.script)
+    destination = path.join(e.reldir, e.script)
     contents= script_template.format(expname = e.name,
                                      basedir = c.basedir,
                                      clustername = c.name,
@@ -35,7 +35,7 @@ def make_script(e:Experiment, c:Cluster):
 
 def make_executable(e:Experiment):
 
-    src = path.join(e.reldir, "generated", e.executable+".cpp")
+    src = path.join(e.reldir, e.executable+".cpp")
     dest = path.join("build", e.executable)
 
     cmds = [f"./linux g++ -O3 -mavx512f -I ../eigen3 -I include -DNDEBUG -std=c++11 -lrt -o {dest} {src}"]

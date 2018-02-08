@@ -3,32 +3,20 @@
 from experiments import *
 from experiments.proof_of_concept.exp1 import make as make_proof_of_concept
 from experiments.unrolled_scaling.exp4 import make as make_unrolled_scaling
-from experiments.jump_penalty.jump_penalty import make as make_jump_penalty
+
+from experiments.jump_penalty.exp import JumpPenaltyExperiment
+from experiments.jump_scaling.exp import JumpScalingExperiment
 
 import os
 import time
 import argparse
 
 
-exps = [
-    Experiment(name = "exp1", 
-               text = "Proof of concept",
-               reldir = "experiments/proof_of_concept",
-               make_cpp = make_proof_of_concept),
+exps = [JumpPenaltyExperiment(),
+        JumpScalingExperiment()
+        ]
 
-    Experiment(name = "exp3", 
-               text = "DxSpUnrolled scaling study",
-               reldir = "experiments/unrolled_scaling",
-               make_cpp = make_unrolled_scaling),
-
-    Experiment(name = "exp5", 
-               text = "DxSpGeneral indirect jump penalty",
-               reldir = "experiments/jump_penalty",
-               make_cpp = make_jump_penalty)]
-
-coolmuc2 = Cluster("linuxcluster", "mpp2", "/home/hpc/pr63so/ga63qow2/experiments")
 coolmuc3 = Cluster("knlcluster", "mpp3", "/home/hpc/pr63so/ga63qow2/experiments")
-
 
 
 
@@ -37,7 +25,7 @@ def run(e: Experiment, generate: bool, deploy: bool, execute: bool, wait: bool,
 
     if generate:
         print(f"Generating...")
-        e.make_cpp(e.reldir, e.name)
+        e.make()
         make_script(e,c)
         make_executable(e)
 

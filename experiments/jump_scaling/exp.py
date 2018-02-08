@@ -15,6 +15,9 @@ class JumpScalingExperiment:
 
     name = "exp_jump_scaling"
     reldir = "experiments/jump_scaling/generated/"
+    text = "GeneralSparse scaling experiment"
+    executable = name
+    script = name + ".sh"
 
 
     def make(self):
@@ -23,11 +26,11 @@ class JumpScalingExperiment:
         if (os.path.isfile(libxsmm_filename)):
             os.remove(libxsmm_filename)
 
-        for scenario in all_scenarios():
+        for scenario in Scenario.all_scenarios(self.reldir):
             print(f"Generating {scenario.name} MTX file")
             scenario.make_mtx()
 
-        param_space = [x for sc in all_scenarios(self.reldir) 
+        param_space = [x for sc in Scenario.all_scenarios(self.reldir) 
                          for x in sc.all_params() ]
 
         harness = HarnessBuilder()
@@ -36,7 +39,7 @@ class JumpScalingExperiment:
         for param in param_space:
             harness.add_test(param)
 
-        cpp_filename = self.reldir + name + ".cpp"
+        cpp_filename = self.reldir + self.name + ".cpp"
         harness.make(cpp_filename)
 
 

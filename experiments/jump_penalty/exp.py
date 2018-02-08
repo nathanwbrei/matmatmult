@@ -14,11 +14,14 @@ class JumpPenaltyExperiment:
 
     name = "exp_jump_penalty"
     reldir = "experiments/jump_penalty/generated/"
+    text = "GeneralSparse penalty experiment"
+    executable = name
+    script = name + ".sh"
 
 
     def make(self):
 
-        libxsmm_file = reldir + "libxsmm_gemms.h"
+        libxsmm_file = self.reldir + "libxsmm_gemms.h"
         if (os.path.isfile(libxsmm_file)):
             os.remove(libxsmm_file)
 
@@ -26,7 +29,7 @@ class JumpPenaltyExperiment:
             print(f"Generating {scenario.name} MTX file")
             scenario.make_mtx()
 
-        param_space = [x for sc in all_scenarios() 
+        param_space = [x for sc in Scenario.all_scenarios(self.reldir)
                          for x in sc.all_params() ]
 
         harness = HarnessBuilder()
@@ -35,8 +38,8 @@ class JumpPenaltyExperiment:
         for param in param_space:
             harness.add_test(param)
 
-        cpp_filename = reldir + name + ".cpp"
-        harness.make(self.cpp_filename)
+        cpp_filename = self.reldir + self.name + ".cpp"
+        harness.make(cpp_filename)
 
 
 
