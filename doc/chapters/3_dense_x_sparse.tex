@@ -327,13 +327,34 @@ number of nonzeros in the pattern to $3000 - nnz(top_right) - nnz(bottom_right) 
 
 \section{General dense-by-sparse multiplication}
 
-The general dense-by-sparse algorithm comes from relaxing \emph{both} of the TiledSparse constraints: There can be any number of different blocks, and each block may contain any number of nonzeros. GeneralSparse maintains a collection of SparseMicrokernel GEMMs 
+The general dense-by-sparse algorithm comes from relaxing \emph{both} of the key ideas of TiledSparse: There can be any number of different block patterns, and each pattern may contain any number of nonzeros. GeneralSparse contains a collection of SparseMicrokernel GEMMs, and chooses the correct GEMM for each block of B. It is free to scale to larger matrix sizes than those supported by UnrolledSparse, because it can be compressed. Judiciously filling in zeros can arbitrarily reduce the number of unique block patterns, which in turn reduces the number of GEMMs. Thus GeneralSparse degrades gracefully, similar to TiledSparse. As the matrices grow larger and denser, the algorithm will converge towards either BlockedSparse or dense, depending on the original sparsity pattern. In contrast to TiledSparse and BlockedSparse, however, the fill-in (and hence wasted FLOPs) can be effectively minimized.
 
-This algorithm is subject to the following constraints:
+There is of course a tradeoff: in order to redirect control flow to the correct block GEMM, an indirect jump is needed. This introduces control dependencies and brings the branch predictor into play. For each indirect jump there will be additional latency, along with poorer memory movement amortization. There are several different strategies possible, each a modification which resolves problems introduced by the previous:
+
+\begin{itemize}
+  \item The first approach is a straightforward jump table. Suppose the different GEMMs are indexed $0,1,...$. Then a \emph{jump table} can be laid out in the instruction stream. The address of each 
+
+
+  \item Modify (1) to avoid the extra lookup by putting the address of the GEMM in the block array directly. Loop over this array, moving the \py{A,B,C} pointers to the start of the block, and performing an indirect jump to the GEMM at the address in the current array. Put all of the GEMMs in the center of the loop. There are three downsides to this approach: Firstly, each non-empty block has both an indirect jump (to the correct GEMM) and a direct jump (back to the body of the loop). Secondly, completely empty blocks still generate an indirect jump. Thirdly, there is no possibility of unrolling. This approach is explored in \py{src/jumptables/jumptable_looped.cpp}.
+
+  \item Unroll the \py{Bn} and \py{Bk} loops completely. For each block, move the \py{A,B,C} pointers to the start of the active block, and save a return address to a register. This is effectively a (non-ABI-compliant) function call, except it avoids the stack completely. Perform a direct jump to the correct GEMM. The GEMM itself performs the indirect jump to the return address stored in the register. This approach is explored in \py{src/jumptables/jumptable_unrolled.cpp}.
+\end{itemize}
+
+\subsection{Pseudocode}
+
+
+\subsection{Degrees of Freedom}
+\begin{description}
+  \item[Decision to unroll Bm-loop] 
+  \item[Code alignment and padding]
+\end{description}
+
+
+\subsection{Constraints}
 
 \begin{enumerate}
 
-  \item The total number of indirect jumps must be minimized. This implies that the total number of nonzero blocks should be as small as possible. 
+  \item The total number of indirect jumps should be minimized. This favors a larger block size.
 
   \item The routine must fit in the 32kB instruction cache, which constrains both the sum of nonzeros in each \emph{unique} block, as well as the total number of nonzero blocks. The latter constraint could possibly be finessed by storing the pointers to the start of each block and the corresponding GEMM routine in an array in the data cache instead of unrolling it into the instruction stream.
 
@@ -343,12 +364,13 @@ This algorithm is subject to the following constraints:
 
 \end{enumerate}
 
-
-GeneralSparse degrades gracefully, similar to TiledSparse. As the matrices grow larger and denser, satisfying constraints (1) and (2) will lead to the unique blocks merging (and thereby filling in) until the algorithm resembles BlockSparse or TiledSparse. However, the overhead due to the indirect jumps means that BlockSparse or TiledSparse will prove to be more performant choice past a certain size.
-
+\subsection{Choosing parameters}
 
 How do we automatically choose GeneralSparse parameters?
 
 \section{Extracted diagonal}
 
 One pattern which emerges in sparse matrices is to 
+
+
+
