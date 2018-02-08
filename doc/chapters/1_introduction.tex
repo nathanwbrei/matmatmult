@@ -53,6 +53,39 @@ This peak performance is in practice merely an upper bound, as it assumes a stea
 
 \section{Previous approaches}
 
+\subsection{CSC sparse multiplication}
+  The first approach used standard compressed-sparse-column multiplication. This algorithm goes back to WHOM? . It looks as follows:
+
+
+  It has the following advantages: It is extremely general, placing no constraints on the matrix size or sparsity. 
+  The sparsity pattern itself is known only at runtime. This generality makes it extremely amenable to abstraction, so a 
+
+  Nevertheless, the standard csc multiplication algorithm suffers from several crucial disadvantages: 
+
+\begin{description}
+  \item[High memory usage]
+
+  \item[Computational intensity]
+
+  \item[Inability to unroll the innermost loop] This hurts pipeline efficiency.
+
+  \item[Scalar operations]
+
+  The indices are looked up at runtime. Firstly, this requires storing the indices, doubling the amount of memory needed. If only one matrix is sparse, the total number of flops is $2 * m * n * nnz$, with nnz=1/4*n*k, this means that the arithmetic intensity [FLOPs/byte] is 1/8 that of dense matrix multiplication. 
+  Although the format lays everything out in memory as efficiently, the algorithm must nevertheless loop over k. The resulting control dependency prevents . The fact that the sparsity pattern is only known at compile time prevents unrolling. 
+  A dense-by-sparse algorithm would still benefit from vectorization, but if the 
+
+\end{description}
+
+
+In the case of SeisSol, the sparsity patterns are derived from the basis functions, which themselves depend mainly on order of accuracy and the choice of viscous damping model. These parameters are all chosen at compile time. Secondly, the problem size is always small: the largest dimension is either 34 (corresponding to ) 56. 
+
+In the case of Knights Landing, these problems are all acerbated. 
+
+
+
+
+
   Standard compressed-sparse-column multiplication
     \begin{itemize}
       \item[$+$] Generality.

@@ -2,7 +2,75 @@
 \label{chapter:review}
 
 \section{Matrix multiplication}
-Dense and spare matrix multiplication together account for two of the "seven pillars" of computation, in the sense that they encompass an unexpectedly large fraction of all computing, particularly in scientific and engineering fields. Since any algorithmic improvement has the potential to improve the performance of programs across the board, these algorithms have been highly optimized for each successive computer architecture and made available through a common interface known as BLAS since 1977. However, it wasn't until 2008 that a more general approach for designing optimized dense matrix multiplication algorithms -- independent of the exact details of the memory hierarchy -- was established. This work by Goto takes advantage of the recursive nature of block-wise matrix multiplication in order to successively divide the problem into smaller and smaller blocks, each of which is sized and padded to make best use of the memory hierarchy. Thus a very large matrix may be split among separate machines using Cannon's algorithm, then further split into blocks which fit in the L2 cache, then in the L1 cache, then finally in the registers themselves. 
+
+Dense and spare matrix multiplication together account for two of the "seven pillars" of computation, in the sense that they encompass an unexpectedly large fraction of all computing, particularly in scientific and engineering fields. Since any algorithmic improvement has the potential to improve the performance of programs across the board, these algorithms have been highly optimized for each successive computer architecture and made available through a common interface known as BLAS since 1977. However, it wasn't until 2008 that a more general approach for designing optimized dense matrix multiplication algorithms -- independent of the exact details of the memory hierarchy -- was established. This work by Goto takes advantage of the recursive nature of block-wise matrix multiplication in order to successively divide the problem into blocks, each of which is sized and padded to make best use of the memory hierarchy. Thus a very large matrix may be split among separate machines using Cannon's algorithm, then further split into blocks which fit in the L2 cache, then in the L1 cache, then finally in the registers themselves. 
+
+
+\begin{minted}{python}
+
+C := alpha*op( A )*op( B ) + beta*C,alpha, beta
+
+subroutine dgemm 	( 	character  	TRANSA,
+		character  	TRANSB,
+		integer  	M,
+		integer  	N,
+		integer  	K,
+		double precision  	ALPHA,
+		double precision, dimension(lda,*)  	A,
+		integer  	LDA,
+		double precision, dimension(ldb,*)  	B,
+		integer  	LDB,
+		double precision  	BETA,
+		double precision, dimension(ldc,*)  	C,
+		integer  	LDC 
+	) 		
+
+%https://software.intel.com/en-us/mkl-developer-reference-fortran-mkl-cscmm
+
+C := alpha*A*B + beta*C
+call mkl_dcscmm(transa, m, n, k, alpha, matdescra, val, indx, pntrb, pntre, b, ldb, beta, c, ldc)
+\end{minted}
+
+\section{Variable naming conventions}
+
+
+This work uses the BLAS naming conventions wherever possible. These conventions must be extended to handle 
+Firstly, iteration variable names are derived from the size variable names by adding the suffix \py{-i}. Secondly, we wish to iterate not only over cells, but also blocks and vectors. The naming convention handles this via a prefix. In effect, \py{m,n,k} determine the iteration \emph{direction}, and the prefix determines the units. Finally, we introduce the direction \py{l} to handle the third dimension, when working with tensors. The complete grammar is provided in Figure~\ref{fig:grammar}. This convention adds much-needed predictability and ease of comprehension inside deeply nested loops. It also helps ensure that iteration variables stay within the correct range. The most common pattern is to iterate over matrix blocks, and then inside each block iterate over cells (for sparse matrices) and vectors (for dense matrices). An example of this is given below:
+
+\begin{minted}{python}
+for ki in range(k):
+	print(B[ki,ni])
+\end{minted}
+
+\begin{figure}[tbh]
+  \centering
+  \begin{subfigure}[l]{0.48\textwidth}
+      \begin{minted}[linenos=false,fontsize=\small]{text}
+    <var>       ::= [<units>]<direction>[i]
+    <units>     ::= b | B | v | V
+    <direction> ::= m | n | k | l
+  \end{minted}
+  \end{subfigure}
+  ~~~~
+  \begin{subfigure}[r]{0.45\textwidth}
+    \centering
+    \begin{tabular}{cll}
+		\toprule
+		Units    & Mnemonic & Meaning \\
+		\midrule
+
+		none  & Cell          & Cells in the matrix      \\
+		b     & Intra-block   & Cells in a block         \\
+		B     & Inter-block   & Blocks in the matrix     \\
+		v     & Intra-vector  & Cells in a block         \\
+		V     & Inter-vector  & Vectors in a block       \\
+		\bottomrule
+	\end{tabular}
+  \end{subfigure}
+  \caption{Grammar for variable names.}
+  \label{fig:grammar}
+\end{figure}
+
 
 \section{The outer-product formulation}
 
@@ -44,8 +112,6 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 \label{fig:outerproduct}
 \end{figure}
 
-\section{Small dense matrix kernels}
-
 \section{Sparsity pattern unrolling}
 
 \section{Memory addressing schemes}
@@ -57,48 +123,8 @@ The simplest scheme is to use pointer-offset addressing, where the pointer is in
 
 \section{Dense-by-sparse vs sparse-by-dense asymmetry}
 
-\section{Variable naming conventions}
-
-
-There exist well-established conventions for naming variables inside matrix multiplication algorithms. 
-The use of the letters m,n,k is unavoidable. However, the conventions become less clear when the loops are nested over blocks, vectors, and cells.
-Another point of confusion is naming iteration variables. This work adopts the following naming conventions:
-
-  \begin{minted}[fontsize=\footnotesize]{text} 
-    <var>       ::= [<units>] <dimension> [i]
-    <units>     ::= b | B | v | V
-    <dimension> ::= m | n | k | l
-  \end{minted}
-
-The units indicates what is being counted or iterated over:
-
-    \begin{tabular}{cll}
-\toprule
-Units    & Mnemonic & Meaning \\
-\midrule
-
-none  & Cell          & Cells in the matrix      \\
-b     & Intra-block   & Cells in a block         \\
-B     & Inter-block   & Blocks in the matrix     \\
-v     & Intra-vector  & Cells in a block         \\
-V     & Inter-vector  & Vectors in a block       \\
-\bottomrule
-\end{tabular}
-
-The dimension indicates 
-
-\begin{tabular}{cl}
-\toprule
-Dimension    & Meaning \\
-\midrule
-m & Rows of A and C \\
-n & Columns of B and C \\
-k & Columns of A, rows of B \\
-l & The third dimension of A and C\\
-\bottomrule
-\end{tabular}
-
-
-Finally, 'i' indicates that this is an iteration variable.
-For example, one may confidently assume that the variable $bni \in [0, bn-1]$ iterates cell-by-cell across columns of B and C within the current block.
+- Outer-product formulation
+- Breuer
+- MKL
+- Row-major vs Column-major
 
