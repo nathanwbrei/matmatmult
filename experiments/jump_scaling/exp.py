@@ -10,13 +10,48 @@ from cursors.matrix import Matrix
 from components.parameters import Parameters
 
 
-EXP5_NAME = "exp5"
-EXP5_HOME = "experiments/jump_penalty/generated/"
-# TODO: Manage this in a sane way
+
+class JumpScalingExperiment:
+
+    name = "exp_jump_scaling"
+    reldir = "experiments/jump_scaling/generated/"
+
+
+    def make(self):
+    
+        libxsmm_filename = self.reldir + "libxsmm_gemms.h"
+        if (os.path.isfile(libxsmm_filename)):
+            os.remove(libxsmm_filename)
+
+        for scenario in all_scenarios():
+            print(f"Generating {scenario.name} MTX file")
+            scenario.make_mtx()
+
+        param_space = [x for sc in all_scenarios(self.reldir) 
+                         for x in sc.all_params() ]
+
+        harness = HarnessBuilder()
+        harness.imports += '#include "libxsmm_gemms.h"\n'
+
+        for param in param_space:
+            harness.add_test(param)
+
+        cpp_filename = self.reldir + name + ".cpp"
+        harness.make(cpp_filename)
+
+
+
 
 class Scenario:
+
+    @classmethod
+    def all_scenarios(cls, reldir):
+        for njumps in [1,2,4,8,16]:
+            for nnzs in range(200, 4200, 200):
+                if (nnzs <= njumps * 16 * 16):
+                    yield Scenario(reldir, nnzs, njumps)
     
-    def __init__(self, nnzs:int, njumps:int):
+    def __init__(self, reldir:str, nnzs:int, njumps:int):
 
         bm = 8
         bn = 16
@@ -26,6 +61,7 @@ class Scenario:
         k = 128
 
         self.name = f"jump_penalty_{njumps}_{nnzs}"
+        self.reldir = reldir
         self.patterns = [Matrix.full(bk, bn, False)]
 
         for j in range(1, njumps+1):
@@ -33,7 +69,7 @@ class Scenario:
 
         self.blocks = Matrix.rand_int(njumps, k//bk, n//bn, 22)
 
-        self.mtx_filename = EXP5_HOME + self.name + ".mtx"
+        self.mtx_filename = reldir + self.name + ".mtx"
 
         self.basic_params = Parameters(
             algorithm = "dxsp_general",
@@ -51,13 +87,13 @@ class Scenario:
 
     def make_mtx(self):
         m = Matrix.from_blocks(self.blocks, self.patterns)
-        m.store(self.mtx_filename)
+        m.store(self.reldir + self.name + ".mtx")
 
     def make_libxsmm_test(self):
         pp = libxsmm_params(self.basic_params)
         pp.mtx_format = "dense"
         pp.output_funcname = self.name + "_libxsmm"
-        pp.output_filename = EXP5_HOME+"libxsmm_gemms.h"
+        pp.output_filename = self.reldir + "libxsmm_gemms.h"
         pp.ldb = pp.k
         return pp
 
@@ -78,38 +114,3 @@ class Scenario:
         yield self.make_libxsmm_test()
         yield self.make_unrolled_test()
         yield self.make_jump_test()
-
-
-def all_scenarios():
-    for njumps in [1,2,4,8,16]:
-        for nnzs in range(200, 4200, 200):
-            if (nnzs <= njumps * 16 * 16):
-                yield Scenario(nnzs, njumps)
-
-
-# TODO: Drop dest_dir, exp_name from this
-def make(dest_dir: str, exp_name: str) -> None:
-
-    libxsmm_file = EXP5_HOME+"libxsmm_gemms.h"
-    if (os.path.isfile(libxsmm_file)):
-        os.remove(libxsmm_file)
-
-    for scenario in all_scenarios():
-        print(f"Generating {scenario.name} MTX file")
-        scenario.make_mtx()
-
-    param_space = [x for sc in all_scenarios() 
-                     for x in sc.all_params() ]
-
-    harness = HarnessBuilder()
-    harness.imports += '#include "libxsmm_gemms.h"\n'
-
-    for param in param_space:
-        harness.add_test(param)
-
-    cpp_filename = EXP5_HOME + EXP5_NAME + ".cpp"
-    harness.make(cpp_filename)
-
-
-
-
