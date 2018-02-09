@@ -4,6 +4,7 @@ from experiments import *
 from experiments.unrolled_scaling.exp4 import make as make_unrolled_scaling
 
 from experiments.seissol_star.exp import SeisSolStarExperiment
+from experiments.unrolled_sizing.exp import UnrolledSizingExperiment
 from experiments.jump_penalty.exp import JumpPenaltyExperiment
 from experiments.jump_scaling.exp import JumpScalingExperiment
 
@@ -13,6 +14,7 @@ import argparse
 
 
 exps = [SeisSolStarExperiment(),
+        UnrolledSizingExperiment(),
         JumpPenaltyExperiment(),
         JumpScalingExperiment()
         ]
@@ -80,7 +82,7 @@ if __name__=="__main__":
     parser.add_argument("exp", type=int, help="Choice of experiment", choices=range(len(exps)))
 
     args = parser.parse_args()
-    run(exps[args.exp], args.generate, args.deploy, args.execute, args.wait)
+    run(exps[args.exp], True, args.deploy, args.execute, args.wait)
     
 
 

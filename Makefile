@@ -45,21 +45,6 @@ workbench: workbench/workbench.cpp workbench/gemms_libxsmm.c
 		build/gemms_goto.o
 
 
-exp1:
-	#icpc -xCORE-AVX2 -std=c++11 -O3 -o build/baseline exp1/baseline.c -lrt -DNDEBUG
-	#icpc -xCORE-AVX2 -std=c++11 -O3 -o build/exp1 exp1/exp.c -lrt -DNDEBUG
-	g++ -mavx2 -std=c++11 -O3 -o build/baseline exp1/baseline.c -lrt -DNDEBUG
-	g++ -mavx2 -std=c++11 -O3 -o build/exp1 exp1/exp.c -lrt -DNDEBUG
-
-
-exp2:
-	#icpc -xCORE-AVX2 -std=c++11 -O3 -o build/baseline exp1/baseline.c -lrt -DNDEBUG
-	#icpc -xCORE-AVX2 -std=c++11 -O3 -o build/exp1 exp1/exp.c -lrt -DNDEBUG
-	g++ -mavx512f -std=c++11 -O3 -o build/baseline exp2/baseline.c -lrt -DNDEBUG
-	g++ -mavx512f -std=c++11 -O3 -o build/exp2 exp2/exp2.c -lrt -DNDEBUG
-
-exp4:
-	PYTHONPATH="." python3 exp4/exp4.py
 
 exp_seissol_star-build:
 	icpc -O1 -xMIC-AVX512 -I include -DNDEBUG -std=c++11 -lrt -o build/exp_seissol_star experiments/seissol_star/generated/exp_seissol_star.cpp
@@ -81,6 +66,12 @@ exp_jump_scaling-build:
 
 exp_jump_scaling-run:
 	srun build/exp_jump_scaling > experiments/jump_scaling/output/jump_scaling.txt
+
+exp_unrolled_sizing-build:
+	icpc -O1 -xMIC-AVX512 -I include -DNDEBUG -std=c++11 -lrt -o build/exp_unrolled_sizing experiments/unrolled_sizing/generated/exp_unrolled_sizing.cpp
+
+exp_unrolled_sizing-run:
+	srun build/exp_unrolled_sizing > experiments/unrolled_sizing/output/unrolled_sizing.txt
 
 
 
