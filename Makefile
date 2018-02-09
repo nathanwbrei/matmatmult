@@ -61,13 +61,28 @@ exp2:
 exp4:
 	PYTHONPATH="." python3 exp4/exp4.py
 
-exp5-build:
-	icpc -O1 -xMIC-AVX512 -I include -DNDEBUG -std=c++11 -lrt -o build/exp5 experiments/jump_penalty/generated/exp5.cpp
-	#g++ -O3 -mavx512f -I include -DNDEBUG -std=c++11 -lrt -o build/exp5 experiments/jump_penalty/generated/exp5.cpp
-	objdump -D build/exp5 > build/exp5.asm
+exp_seissol_star-build:
+	icpc -O1 -xMIC-AVX512 -I include -DNDEBUG -std=c++11 -lrt -o build/exp_seissol_star experiments/seissol_star/generated/exp_seissol_star.cpp
+	objdump -D build/exp_seissol_star > experiments/seissol_star/output/seissol_star_o1.asm
+	
+exp_seissol_star-run:
+	srun build/exp_seissol_star > experiments/seissol_star/output/seissol_star.txt
 
-exp5-run:
-	srun build/exp5 > experiments/jump_penalty/output/jump_penalty.txt
+exp_jump_penalty-build:
+	icpc -O1 -xMIC-AVX512 -I include -DNDEBUG -std=c++11 -lrt -o build/exp_jump_penalty experiments/jump_penalty/generated/exp_jump_penalty.cpp
+	
+exp_jump_penalty-run:
+	srun build/exp_jump_penalty > experiments/jump_penalty/output/jump_penalty.txt
+
+exp_jump_scaling-build:
+	icpc -O1 -xMIC-AVX512 -I include -DNDEBUG -std=c++11 -lrt -o build/exp_jump_scaling experiments/jump_scaling/generated/exp_jump_scaling.cpp
+	#g++ -O3 -mavx512f -I include -DNDEBUG -std=c++11 -lrt -o build/exp_jump_scaling experiments/jump_scaling/generated/exp_jump_scaling.cpp
+	objdump -D build/exp_jump_scaling > build/exp_jump_scaling.asm
+
+exp_jump_scaling-run:
+	srun build/exp_jump_scaling > experiments/jump_scaling/output/jump_scaling.txt
+
+
 
 
 jumptable: src/jumptable/jumptable.cpp src/jumptable/jumptable_unrolled.cpp src/jumptable/jumptable_looped.cpp
