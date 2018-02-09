@@ -5,11 +5,11 @@ import pandas
 sns.set(style="white")
 
 csvs = [
-		("unrolled_sizing_2000", "experiments/unrolled_sizing/outputs/unrolled_sizing_2000.txt",1.0,4),
-		("unrolled_sizing_500", "experiments/unrolled_sizing/outputs/unrolled_sizing_500.txt",None,7)
+		("unrolled_sizing_2000", "experiments/unrolled_sizing/outputs/unrolled_sizing_2000.txt",1.0,4,None),
+		("unrolled_sizing_500", "experiments/unrolled_sizing/outputs/unrolled_sizing_500.txt",None,7,5)
 		]
 
-for name,csv,center,vmax in csvs:
+for name,csv,center,vmax,vmin in csvs:
 
 	data = pandas.read_csv(csv, names=["name","microsecs"])
 	d2 = data.name.str.split("_",expand=True).fillna("0")
@@ -44,6 +44,7 @@ for name,csv,center,vmax in csvs:
 					#cmap=cmap, 
 					center=center,
 					vmax=vmax, 
+					vmin=vmin,
 					square=True, 
 					cbar_kws={"shrink": .5})
 
