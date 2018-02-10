@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas
 
-def plot(src="experiments/jump_penalty/output/jump_penalty.txt",
-		 dest="doc/images/jump_penalty.pdf"):
+def plot(src="experiments/jump_scaling/output/jump_scaling.txt",
+		 dest="doc/images/jump_scaling.pdf"):
 
 	data = pandas.read_csv(src, names=["name","microsecs"])
 	pieces = data.name.str.split("_", expand=True)
@@ -19,17 +19,23 @@ def plot(src="experiments/jump_penalty/output/jump_penalty.txt",
 	libxsmm_table = libxsmm_samples.pivot("nnzs","njumps","microsecs")
 	unrolled_table = unrolled_samples.pivot("nnzs","njumps","microsecs")
 
-	table['dense'] = libxsmm_table
-	table[0] = unrolled_table
-	table = table[['dense',0,1,4,8,12,24]]
+	#table['dense'] = libxsmm_table
+	#table[0] = unrolled_table
+
+	#table = table[['dense',0,1,2,4,8,16]]
 
 	sns.set(style="darkgrid")
 	f, ax = plt.subplots(figsize=(7, 6))
-	table.plot()
+
+	ax.hold(True)
+	ax.plot(table)
+	#ax.plot(libxsmm_table)
+	#ax.plot(unrolled_table)
 	plt.xlabel("Nonzeros")
 	plt.ylabel("Microseconds")
-	plt.ylim([0,0.175])
+	plt.ylim([0,175])
 	plt.legend(loc='best')
+
 	plt.savefig(dest)
 
 
