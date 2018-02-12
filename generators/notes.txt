@@ -1,27 +1,10 @@
-# TODO: Plot unrolledSparse choice of block size
+
 # TODO: Try to forcefeed a bajillion FMA instructions
-
-
-Acronyms
---------
-GEMM
-FMA
-VCSC
-VBCSC
-
 
 SMALL THINGS I CAN DO ANYTIME
 -----------------------------
-* Add knl, libxsmm refs to bibliography
-* Figure out how to generate nice algorithm listings
 * Fix dxsp flowchart graphic
 * m,n,k diagram
-
-
-QUESTIONS FOR CARSTEN/ROLAND/NICO
----------------------------------
-* This reification thing
-* Algorithm: Matrix pattern
 
 
 CODING I STILL WANT TO DO
@@ -29,12 +12,3 @@ CODING I STILL WANT TO DO
 * Choose best block size for tiledsparse
 * Choose best block decomp for generalsparse
 * Impl Tensor thing
-* Plot jump penalty
-* 
-
-- 6hrs writing, 2 hrs coding
-- Write conclusion last.
-
-Write conclusion at end.
-40 pages -- 100 pages
-70 pages

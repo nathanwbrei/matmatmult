@@ -1,8 +1,7 @@
-\chapter{Dense-by-Sparse Algorithms}
+\chapter{Algorithms}
 \label{chapter:algs}
 
-The main focus of this thesis is on improving the performance of small dense-by-sparse matrix multiplication algorithms. It is necessary to finesse around the bottlenecks that constrain the approaches described in the previous chapter. The extra information which makes this possible is the sparsity pattern known at compile time. Figure~\ref{fig:dxsp} shows the different algorithms under consideration and the relationship between them. The starting point is the outer-product formulation generated from \texttt{libxsmm}. This forms the basis of SparseMicrokernel. 
-
+The main focus of this thesis is on improving the performance of small dense-by-sparse matrix multiplication algorithms. It is necessary to finesse around the bottlenecks that constrain the approaches described in the previous chapter. The extra information which makes this possible is the sparsity pattern known at compile time. Figure~\ref{fig:dxsp} shows the different algorithms under consideration and the relationship between them. 
 
 \begin{figure}[H]
   \centering
@@ -11,6 +10,11 @@ The main focus of this thesis is on improving the performance of small dense-by-
   \caption{Relationships between different dense-by-sparse multiplication algorithms}
 \end{figure}
 
+
+The starting point is the dense outer-product formulation generated from \texttt{libxsmm}. Applying knowledge about the sparsity pattern yields MicroSparse, which avoids wasted computation but is restricted to very small matrix sizes. Decomposing a matrix into blocks, using MicroSparse for each block, and unrolling some of the outer loops yields UnrolledSparse, which is not restricted by matrix dimensions but is restricted by the number of nonzeros. In order to support matrices with many nonzeros, some regularity assumptions have to be made. 
+
+
+The simplest approach is TiledSparse, which assumes that a single block pattern is repeated exactly. To make this algorithm more practical, the assumption may be relaxed in two different ways. The first variation no longer assumes that each block has the same number of nonzeros, and hence the start of the block may be found via a simple loop. Relaxing this assumption yields BlockedSparse. BlockSparse assumes 
 
 
 
@@ -332,7 +336,7 @@ The general dense-by-sparse algorithm comes from relaxing \emph{both} of the key
 There is of course a tradeoff: in order to redirect control flow to the correct block GEMM, an indirect jump is needed. This introduces control dependencies and brings the branch predictor into play. For each indirect jump there will be additional latency, along with poorer memory movement amortization. There are several different strategies possible, each a modification which resolves problems introduced by the previous:
 
 \begin{itemize}
-  \item The first approach is a straightforward jump table. Suppose the different GEMMs are indexed $0,1,...$. Then a \emph{jump table} can be laid out in the instruction stream. The address of each 
+  \item The first approach is a straightforward jump table. Suppose the different block GEMMs are numbered $0,1,...$. Then a \emph{jump table} can be laid out in the instruction stream. The address of each 
 
 
   \item Modify (1) to avoid the extra lookup by putting the address of the GEMM in the block array directly. Loop over this array, moving the \py{A,B,C} pointers to the start of the block, and performing an indirect jump to the GEMM at the address in the current array. Put all of the GEMMs in the center of the loop. There are three downsides to this approach: Firstly, each non-empty block has both an indirect jump (to the correct GEMM) and a direct jump (back to the body of the loop). Secondly, completely empty blocks still generate an indirect jump. Thirdly, there is no possibility of unrolling. This approach is explored in \py{src/jumptables/jumptable_looped.cpp}.
@@ -368,9 +372,10 @@ There is of course a tradeoff: in order to redirect control flow to the correct 
 
 How do we automatically choose GeneralSparse parameters?
 
-\section{Extracted diagonal}
+\section{Sparse-by-dense multiplication}
 
 One pattern which emerges in sparse matrices is to 
 
+\section{Tensor-matrix multiplication}
 
 

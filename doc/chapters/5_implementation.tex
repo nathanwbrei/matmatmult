@@ -20,20 +20,18 @@ The first major decision was the choice of output language. There were three opt
 
 \end{enumerate}
 
-The second major design decision was the choice of language for the code generator itself. The two main requirements were that the language be amenable to rapid prototyping, be well-suited as a base for lightweight DSLs, and have convenient access to numerical libraries. Two languages closely fit this niche: Python and Julia. Of the two, Python won due to its practicality -- the current SeisSol code generation framework is already written in Python, the libraries are mature, and the code can be run directly on the cluster. 
+The second major design decision was the choice of language for the code generator itself. The two main requirements were that the language be amenable to rapid prototyping, be well-suited as a base for lightweight \glspl{DSL}, and have convenient access to numerical libraries. Two languages closely fit this niche: Python and Julia. Of the two, Python won due to its practicality -- the current SeisSol code generation framework is already written in Python, the libraries are mature, and the code can be run directly on the cluster. 
 
-Two downsides to using Python emerged over the course of the work. Firstly, refactoring proved to be surprisingly time-consuming, given the lack of type safety. This was partially mitigated by leveraging the new type annotation syntax along with the mypy type checker. Use of another new syntax, `f'-string interpolation, constrained the codebase's compatibility to Python 3.6. 
-
-Julia, in comparison, has several noteworthy advantages. Firstly, it has a much stronger type system, leading to both noticeably better performance and better correctness checking. Secondly, it is homoiconic, making it very amenable to metaprogramming. Thirdly, it is JIT-compiled on top of LLVM, which allows for features such as generating and displaying assembly code straight from the REPL. 
+Julia, in comparison, has several notable advantages. Firstly, it has a much stronger type system, leading to both better performance and better correctness checking. Secondly, it is homoiconic, making it very amenable to metaprogramming. Thirdly, it is JIT-compiled on top of LLVM, which allows for features such as generating and displaying assembly code straight from the REPL. 
 
 Ultimately Julia was considered too risky because the language and libraries are changing quickly. Furthermore, the benefit of being able to mix high-level and low-level programming paradigms was cancelled out by the lack of support on the cluster: when run locally, the Julia interpreter must not emit AVX-512 instructions. The prospect of implementing the ideas explored in this work as Julia macros remains intriguing, but also well out of scope.
 
-These considerations lead to a strategic decision to keep a clear distinction between code generation and runtime. The code generation framework is architecture independent, written in pure Python, and emitting output in plain text. This plain text file happens to be a C++ program containing inlined AVX-512 instructions, which must be uploaded to the cluster, compiled, and run there. The upside of this approach is that it is simple and it allows the user to manually tinker with the C++/assembly without involving the code generator. The downside is that it substantially increases the time and effort it takes to obtain feedback after making changes. 
+Two downsides to using Python emerged over the course of the work. Firstly, refactoring proved to be surprisingly time-consuming, given the lack of type safety. This was partially mitigated by leveraging the new type annotation syntax along with the mypy type checker. Use of another new but irresistible syntax, `f'-string interpolation, constrained the code's compatibility to Python 3.6, which is not installed on the cluster either.
+
+These considerations lead to a strategic decision to keep a clear distinction between code generation and runtime, thus avoiding real metaprogramming. The code generation framework is architecture independent, written in pure Python, and emitting output in plain text. This plain text file happens to be a C++ program containing inlined AVX-512 instructions, which must be uploaded to the cluster, compiled, and run there. The upside of this approach is that it is simple and it allows the user to manually tinker with the generated C++/assembly. The downside is that it substantially increases the time and effort it takes to obtain feedback after making changes. 
 
 
-\section{Frontends}
-
-
+\section{Code organization}
 
 \subsection{sparsemmgen}
 
@@ -63,30 +61,50 @@ In the case of dense-by-sparse multiplication, a brute-force approach is not eve
 \subsection{runexperiment}
 The third main entry point is \texttt{runexperiment}, which generates a 
 
+\subsection{Generators}
+
+\subsection{Experiments}
+
 
 
 
 \section{Code generation}
-\subsection{Concept}
-\subsection{Python Assembly AST}
+
+When designing the AST, there is an inherent conflict between choosing data representations which are optimal for human understanding, optimal for custom tools to modify the AST, or optimal for generating the assembly code. This is acerbated by Python's lack of constructor polymorphism and encapsulation. The human benefits from readability and a tower of abstractions which successively add specificity such as register length, precision, alignment, label names, and even register names. The automated tools benefit from having a guarantee than any AST node is fully articulated, while still allowing select pieces to be abstract. Finally, the assembler needs every piece of information, repeated for every instruction, in a somewhat idiosyncratic format.
+
+The solution to this conundrum is to decouple these representations. The AST is stripped down to be nothing more than a data container with a constructor that enforces some basic completeness invariants. The fields are chosen to be as \emph{complete} and \emph{orthogonal} as possible. The goals of being simple to work with, and of having a close mapping to the resulting assembly, are both disregarded with prejudice. Responsibility for the former is moved to the DSL, and responsibility for the latter is moved to the prettyprinter. 
+
+\subsection{Low-level abstract syntax tree}
+
 \begin{itemize}
   \item Operands: Label interning, Registers and register arrays, MemoryAddress, Immediates. Type information: Currently attached to registers, not really used
 
   \item AsmStmt base class. 
   \item Data, Jump, Label, Cmp, Add
   \item Mov, Fma
-  \item
 
-  \item Sugar to decouple data models from convenient Python syntax,
-    \py{vmov(zmm0, rax+22) ==> vmovapd()}. Potential to determine from parameters instead of from dsl. 
+\end{itemize}
 
+\subsection{High-level abstract syntax tree}
+\begin{description}
   \item Blocks. ==> enables reusable components, comments, stack traces, etc. Currently utterly lacking in type safety. Slightly better than a preprocessor, functions which make a component generally contain a bunch of asserts beforehand. Many components are simply a function which returns a block. This is how unrolling is currently implemented in the generators.
 
   \item Forms ==> Sort of an unhygenic macro with arguments. Somehow rearranges or transforms its sub-blocks while otherwise behaving like a block. Completely independent of the program execution state. It is possible to make this hygenic by using abstract registers and adding a register assignment step. Currently used for loops and jump tables, which shall be discussed later. Extends Block, overrides contents(). Stateless.
 
   \item Commands ==> not really used at the present. The goal is to express higher-level ideas which require knowledge of the program's state at runtime. This allows information from runtime to be moved to compile time, For instance, matrixcursor movement commands, loop unroll commands. Might also allow . Will be discussed later. Stateful.
+\end{description}
 
-\end{itemize}
+\subsection{A domain-specific language}
+  
+
+Operands: 
+Instructions: functions
+Blocks: S-exprs, builders
+
+
+  Sugar to decouple data models from convenient Python syntax,
+    \py{vmov(zmm0, rax+22) ==> vmovapd()}. Potential to determine from parameters instead of from dsl. 
+
 
 \subsection{Visitors}
 Quick overview of visitor pattern. Decoupling of operations over syntax tree from tree itself. Tree only contains data, each 'verb' receives its own Python module.
@@ -99,7 +117,9 @@ Quick overview of visitor pattern. Decoupling of operations over syntax tree fro
 \end{itemize}
 
 
+
 \section{Components}
+
 \subsection{Register blocks}
 \begin{itemize}
   \item Load, store, mask
@@ -109,8 +129,7 @@ Quick overview of visitor pattern. Decoupling of operations over syntax tree fro
 
 \subsection{Microkernels}
 
-\section{Cursors}
-
+\subsection{Cursors}
 
     The \emph{matrix cursor} is an abstraction that allows the code generators to cleanly traverse a sparse matrix and access its contents while only using logical coordinates. The name was chosen because of its similarities to the cursor in a text editor, which must translate movement and insert commands from 2D screen coordinates into a 1D memory location which depends on the lengths on the neighboring lines. The term 'cursor' has already been overloaded to describe a kind of iterator into a database; this is also a kind of iterator. MatrixCursor performs the following tasks:
 
