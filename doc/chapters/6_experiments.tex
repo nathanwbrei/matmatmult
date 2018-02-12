@@ -32,18 +32,13 @@ The automatically generated Breuer kernel also experienced a slowdown relative t
 This experiment can be repeated for different patterns of $K$, and also for the $A$-matrix sizes $n \in \{27, 36\}$. 
 
 
-
 \section{Choice of block sizes}
 
-The previous section demonstrated the utility of UnrolledSparse kernel, and also showed that the choice of block sizes $bm,bn,bk$ affects the overall performance. The KNL architecture places a number of constraints on the optimal block size, which is described in depth for the dense case in~\ref{Heinecke:2016:LAS:3014904.3015017}. Since it is not entirely clear the extent to which the libxsmm results The goal of this experiment is to explore exactly 
+The previous section demonstrated the utility of UnrolledSparse kernel, and also showed that the choice of block sizes $bm,bn,bk$ affects the overall performance. The KNL architecture places a number of constraints on the optimal block size, which is described in depth for the dense case by~\ref{Heinecke:2016:LAS:3014904.3015017}. The goal of this experiment is to test the performance of UnrolledSparse for different block sizes and see to what extent the empirical sparse results match with the theoretical dense analysis. This can also lead to heuristics for automatically choosing the block sizes.
 
-While it does not affect the FLOP count, it certainly affects memory movement. 
+For the experimental setup, we chose $m=n=k=96$ because it has a lot of convenient divisors and it is relatively large. This not only reduces measurement noise, but also stresses the data cache and possibly the instruction cache. Two cases were considered, $nnz=500$ and $nnz=2000$. The sparsity pattern was generated from a uniform random distribution. Kernels were generated for every choice of $bm \in \{8,16,24,32\}$ and $bn, bk \in \{1,2,3,4,6,8,12,16,24\}$ satisfying the MicroSparse constraint $(bk+bn) \cdot (bm/8) \leq 32$. 
 
-
-What is the goal of this experiment?
-What is the experimental setup?
-What do the results show?
-
+The speedups of each kernel relative to dense are shown in Figure~\ref{fig:unrolled_sizing}. The plots for $bm=24,32$ have been omitted, but they show the same trends. Firstly, 
 
 
   \begin{figure}[!htb]
@@ -52,27 +47,24 @@ What do the results show?
       \centering
       \includegraphics[width=\textwidth]{images/unrolled_sizing_500_8.pdf}
       \caption{bm = 8, nnz = 500}
-      \label{fig:unrolled_time}
     \end{subfigure}
     \begin{subfigure}[b]{0.45\textwidth}
       \centering
       \includegraphics[width=\textwidth]{images/unrolled_sizing_500_16.pdf}
       \caption{bm = 16, nnz = 500}
-      \label{fig:unrolled_perf}
     \end{subfigure}
     \begin{subfigure}[b]{0.45\textwidth}
       \centering
       \includegraphics[width=\textwidth]{images/unrolled_sizing_2000_8.pdf}
       \caption{bm = 8, nnz = 2000}
-      \label{fig:unrolled_time}
     \end{subfigure}
     \begin{subfigure}[b]{0.45\textwidth}
       \centering
       \includegraphics[width=\textwidth]{images/unrolled_sizing_2000_16.pdf}
       \caption{bm = 16, nnz = 2000}
-      \label{fig:unrolled_perf}
     \end{subfigure}
     \caption{Effect of different block size choices}
+    \label{fig:unrolled_sizing}
   \end{figure}
 
 

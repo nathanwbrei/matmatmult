@@ -27,7 +27,7 @@
 
 Although the motivation is straightforward, it is growing increasingly difficult to implement in practice because it is working against current trends in computer architecture. An growing number of the top500 computers are using GPUs or Xeon Phis. This trend is likely to continue because it allows greater parallelism at a lower energy cost. It was desired to run the code on LRZ's CoolMUC3 cluster, which uses Knights Landing.
 
-Knights Landing (KNL) is the second-generation Intel Xeon Phi, a manycore processor that offers greater parallelism and less power consumption in exchange for a slower clock speed. An overview is given by~\cite{Sodani:2016:KLS:2927511.2927563} and a more comprehensive resource is given by~\cite{Jeffers:2016:IXP:3050856}. Unlike its predecessor, Knights Corner, KNL is a host processor rather than a coprocessor, which means that it can run the entire x86-64 instruction set, albeit with a performance penalty for some operations. KNL has two kinds of memory, a high-bandwidth MCDRAM and a high-capacity DDR4. Each processor contains \~64 cores with 4 hyperthreads per core, resulting in 256 logical CPUs. The instruction-level parallelism is similarly impressive, being the first processor to implement the AVX-512 instruction set extensions. These provide 32 vector registers, each of which holds 64 bytes, allowing 8 double-precision floating point numbers to be operated on simultaneously in each vector processing unit (VPU). Instruction-level performance is further enhanced by an enhanced fused-multiply-add (FMA) instruction, which performs $c := c + a*b$ in a single cycle, optionally including a broadcast and a mask. Thus the theoretical peak performance of a single core is given as:
+Knights Landing (KNL) is the second-generation Intel Xeon Phi, a manycore processor that offers greater parallelism and less power consumption in exchange for a slower clock speed. An overview is given by~\cite{Sodani:2016:KLS:2927511.2927563} and a more comprehensive resource is given by~\cite{Jeffers:2016:IXP:3050856}. Unlike its predecessor, Knights Corner, KNL is a host processor rather than a coprocessor, which means that it can run the entire x86-64 instruction set, albeit with a performance penalty for some operations. KNL has two kinds of memory, a high-bandwidth MCDRAM and a high-capacity DDR4. Each processor contains between 64 and 72 cores with 4 hyperthreads per core, resulting in at least 256 logical CPUs. The instruction-level parallelism is similarly impressive, being the first processor to implement the AVX-512 instruction set extensions. These provide 32 vector registers, each of which holds 64 bytes, allowing 8 double-precision floating point numbers to be operated on simultaneously in each \gls{VPU}. Instruction-level performance is further improved by an enhanced \gls{FMA} instruction, which performs $c := c + a*b$ in a single cycle, optionally including a broadcast and a mask. Thus the theoretical peak performance of a single core is given as:
 
 \begin{equation}
   2 \frac{VPUs}{core} \times  = 3 {double TFlop}{sec}
@@ -36,14 +36,12 @@ Knights Landing (KNL) is the second-generation Intel Xeon Phi, a manycore proces
 
 \[\]
 
-This peak performance is in practice merely an upper bound, as it assumes a steady-state throughput of 2 FMAs per cycle. The only algorithms which come close to achieving this are dense matrix multiplication and (to a lesser extent) LU and Cholesky factorization. If the algorithm is not able to be vectorized at all, the attainable performance drops by a factor of 8, and if it cannot use the FMA instructions, it drops by a further factor of 2. This fundamentally limits 
+This peak performance is in practice merely an upper bound, as it assumes a steady-state throughput of 2 FMAs per cycle. The only algorithms which come close to achieving this are dense matrix multiplication and (to a lesser extent) LU and Cholesky factorization. If the algorithm cannot be vectorized at all, the attainable performance drops by a factor of 8, and if it cannot use the FMA instructions, it drops by a further factor of 2. Hence inherently scalar algorithms perform dramatically worse. This may be a reasonable tradeoff: since scalar algorithms are much more likely to be memory-bound, the extra flops might be wasted. Nevertheless this provides a strong incentive to find creative ways to make the most of the vector registers. 
 
-\begin{itemize}
-    \item Scalar operations limited to 1/8 peak performance
-    \item Bottleneck with vector stores: 64B/cycle
-    \item Bottleneck with instruction cache, decoder: min(16B/cycle, 2 instructions)
-    \item \textbf{Out-of-order execution pipeline can only issue 2 instructions per cycle}
-\end{itemize}
+Another key constraint is cache bandwidth. With only one store unit, KNL can store at most 64B/cycle, corresponding to one vector register. This means that it is essential to accumulate all possible changes to that vector register before storing it. It also makes loop unrolling more important, since this is the only way to amortize the cost of loads and stores.
+
+A number of related bottlenecks encompass the instruction pipeline. Because Knights Landing was derived from the older Silvermont architecture, which was optimized for low power consumption, the instruction pipeline is simpler and narrower. The instruction cache can only provide 16B/cycle, and the decoder can only handle 2 instructions/cycle. Meanwhile, a single \gls{FMA} instruction takes up between 7 and 13 bytes. The most important constraint, however, is that the out-of-order execution pipeline can only issue 2 instructions per cycle. This means that any instruction which is not an FMA \emph{displaces} an FMA, halving the potential computational efficiency of one cycle.
+
 
 \begin{figure}[tb]
 \centering
@@ -52,6 +50,8 @@ This peak performance is in practice merely an upper bound, as it assumes a stea
 \end{figure}
 
 \section{Previous approaches}
+
+There is already a substantial amount of effort invested in improving the compute kernels of SeisSol. 
 
 \subsection{CSC sparse multiplication}
   The first approach used standard compressed-sparse-column multiplication. This algorithm goes back to WHOM? . It looks as follows:
@@ -83,9 +83,6 @@ In the case of SeisSol, the sparsity patterns are derived from the basis functio
 In the case of Knights Landing, these problems are all acerbated. 
 
 
-
-
-
   Standard compressed-sparse-column multiplication
     \begin{itemize}
       \item[$+$] Generality.
@@ -112,24 +109,59 @@ In the case of Knights Landing, these problems are all acerbated.
     \end{itemize}
 
 
-  \section{Goals and approach}
-  My approach
-    \begin{itemize}
-    \item The three existing algorithms each encounter different constraints and bottlenecks.
-    \item Think of them as poles in a design space. Explore algorithms which combine their features in order to finesse around the bottlenecks.
-    \item Speed up applications such as SeisSol, or demonstrate why it can't be done.
-    \item Create a code generator which autotunes a sparse gemm algorithm for a reasonably arbitrary problem.
-    \end{itemize}
+  \section{Goals, approach, and design space}
 
- Goals
-   - Explore the parameter space of different families of algorithms:
-     + dense-sparse csc, tiledcsc, blockcsc
-     + sparse-dense breuer, blended, shifted-load, scalar, gather-scatter
+  Each of the existing algorithms discussed in the preceding section encounter different  bottlenecks and constraints. SpGemm and Libxsmm solve a more general problem than strictly necessary, and Breuer does not take enough architectural details into consideration. Thus there appears to be room to create more complicated algorithms which combine the desirable features of each. The three existing algorithms can be thought of as poles in a barycentric design space, and the goal is to find points in the middle which finesse around the bottlenecks in the corners.
 
-   - Independent variables include matrix size, overall sparsity, sparsity patterns, block size, register usage, loop unroll depth, instruction reordering
 
-   - Identify bottlenecks and understand how they constrain the regions of parameter space in which they are useful
+  In order to keep the scope of this work bounded, we adhere to the following assumptions:
+  \begin{itemize}
+    \item The sparse matrix has a fixed pattern which is known at compile time.
+    \item The memory layout of the sparse matrix is not constrained elsewhere.
+    \item All matrices fit in the L2 cache: $(mn + mk + kn)\cdot 8 \leq 1e6$
+  \end{itemize}
+
+  Within this framework, we consider variations of the following:
+  \begin{itemize}
+    \item Modifications of the sparsity pattern
+    \item Modifications of control flow
+    \item The memory layout of the sparse matrix
+    \item The block sizes, if a block decomposition is used
+    \item The ordering and unrolling of the loop nest
+  \end{itemize}
+
+  Although interesting, we disregard prefetching and instruction alignment. 
+  
+
+A suite of algorithms shall be designed, and generators written, which emit an instance of that algorithm 
+
+In this context, kernels may be generated for different matrix sizes, number of nonzeros, and sparsity patterns. 
+
+autotunes a sparse gemm algorithm for a reasonably arbitrary problem.
+
+
+
+they can be tested on the actual SeisSol matrices, as well as other common sparse matrices, to see if they yield a speedup. 
+
+Equally important is divining their limitations.
+
+Experiments should yield performance metrics and, more importantly, constraint boundaries in each kernel's problem space (i.e., ``which problems can this kernel handle efficiently?'') and parameter space (i.e.,``which parameters yield the best kernel for a given problem?'').
+
+
+
+
+
 
    
-    \section{Remainder of paper}
+\section{Roadmap} 
+  The remainder of this work is as follows. Chapter 2 lays out the fundamental concepts and terminology. Chapter 3 covers a progression of different dense-by-sparse kernels in depth, and discusses strategies for sparse-by-dense and tensor kernels which might benefit from a similar treatment. Chapter 4 discusses the design of the code generator, and provides a brief manual illustrating its use. Chapter 5 walks through some experiment results, attempting to discern performance and scaling characteristics. Finally, Chapter 6 wraps everything up.
+
+
+
+
+
+
+
+
+
 

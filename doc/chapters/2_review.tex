@@ -6,6 +6,29 @@
 Dense and spare matrix multiplication together account for two of the "seven pillars" of computation, in the sense that they encompass an unexpectedly large fraction of all computing, particularly in scientific and engineering fields. Since any algorithmic improvement has the potential to improve the performance of programs across the board, these algorithms have been highly optimized for each successive computer architecture and made available through a common interface known as BLAS since 1977. However, it wasn't until 2008 that a more general approach for designing optimized dense matrix multiplication algorithms -- independent of the exact details of the memory hierarchy -- was established. This work by Goto takes advantage of the recursive nature of block-wise matrix multiplication in order to successively divide the problem into blocks, each of which is sized and padded to make best use of the memory hierarchy. Thus a very large matrix may be split among separate machines using Cannon's algorithm, then further split into blocks which fit in the L2 cache, then in the L1 cache, then finally in the registers themselves. 
 
 
+
+What is BLAS?
+
+What conventions does BLAS give us?
+
+What did Goto figure out?
+
+Why doesn't Goto's work apply here?
+
+What is the outer-product formulation?
+
+What does Libxsmm do differently from BLAS/Goto?
+
+What about memory-addressing schemes
+
+What about Breuer's work? Does it vectorize?
+
+What is the sparse/dense asymmetry?
+
+What naming conventions do we use?
+
+
+
 \begin{minted}{python}
 
 C := alpha*op( A )*op( B ) + beta*C,alpha, beta
