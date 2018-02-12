@@ -2,15 +2,38 @@
 \chapter{Implementation}
 \label{chapter:implementation}
 
-This chapter covers the decomposition of the algorithm generators described previously and the resulting layout of the codebase. The first section discusses some key design decisions and the constraints driving them. The second section describes the various entry points into the codebase and doubles as a brief usage guide. The subsequent sections build up the machinery used for algorithm generation, moving from low-level to high-level. The foundation is a Python abstract syntax tree for assembly programs. These basic building blocks are aggregated and parameterized to create reusable components for subtasks such as manipulating register blocks. In order to manage the complexity of generating a traversal of a matrix with both a nontrivial sparsity pattern and a nontrivial memory layout, a \emph{matrix cursor} abstraction is introduced. This raises the possibility of a more general approach to moving information from runtime to compile time. The chapter ends with a summary of each software module's purpose and dataflow.
+This chapter covers the structure of the algorithm generators described previously and the resulting layout of the codebase. The first section discusses some key design decisions and the constraints driving them. The second section describes the various entry points into the codebase and doubles as a brief usage guide. The subsequent sections build up the machinery used for algorithm generation, moving from low-level to high-level. The foundation is a Python abstract syntax tree for assembly programs. These basic building blocks are aggregated and parameterized to create reusable components for subtasks such as manipulating register blocks. In order to manage the complexity of generating a traversal of a matrix with both a nontrivial sparsity pattern and a nontrivial memory layout, a \emph{matrix cursor} abstraction is introduced. This raises the possibility of a more general approach to moving information from runtime to compile time. The chapter ends with a summary of each software module's purpose and dataflow.
 
-\section{Design Drivers}
+\section{Design Decisions}
 
-- Choice of assembly
-- Choice of Python
+The first major decision was the choice of output language. There were three options available. The first option was to emit plain C/C++ code annotated with pragmas, as Breuer did. The second option was to emit C/C++ code using intrinsics. The final option was to emit plain assembly. Plain assembly was chosen for the reasons discussed below:
+
+\begin{enumerate}
+
+\item The primary consideration was reducing the layers of indirection. Many of the necessary design decisions are not directly expressible using C semantics. While there exist pragmas to control optimizations such as loop unrolling and vectorization, they do not always combine in predictable ways. One is forced to simultaneously reason at multiple abstraction levels: the C semantics, in order to obtain a correct program; the effect of different pragmas on code generation, in order to obtain the desired assembly; and finally the performance of the assembly on the actual hardware. Since the goal of this work is to explore how low-level algorithm changes affect performance on a specific architecture, the higher-level tools -- particularly, C with pragmas -- introduce considerable noise without introducing expressiveness to compensate.
+
+\item The second consideration was the ease of gaining knowledge through experimentation. Given a C program which heavily uses intrinsics, an optimizing compiler will most likely produce a much more performant program compared to handwritten assembly. However, the extra optimization steps can obfuscate our experiment results, weakening our understanding of how the hardware reacts to small, precise changes. This understanding directly drives our algorithm design, which has a far greater potential upside than automatic optimization alone.
+
+\item Another consideration was the principle of least power, as articulated by Tim Berners-Lee in~\ref{PrincipleOfLeastPower}. Generating a proper C abstract syntax tree would require considerable effort, and generating templated strings would be very fragile. Neither representation could be conveniently used by tools other than the compiler. On the other hand, an assembly AST would be easy to implement, and it could be gradually extended to support higher-level semantics. Small tools may then independently interact with this AST. Such tools may range from prettyprinters, to reordering transformations, to full interpreters. Separating these concerns leads to a cleaner and more reliable architecture.
+
+\item The final consideration was continuity with existing codebases. The \py{libxsmm} library already emits plain assembly, and it would be straightforward to reimplement its microkernel using an assembly AST. Each successive investigation would build upon this basic codebase, leading to a lower-risk software engineering process.
+
+\end{enumerate}
+
+The second major design decision was the choice of language for the code generator itself. The two main requirements were that the language be amenable to rapid prototyping, be well-suited as a base for lightweight DSLs, and have convenient access to numerical libraries. Two languages closely fit this niche: Python and Julia. Of the two, Python won due to its practicality -- the current SeisSol code generation framework is already written in Python, the libraries are mature, and the code can be run directly on the cluster. 
+
+Two downsides to using Python emerged over the course of the work. Firstly, refactoring proved to be surprisingly time-consuming, given the lack of type safety. This was partially mitigated by leveraging the new type annotation syntax along with the mypy type checker. Use of another new syntax, `f'-string interpolation, constrained the codebase's compatibility to Python 3.6. 
+
+Julia, in comparison, has several noteworthy advantages. Firstly, it has a much stronger type system, leading to both noticeably better performance and better correctness checking. Secondly, it is homoiconic, making it very amenable to metaprogramming. Thirdly, it is JIT-compiled on top of LLVM, which allows for features such as generating and displaying assembly code straight from the REPL. 
+
+Ultimately Julia was considered too risky because the language and libraries are changing quickly. Furthermore, the benefit of being able to mix high-level and low-level programming paradigms was cancelled out by the lack of support on the cluster: when run locally, the Julia interpreter must not emit AVX-512 instructions. The prospect of implementing the ideas explored in this work as Julia macros remains intriguing, but also well out of scope.
+
+These considerations lead to a strategic decision to keep a clear distinction between code generation and runtime. The code generation framework is architecture independent, written in pure Python, and emitting output in plain text. This plain text file happens to be a C++ program containing inlined AVX-512 instructions, which must be uploaded to the cluster, compiled, and run there. The upside of this approach is that it is simple and it allows the user to manually tinker with the C++/assembly without involving the code generator. The downside is that it substantially increases the time and effort it takes to obtain feedback after making changes. 
 
 
 \section{Frontends}
+
+
 
 \subsection{sparsemmgen}
 
