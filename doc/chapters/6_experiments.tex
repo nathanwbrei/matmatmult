@@ -10,7 +10,7 @@ The goal of the first experiment is to show that the general approach can yield 
 Unfortunately, the case of the $K \cdot Q$ multiplication can not be simply plugged in to SeisSol due to the asymmetry between dense and sparse multiplication discussed in Section X.XX. However, if the dense matrices were stored in row-major format instead of column-major, the situation would be reversed. Because the $K$ matrix is larger, this might yield a greater speedup on SeisSol as a whole. For these reasons the transposed problem $Q \cdot K$ is also considered in Figure~\ref{fig:perf_seissol_K}.
 
 
-The experimental setup is straightforward. The problem size is set as $m=40,~n=15,~k=9$, corresponding to a viscoelastic rheological model as described in~\cite{7568431}. The sparsity pattern used is shown on the right in Figure~\ref{fig:seissol_star}. The only variable measured is wall clock time, which was used to calculate speedup relative to \py{libxsmm}'s dense kernel. The two new kernels tested are UnrolledSparse and GeneralSparse. The only available degree of freedom for matrices this small is the $m$-block size; the two extremes, $bm=8$ and $bm=40$, were both considered. The TiledSparse and BlockSparse kernels, on the other hand, were not considered because they would either degenerate to UnrolledSparse or produce complete fill-in, depending on the chosen block sizes $bn, bk$. The performance of Breuer's sparse kernels was also considered. 
+The experimental setup is straightforward. The problem size is set as $m=40,~n=15,~k=9$, corresponding to a viscoelastic rheological model as described in~\cite{7568431}. The sparsity pattern used is shown on the right in Figure~\ref{fig:seissol_star}. The only variable measured is wall clock time, which was used to calculate speedup relative to \py{libxsmm}'s dense kernel. The two new kernels tested are UnrolledSparse and GeneralSparse. The only available degree of freedom for matrices this small is the $m$-block size; the two extremes, $bm=8$ and $bm=40$, were both considered. The TiledSparse and BlockSparse kernels, on the other hand, were not considered because they would either degenerate to UnrolledSparse or produce complete fill-in, depending on the chosen block sizes $bn, bk$. The performance of Breuer's sparse kernels was also tested for comparison. 
 
 
 
@@ -38,7 +38,9 @@ The previous section demonstrated the utility of UnrolledSparse kernel, and also
 
 For the experimental setup, we chose $m=n=k=96$ because it has a lot of convenient divisors and it is relatively large. This not only reduces measurement noise, but also stresses the data cache and possibly the instruction cache. Two cases were considered, $nnz=500$ and $nnz=2000$. The sparsity pattern was generated from a uniform random distribution. Kernels were generated for every choice of $bm \in \{8,16,24,32\}$ and $bn, bk \in \{1,2,3,4,6,8,12,16,24\}$ satisfying the MicroSparse constraint $(bk+bn) \cdot (bm/8) \leq 32$. 
 
-The speedups of each kernel relative to dense are shown in Figure~\ref{fig:unrolled_sizing}. The plots for $bm=24,32$ have been omitted, but they show the same trends. Firstly, 
+The speedups of each kernel relative to dense are shown in Figure~\ref{fig:unrolled_sizing}. Unexpectedly, the plots indicate that the block sizes $bm, bn, bk$ may be chosen with a certain amount of independence. First we consider $bm$. The plots for $bm=24,32$ have been omitted, but they show the same trend: doubling $bm$ decreases the speedup by somewhere between 0.2 and 1, across the board, except in cases where the speedup was already less than 1. This is consistent with libxsmm, which moved from a 2D blocking of C to a 1D blocking specifically for KNL. 
+
+Next we consider $bk$
 
 
   \begin{figure}[!htb]
@@ -95,6 +97,9 @@ The speedups of each kernel relative to dense are shown in Figure~\ref{fig:unrol
     \item For $nnz > 3200$, the FMAs completely fill the instruction cache (regardless of matrix dimensions!)
     \item Fully unrolled sparse algorithm outperforms dense ``nonzero'' GFlops, but always underperforms dense ``hardware'' GFlops
     
+
+    Linear relationship between nnzs and time, with a constant offset compared to dense.
+
   \end{itemize} 
 
 
