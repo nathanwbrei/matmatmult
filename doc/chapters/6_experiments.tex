@@ -38,12 +38,18 @@ The previous section demonstrated the utility of UnrolledSparse kernel, and also
 
 For the experimental setup, we chose $m=n=k=96$ because it has a lot of convenient divisors and it is relatively large. This not only reduces measurement noise, but also stresses the data cache and possibly the instruction cache. Two cases were considered, $nnz=500$ and $nnz=2000$. The sparsity pattern was generated from a uniform random distribution. Kernels were generated for every choice of $bm \in \{8,16,24,32\}$ and $bn, bk \in \{1,2,3,4,6,8,12,16,24\}$ satisfying the MicroSparse constraint $(bk+bn) \cdot (bm/8) \leq 32$. 
 
-The speedups of each kernel relative to dense are shown in Figure~\ref{fig:unrolled_sizing}. Unexpectedly, the plots indicate that the block sizes $bm, bn, bk$ may be chosen with a certain amount of independence. First we consider $bm$. The plots for $bm=24,32$ have been omitted, but they show the same trend: doubling $bm$ decreases the speedup by somewhere between 0.2 and 1, across the board, except in cases where the speedup was already less than 1. This is consistent with libxsmm, which moved from a 2D blocking of C to a 1D blocking specifically for KNL. 
+The speedups of each kernel relative to dense are shown in Figure~\ref{fig:unrolled_sizing}. For $nnz=500$, the theoretical max speedup is $18.4$ and the observed max speedup is $6.57$, implying an efficiency of $0.36$. Meanwhile, for $nnz=2000$, the theoretical speedup is $4.61$ and observed is $2.96$, an efficiency of $0.64$. This is good news: not only did the efficiency \emph{improve} as more nonzeros were added, but the best speedup happened at similar block sizes. The next step is to understand these block sizes.
 
-Next we consider $bk$
+The first observation is that for any choice of $(bm, bn)$, the performance is effectively independent of $bk$. This makes sense because the unrolled $Bk$ loop is the innermost, so the choice of $bk$ ultimately only affects the ordering of \glspl{FMA} instructions, relative to loads of columns of A, within the same panel. Inefficiencies here can be resolved by the reorder buffer. \py{libxsmm} approaches this differently: instead of unrolling a $Bk$ loop of arbitrary size, it tackles the entire panel at once, keeping the current block of A in a ring buffer of 2-4 registers, and manually scheduling its load operations. An earlier experiment suggested that the choice of scheduling did not strongly affect performance, so the ring buffer approach was abandoned in favor of the conceptually simpler block unrolling.
+
+The second observation is that the best choice of $bn$ is directly tied to $bm$. For now consider only the $nnz=500$ case. The maxima happen at $(bm,bn) \in \{(8,16), (16,4), (24,2)\}$, and decrease as $bm$ increases. Thus $bm=8$ is preferred as long as the matrix dimensions support a tiling where $bn \in \{12,16\}$. Otherwise a tiling with $bm=16, bn\in\{1,2,3,4\}$ is better. 
+
+This is consistent with libxsmm, which abandoned their 2D blocking of C ($16 \times 3$) in favor of a 1D blocking ($8 \times 30$) specifically for \gls{KNL}. They argue that the movement of columns of A into registers needs to be minimized relative to the number of FMAs in that block because of the narrow out-of-order execution issue width discussed earlier. Some of this reasoning applies to UnrolledSparse, since a smaller $bn$ 
+
+Now let's turn to the $nnz=2000$ case. The pattern looks similar for $bm=8, bn\in\{8,12,16,24\}$, but becomes qualitatively different for all $bm > 8$ or $bn < 6$. This is a plane in the problem space, beyond which performance falls off a cliff. 
 
 
-  \begin{figure}[!htb]
+  \begin{figure}[tb]
     \centering
     \begin{subfigure}[b]{0.45\textwidth}
       \centering
@@ -57,15 +63,15 @@ Next we consider $bk$
     \end{subfigure}
     \begin{subfigure}[b]{0.45\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{images/unrolled_sizing_2000_8.pdf}
-      \caption{bm = 8, nnz = 2000}
+      \includegraphics[width=\textwidth]{images/unrolled_sizing_500_24.pdf}
+      \caption{bm = 24, nnz = 500}
     \end{subfigure}
     \begin{subfigure}[b]{0.45\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{images/unrolled_sizing_2000_16.pdf}
-      \caption{bm = 16, nnz = 2000}
+      \includegraphics[width=\textwidth]{images/unrolled_sizing_2000_8.pdf}
+      \caption{bm = 8, nnz = 2000}
     \end{subfigure}
-    \caption{Effect of different block size choices}
+    \caption{Speedup of a $96 \times 96$ random sparse matrix with different choices of block size. For smaller $nnz$, the speedup varies smoothly, every choice yields a speedup, and simple heuristics can be derived. For larger $nnz$, there are performance cliffs at $bn < 6$ and $bm > 8$.}
     \label{fig:unrolled_sizing}
   \end{figure}
 

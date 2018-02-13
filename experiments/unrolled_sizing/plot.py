@@ -21,12 +21,15 @@ for name,csv,center,vmax,vmin in csvs:
 
 	data = data.append([{"name":"unrolled", "bm":16, "bn":16, "bk":16}])
 	data = data.append([{"name":"unrolled", "bm":16, "bn":24, "bk":24}])
+	data = data.append([{"name":"unrolled", "bm":24, "bn":12, "bk":12}])
+	data = data.append([{"name":"unrolled", "bm":24, "bn":16, "bk":16}])
+	data = data.append([{"name":"unrolled", "bm":24, "bn":24, "bk":24}])
 
 	libxsmm_microsecs = data[data['name'] == 'libxsmm'].microsecs[0]
 	data["speedup"] = libxsmm_microsecs / data["microsecs"]
 
 
-	for bm in [8,16]:
+	for bm in [8,16,24]:
 
 		data_subset = data[(data['name']=='unrolled') & (data['bm']==bm)]
 		table = data_subset.pivot("bk","bn","speedup")

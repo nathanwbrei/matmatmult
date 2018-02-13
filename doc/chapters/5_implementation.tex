@@ -2,7 +2,7 @@
 \chapter{Implementation}
 \label{chapter:implementation}
 
-This chapter covers the structure of the algorithm generators described previously and the resulting layout of the codebase. The first section discusses some key design decisions and the constraints driving them. The second section describes the various entry points into the codebase and doubles as a brief usage guide. The subsequent sections build up the machinery used for algorithm generation, moving from low-level to high-level. The foundation is a Python abstract syntax tree for assembly programs. These basic building blocks are aggregated and parameterized to create reusable components for subtasks such as manipulating register blocks. In order to manage the complexity of generating a traversal of a matrix with both a nontrivial sparsity pattern and a nontrivial memory layout, a \emph{matrix cursor} abstraction is introduced. This raises the possibility of a more general approach to moving information from runtime to compile time. The chapter ends with a summary of each software module's purpose and dataflow.
+This chapter covers the structure of the algorithm generators described previously and the resulting layout of the codebase. The first section discusses some key design decisions and the constraints driving them. The subsequent sections build up the machinery used for algorithm generation, moving from low-level to high-level. The foundation is a Python abstract syntax tree for assembly programs. These basic building blocks are aggregated and parameterized to create reusable components for subtasks such as manipulating register blocks. In order to manage the complexity of generating a traversal of a matrix with both a nontrivial sparsity pattern and a nontrivial memory layout, a \emph{matrix cursor} abstraction is introduced. This raises the possibility of a more general approach to moving information from runtime to compile time. The chapter ends with a description of the various entry points into the codebase and a brief usage guide.
 
 \section{Design Decisions}
 
@@ -14,7 +14,7 @@ The first major decision was the choice of output language. There were three opt
 
 \item The second consideration was the ease of gaining knowledge through experimentation. Given a C program which heavily uses intrinsics, an optimizing compiler will most likely produce a much more performant program compared to handwritten assembly. However, the extra optimization steps can obfuscate our experiment results, weakening our understanding of how the hardware reacts to small, precise changes. This understanding directly drives our algorithm design, which has a far greater potential upside than automatic optimization alone.
 
-\item Another consideration was the principle of least power, as articulated by Tim Berners-Lee in~\ref{PrincipleOfLeastPower}. Generating a proper C abstract syntax tree would require considerable effort, and generating templated strings would be very fragile. Neither representation could be conveniently used by tools other than the compiler. On the other hand, an assembly AST would be easy to implement, and it could be gradually extended to support higher-level semantics. Small tools may then independently interact with this AST. Such tools may range from prettyprinters, to reordering transformations, to full interpreters. Separating these concerns leads to a cleaner and more reliable architecture.
+\item Another consideration was the principle of least power, as articulated by Tim Berners-Lee in~\cite{PrincipleOfLeastPower}. Generating a proper C abstract syntax tree would require considerable effort, and generating templated strings would be very fragile. Neither representation could be conveniently used by tools other than the compiler. On the other hand, an assembly AST would be easy to implement, and it could be gradually extended to support higher-level semantics. Small tools may then independently interact with this AST. Such tools may range from prettyprinters, to reordering transformations, to full interpreters. Separating these concerns leads to a cleaner and more reliable architecture.
 
 \item The final consideration was continuity with existing codebases. The \py{libxsmm} library already emits plain assembly, and it would be straightforward to reimplement its microkernel using an assembly AST. Each successive investigation would build upon this basic codebase, leading to a lower-risk software engineering process.
 
@@ -33,9 +33,14 @@ These considerations lead to a strategic decision to keep a clear distinction be
 
 \section{Code organization}
 
+
+
+
 \subsection{sparsemmgen}
 
-\texttt{sparsemmgen} is the primary entry point for the program. It takes a minimal set of parameters which the user 
+\texttt{sparsemmgen} is the primary entry point for the program. It requires a minimal set of parameters: the choice of algorithm generator, values of $m, n, k, lda, ldb, ldc,$ and the path to an MTX file containing the sparsity pattern. It emits a C function containing inline assembly straight to standard out. For closer control over the generators it accepts optional parameters: values of $bm, bn, bk$, the output filename, the output function name, and output format. The latter allows the user to choose between GCC, GAS, or pseudocode. 
+
+
 
 \subsection{libxsmmproxy}
 
@@ -53,9 +58,9 @@ In theory, automatically choosing the best generator involves determining, for e
   \item{What is the best choice of parameters for this (problem, generator)?}
   \item{What is the expected performance of this choice?}
 \end{itemize}
-and then choosing the (generator, parameters) which offer the best performance. In the general case this is a combinatorial optimization problem, but in practice the matrix sizes are very small and the parameter space is very constrained, particularly when only allowing perfect tilings. Thus a brute-force approach would be satisfactory for the time being. 
+and then choosing the (generator, parameters) which offer the best performance. In the general case this is a combinatorial optimization problem, but in practice the matrix sizes are very small and the parameter space is very constrained, particularly when only allowing perfect tilings. Thus a brute-force approach is satisfactory for the time being. 
 
-In the case of dense-by-sparse multiplication, a brute-force approach is not even necessary most of the time. If the number of nonzeros in the B matrix is less than the limit imposed by the instruction cache, there is no reason to use any generator besides UnrolledSparse. If it is greater, UnrolledSparse is out of the question, and the controller need only choose between TiledSparse, BlockedSparse, GeneralSparse, and dense. TiledSparse and BlockedSparse are likely to perform very well on certain sparsity patterns but not in the general case, so the automatic system can default to using GeneralSparse. There will be a point at which the penalty of performing indirect jumps outweighs the saved FLOPs, in which point the system should simply use the dense algorithm. This we can determine experimentally.
+In the case of dense-by-sparse multiplication, a brute-force approach is not even necessary most of the time. If the number of nonzeros in the B matrix is below the limit imposed by the instruction cache, there is no reason to use any generator besides UnrolledSparse. If it is greater, UnrolledSparse is out of the question, and the controller need only choose between TiledSparse, BlockedSparse, GeneralSparse, and dense. TiledSparse and BlockedSparse are likely to perform very well on certain sparsity patterns but not in the general case, so the automatic system can default to using GeneralSparse. There will be a point at which the penalty of performing indirect jumps outweighs the saved FLOPs, in which point the system should simply use the dense algorithm. This we can determine experimentally.
 
 
 \subsection{runexperiment}

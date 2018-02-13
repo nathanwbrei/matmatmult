@@ -111,10 +111,10 @@ In the case of Knights Landing, these problems are all acerbated.
 
   \section{Goals, approach, and design space}
 
-  Each of the existing algorithms discussed in the preceding section encounter different  bottlenecks and constraints. SpGemm and Libxsmm solve a more general problem than strictly necessary, and Breuer does not take enough architectural details into consideration. Thus there appears to be room to create more complicated algorithms which combine the desirable features of each. The three existing algorithms can be thought of as poles in a barycentric design space, and the goal is to find points in the middle which finesse around the bottlenecks in the corners.
+  Each of the existing algorithms discussed in the preceding section encounter different  bottlenecks and constraints. \py{SpGemm} and \py{libxsmm} solve a more general problem than strictly necessary, and Breuer does not use registers Thus there appears to be room to create more complicated algorithms which combine the desirable features of each. The three existing algorithms can be thought of as poles in a barycentric design space, and the aim is to find points in the middle which finesse around the bottlenecks in the corners. One corner has high compute intensity and optimal register usage but wasted flops; another has no wasted flops but many control dependencies and lower compute intensity; the last has no wasted flops and high compute intensity, but poor register usage. The center ought to have decent compute intensity, decent register usage, few control dependencies, and few wasted flops. 
 
 
-  In order to keep the scope of this work bounded, we adhere to the following assumptions:
+  To keep the scope of this work bounded, we adhere to following assumptions:
   \begin{itemize}
     \item The sparse matrix has a fixed pattern which is known at compile time.
     \item The memory layout of the sparse matrix is not constrained elsewhere.
@@ -124,37 +124,24 @@ In the case of Knights Landing, these problems are all acerbated.
   Within this framework, we consider variations of the following:
   \begin{itemize}
     \item Modifications of the sparsity pattern
-    \item Modifications of control flow
+    \item Modifications of the control flow
     \item The memory layout of the sparse matrix
     \item The block sizes, if a block decomposition is used
     \item The ordering and unrolling of the loop nest
   \end{itemize}
 
-  Although interesting, we disregard prefetching and instruction alignment. 
-  
 
-A suite of algorithms shall be designed, and generators written, which emit an instance of that algorithm 
+Although interesting, we disregard prefetching, instruction alignment, and register assignment. 
 
-In this context, kernels may be generated for different matrix sizes, number of nonzeros, and sparsity patterns. 
+The goal of this work is to find algorithms which might outperform the status quo, and write a code generator which will emit an instance of each relevant algorithm for a given problem. The generator should be able to handle different matrix sizes, number of nonzeros, and sparsity patterns, while staying within the aforementioned assumptions. 
 
-autotunes a sparse gemm algorithm for a reasonably arbitrary problem.
+Once implemented, the generators can be tested -- using the actual SeisSol matrices -- to determine if they yield a speedup. Equally interesting is exploring the algorithm's problem space constraints. Using both the observed and estimated performance, we can address the questions ``which problems can this algorithm handle efficiently?'' and ``which algorithm is best for a given problem?''. 
 
-
-
-they can be tested on the actual SeisSol matrices, as well as other common sparse matrices, to see if they yield a speedup. 
-
-Equally important is divining their limitations.
-
-Experiments should yield performance metrics and, more importantly, constraint boundaries in each kernel's problem space (i.e., ``which problems can this kernel handle efficiently?'') and parameter space (i.e.,``which parameters yield the best kernel for a given problem?'').
-
-
-
-
-
+Each algorithm requires additional tuning parameters, and the effect of these should also be estimated and tested, addressing the question ``which parameters yield the best kernel for a given problem?''. If possible, heuristics should be given in order to choose these parameters automatically.
 
    
 \section{Roadmap} 
-  The remainder of this work is as follows. Chapter 2 lays out the fundamental concepts and terminology. Chapter 3 covers a progression of different dense-by-sparse kernels in depth, and discusses strategies for sparse-by-dense and tensor kernels which might benefit from a similar treatment. Chapter 4 discusses the design of the code generator, and provides a brief manual illustrating its use. Chapter 5 walks through some experiment results, attempting to discern performance and scaling characteristics. Finally, Chapter 6 wraps everything up.
+  This work is broken down as follows. Chapter 2 lays out the fundamental concepts and terminology. Chapter 3 covers a progression of different dense-by-sparse kernels in depth, and discusses strategies for sparse-by-dense and tensor kernels which might benefit from a similar treatment. Chapter 4 discusses the design of the code generator, and provides a brief manual illustrating its use. Chapter 5 walks through some experiment results, attempting to discern performance and scaling characteristics. Finally, Chapter 6 wraps everything up.
 
 
 
