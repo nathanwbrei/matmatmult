@@ -31,110 +31,83 @@ Two downsides to using Python emerged over the course of the work. Firstly, refa
 These considerations lead to a strategic decision to keep a clear distinction between code generation and runtime, thus avoiding real metaprogramming. The code generation framework is architecture independent, written in pure Python, and emitting output in plain text. This plain text file happens to be a C++ program containing inlined AVX-512 instructions, which must be uploaded to the cluster, compiled, and run there. The upside of this approach is that it is simple and it allows the user to manually tinker with the generated C++/assembly. The downside is that it substantially increases the time and effort it takes to obtain feedback after making changes. 
 
 
-\section{Code organization}
 
 
+\section{Abstract Syntax Tree}
 
+The most basic piece of machinery we need is a Python representation of the assembly code we emit. This is fundamentally an abstract syntax tree (AST) whether we recognize it or not, so we choose to recognize it. There is an inherent conflict between choosing data representations which are optimal for humans understanding the AST, optimal for custom tools modifying the AST, or optimal for producing textual assembly code. This is acerbated by Python's lack of constructor polymorphism and encapsulation. The human benefits from readability and a tower of abstractions which successively add specificity such as register length, precision, alignment, label names, and possibly even register names. The automated tools benefit from having a guarantee than any AST node is fully articulated, while still allowing select pieces to be abstract. Finally, the assembler needs every piece of information, repeated for every instruction, in a somewhat idiosyncratic format.
 
-\subsection{sparsemmgen}
+The solution to this conundrum is to decouple these representations. The AST is stripped down to be nothing more than a data container with a constructor that enforces some basic completeness invariants. The fields are chosen to be as \emph{complete} and \emph{orthogonal} as possible. The goals of being simple to work with, and of having a close mapping to the resulting assembly, are both disregarded with prejudice. Responsibility for the former is moved to the DSL, and responsibility for the latter is moved to the prettyprinter. This separation of concerns opens up long-term possibilities such as emitting C intrinsics instead of plain assembly, and in the short term it keeps the code legible.
 
-\texttt{sparsemmgen} is the primary entry point for the program. It requires a minimal set of parameters: the choice of algorithm generator, values of $m, n, k, lda, ldb, ldc,$ and the path to an MTX file containing the sparsity pattern. It emits a C function containing inline assembly straight to standard out. For closer control over the generators it accepts optional parameters: values of $bm, bn, bk$, the output filename, the output function name, and output format. The latter allows the user to choose between GCC, GAS, or pseudocode. 
+The syntax tree is built up in stages of increasing complexity. All AST nodes inherit from the abstract base class \py{AsmStmt}, which enforces the existence of an \py{accept()} method, a \py{comment} string, and nothing else. A limited attempt was made to provide type information, which ultimately consisted of . 
 
-
-
-\subsection{libxsmmproxy}
-
-While \py{sparsemmgen} is designed to allow the user to control the algorithm generator precisely, it suffers from two drawbacks. Firstly, the burden of choosing the best algorithm and tuning it correctly is put entirely on the user. Secondly, if an existing codebase has been sufficiently optimized such that its developers would consider using the tools developed here, the integration would likely be very difficult, since the information \py{sparsemmgen} needs is unlikely to be present. Reducing the barrier to integration increases the likelihood of this tool being used.
-
-\py{libxsmmproxy} addresses both of these points. It is a command-line program which matches the interface of \py{libxsmm_gemm_generator} exactly and can be integrated into an existing codebase by changing a path or adding a symbolic link. (No plans for creating a JIT version exist at this time.) The program analyzes its arguments and decides whether to use the \py{sparsemmgen} implementation or to simply delegate to the original \py{libxsmm_gemm_generator}.
-
-Unfortunately, the information which the \py{libxsmm_gemm_generator} interface provides only partially overlaps with the information which \py{sparsemmgen} needs. On one hand, \py{libxsmm_gemm_generator} does not know about our generators or their parameters such as block sizes. On the other, it supports different microarchitectures, single precision, and different prefetching strategies, which this work currently does not. Thus the proxy must pattern-match for the KNL architecture, double precision, and no prefetching strategy, and delegate all other requests. Then it must conjure the generator choice and its parameters.
-
-There are two approaches to supplying the missing information, one manual and one automatic. The manual approach is a whitelist, in pure Python, which maps specific MTX files to \py{Parameters} objects. It is advantageous insofar as it gives the user precise control, and disadvantageous insofar as it is repetitive and requires knowledge of the system. It is best combined with the automatic system described next.
-
-In theory, automatically choosing the best generator involves determining, for each generator:
-\begin{itemize}
-  \item{Can the generator handle the posed problem at all?}
-  \item{What is the best choice of parameters for this (problem, generator)?}
-  \item{What is the expected performance of this choice?}
-\end{itemize}
-and then choosing the (generator, parameters) which offer the best performance. In the general case this is a combinatorial optimization problem, but in practice the matrix sizes are very small and the parameter space is very constrained, particularly when only allowing perfect tilings. Thus a brute-force approach is satisfactory for the time being. 
-
-In the case of dense-by-sparse multiplication, a brute-force approach is not even necessary most of the time. If the number of nonzeros in the B matrix is below the limit imposed by the instruction cache, there is no reason to use any generator besides UnrolledSparse. If it is greater, UnrolledSparse is out of the question, and the controller need only choose between TiledSparse, BlockedSparse, GeneralSparse, and dense. TiledSparse and BlockedSparse are likely to perform very well on certain sparsity patterns but not in the general case, so the automatic system can default to using GeneralSparse. There will be a point at which the penalty of performing indirect jumps outweighs the saved FLOPs, in which point the system should simply use the dense algorithm. This we can determine experimentally.
-
-
-\subsection{runexperiment}
-The third main entry point is \texttt{runexperiment}, which generates a 
-
-\subsection{Generators}
-
-\subsection{Experiments}
-
-
-
-
-\section{Code generation}
-
-When designing the AST, there is an inherent conflict between choosing data representations which are optimal for human understanding, optimal for custom tools to modify the AST, or optimal for generating the assembly code. This is acerbated by Python's lack of constructor polymorphism and encapsulation. The human benefits from readability and a tower of abstractions which successively add specificity such as register length, precision, alignment, label names, and even register names. The automated tools benefit from having a guarantee than any AST node is fully articulated, while still allowing select pieces to be abstract. Finally, the assembler needs every piece of information, repeated for every instruction, in a somewhat idiosyncratic format.
-
-The solution to this conundrum is to decouple these representations. The AST is stripped down to be nothing more than a data container with a constructor that enforces some basic completeness invariants. The fields are chosen to be as \emph{complete} and \emph{orthogonal} as possible. The goals of being simple to work with, and of having a close mapping to the resulting assembly, are both disregarded with prejudice. Responsibility for the former is moved to the DSL, and responsibility for the latter is moved to the prettyprinter. 
-
-\subsection{Low-level abstract syntax tree}
-
-\begin{itemize}
-  \item Operands: Label interning, Registers and register arrays, MemoryAddress, Immediates. Type information: Currently attached to registers, not really used
-
-  \item AsmStmt base class. 
-  \item Data, Jump, Label, Cmp, Add
-  \item Mov, Fma
-
-\end{itemize}
-
-\subsection{High-level abstract syntax tree}
+\subsection{Operands}
+Operands are the primitive `nouns' in this language. They consist of:
+Type information may be attached, but this is tricky 
 \begin{description}
-  \item Blocks. ==> enables reusable components, comments, stack traces, etc. Currently utterly lacking in type safety. Slightly better than a preprocessor, functions which make a component generally contain a bunch of asserts beforehand. Many components are simply a function which returns a block. This is how unrolling is currently implemented in the generators.
-
-  \item Forms ==> Sort of an unhygenic macro with arguments. Somehow rearranges or transforms its sub-blocks while otherwise behaving like a block. Completely independent of the program execution state. It is possible to make this hygenic by using abstract registers and adding a register assignment step. Currently used for loops and jump tables, which shall be discussed later. Extends Block, overrides contents(). Stateless.
-
-  \item Commands ==> not really used at the present. The goal is to express higher-level ideas which require knowledge of the program's state at runtime. This allows information from runtime to be moved to compile time, For instance, matrixcursor movement commands, loop unroll commands. Might also allow . Will be discussed later. Stateful.
+  \item[Constant] An immediate value
+  \item[Label]
+  \item[Register]
+  \item[MemoryAddress]
 \end{description}
 
-\subsection{A domain-specific language}
-  
+\subsection{Instructions}
 
-Operands: 
-Instructions: functions
-Blocks: S-exprs, builders
+An instruction is an AST node which can be mapped into one or more assembly instructions. This work currently only requires seven different instructions, which are described below. 
 
+\begin{description}
+  \item [Move] Copy data from one Operand to another. This supports both vector and scalar 
+  \item [Fused multiply add] This accepts 
+  \item [Add] Supports both vector and scalar add
+  \item [Compare] Wraps the \py{cmp} instruction
+  \item [Jump to label] 
+  \item [Declare label] \py{DeclLabelStmt} inserts a label into the assembly
+  \item [Declare data] \py{DeclDataStmt} pastes a \py{Label} or a \py{Constant} directly into the code segment, essentially wrapping the \py{db,dw,dd,dq} instructions. It is useful for creating jump tables or constant arrays. It could be modified to target other segments as well.
+\end{description}
 
-  Sugar to decouple data models from convenient Python syntax,
-    \py{vmov(zmm0, rax+22) ==> vmovapd()}. Potential to determine from parameters instead of from dsl. 
+\subsection{Blocks}
+enables reusable components, comments, stack traces, etc. Currently utterly lacking in type safety. Slightly better than a preprocessor, functions which make a component generally contain a bunch of asserts beforehand. Many components are simply a function which returns a block. This is how unrolling is currently implemented in the generators.
 
-
-\subsection{Visitors}
-Quick overview of visitor pattern. Decoupling of operations over syntax tree from tree itself. Tree only contains data, each 'verb' receives its own Python module.
-
-\begin{itemize}
-  \item Generating GAS, pretty, C++. Comments. Potential to generate C++ intrinsics.
-  \item Detecting registers which have been modified
-  \item Type safety, register allocation
-  \item Simulation
-\end{itemize}
-
-
-
-\section{Components}
-
-\subsection{Register blocks}
 \begin{itemize}
   \item Load, store, mask
   \item Mask computation
   \item Sparse microkernel
 \end{itemize}
 
-\subsection{Microkernels}
+\subsection{Forms}
+Forms ==> Sort of an unhygenic macro with arguments. Somehow rearranges or transforms its sub-blocks while otherwise behaving like a block. Completely independent of the program execution state. It is possible to make this hygenic by using abstract registers and adding a register assignment step. Currently used for loops and jump tables, which shall be discussed later. Extends Block, overrides contents(). Stateless.
 
-\subsection{Cursors}
+\subsection{Commands}
+not really used at the present. The goal is to express higher-level ideas which require knowledge of the program's state at runtime. This allows information from runtime to be moved to compile time, For instance, matrixcursor movement commands, loop unroll commands. Might also allow . Will be discussed later. Stateful.
+
+
+\section{Syntactic Sugar}
+
+Operands:
+Instructions: functions
+Blocks: S-exprs, builders
+
+
+\py{vmov(zmm0, rax+22) ==> vmovapd()}. Potential to determine from parameters instead of from dsl. 
+
+
+\section{Visitors}
+
+What is the Visitor pattern?
+
+Quick overview of visitor pattern. Decoupling of operations over syntax tree from tree itself. Tree only contains data, each 'verb' receives its own Python module.
+
+
+Pretty printing. Accumulating comments.
+
+Debugging
+
+Counting instructions, declaring registers as used or clobbered
+
+Future: type safety, instruction reordering, simulation
+
+
+\section{Cursors}
 
     The \emph{matrix cursor} is an abstraction that allows the code generators to cleanly traverse a sparse matrix and access its contents while only using logical coordinates. The name was chosen because of its similarities to the cursor in a text editor, which must translate movement and insert commands from 2D screen coordinates into a 1D memory location which depends on the lengths on the neighboring lines. The term 'cursor' has already been overloaded to describe a kind of iterator into a database; this is also a kind of iterator. MatrixCursor performs the following tasks:
 
@@ -260,3 +233,40 @@ Due to Python's eager evaluation of expressions, it is nontrivial and inelegant.
 
 
 One advantage to expressing a complete AST in Python
+
+
+
+
+\section{Code organization}
+
+\subsection{sparsemmgen}
+
+\texttt{sparsemmgen} is the primary entry point for the program. It requires a minimal set of parameters: the choice of algorithm generator, values of $m, n, k, lda, ldb, ldc,$ and the path to an MTX file containing the sparsity pattern. It emits a C function containing inline assembly straight to standard out. For closer control over the generators it accepts optional parameters: values of $bm, bn, bk$, the output filename, the output function name, and output format. The latter allows the user to choose between GCC, GAS, or pseudocode. 
+
+
+
+\subsection{libxsmmproxy}
+
+While \py{sparsemmgen} is designed to allow the user to control the algorithm generator precisely, it suffers from two drawbacks. Firstly, the burden of choosing the best algorithm and tuning it correctly is put entirely on the user. Secondly, if an existing codebase has been sufficiently optimized such that its developers would consider using the tools developed here, the integration would likely be very difficult, since the information \py{sparsemmgen} needs is unlikely to be present. Reducing the barrier to integration increases the likelihood of this tool being used.
+
+\py{libxsmmproxy} addresses both of these points. It is a command-line program which matches the interface of \py{libxsmm_gemm_generator} exactly and can be integrated into an existing codebase by changing a path or adding a symbolic link. (No plans for creating a JIT version exist at this time.) The program analyzes its arguments and decides whether to use the \py{sparsemmgen} implementation or to simply delegate to the original \py{libxsmm_gemm_generator}.
+
+Unfortunately, the information which the \py{libxsmm_gemm_generator} interface provides only partially overlaps with the information which \py{sparsemmgen} needs. On one hand, \py{libxsmm_gemm_generator} does not know about our generators or their parameters such as block sizes. On the other, it supports different microarchitectures, single precision, and different prefetching strategies, which this work currently does not. Thus the proxy must pattern-match for the KNL architecture, double precision, and no prefetching strategy, and delegate all other requests. Then it must conjure the generator choice and its parameters.
+
+There are two approaches to supplying the missing information, one manual and one automatic. The manual approach is a whitelist, in pure Python, which maps specific MTX files to \py{Parameters} objects. It is advantageous insofar as it gives the user precise control, and disadvantageous insofar as it is repetitive and requires knowledge of the system. It is best combined with the automatic system described next.
+
+In theory, automatically choosing the best generator involves determining, for each generator:
+\begin{itemize}
+  \item{Can the generator handle the posed problem at all?}
+  \item{What is the best choice of parameters for this (problem, generator)?}
+  \item{What is the expected performance of this choice?}
+\end{itemize}
+and then choosing the (generator, parameters) which offer the best performance. In the general case this is a combinatorial optimization problem, but in practice the matrix sizes are very small and the parameter space is very constrained, particularly when only allowing perfect tilings. Thus a brute-force approach is satisfactory for the time being. 
+
+In the case of dense-by-sparse multiplication, a brute-force approach is not even necessary most of the time. If the number of nonzeros in the B matrix is below the limit imposed by the instruction cache, there is no reason to use any generator besides UnrolledSparse. If it is greater, UnrolledSparse is out of the question, and the controller need only choose between TiledSparse, BlockedSparse, GeneralSparse, and dense. TiledSparse and BlockedSparse are likely to perform very well on certain sparsity patterns but not in the general case, so the automatic system can default to using GeneralSparse. There will be a point at which the penalty of performing indirect jumps outweighs the saved FLOPs, in which point the system should simply use the dense algorithm. This we can determine experimentally.
+
+
+\subsection{runexperiment}
+The third main entry point is \texttt{runexperiment}, which generates a 
+
+
