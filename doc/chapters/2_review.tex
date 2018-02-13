@@ -172,6 +172,9 @@ The simplest scheme is to use pointer-offset addressing, where the pointer is in
 
 
 \section{Dense-by-sparse vs sparse-by-dense asymmetry}
+(Dense $\times$ Sparse) $\neq$ (Sparse $\times$ Dense) due to vectorization
+
+Choice of row-major vs column-major format determines which of the two vectorizes nicely: $(AB)^T = B^T A^T$
 
 - Outer-product formulation
 - Breuer

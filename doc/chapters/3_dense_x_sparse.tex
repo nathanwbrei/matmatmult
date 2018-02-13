@@ -1,134 +1,91 @@
 \chapter{Algorithms}
 \label{chapter:algs}
 
-The main focus of this thesis is on improving the performance of small dense-by-sparse matrix multiplication algorithms. It is necessary to finesse around the bottlenecks that constrain the approaches described in the previous chapter. The extra information which makes this possible is the sparsity pattern known at compile time. Figure~\ref{fig:dxsp} shows the different algorithms under consideration and the relationship between them. 
-
-\begin{figure}[H]
-  \centering
-  \input{images/dxspfamilies}
-  \label{fig:dxspfamilies}
-  \caption{Relationships between different dense-by-sparse multiplication algorithms}
-\end{figure}
-
+The main focus of this thesis is on improving the performance of small matrix multiplication algorithms. It is necessary to finesse around the bottlenecks that constrain the approaches described in the previous chapter. The extra information which makes this possible is the sparsity pattern known at compile time. The focus is on dense-by-sparse multiplication because it stands to benefit the most from vectorization, although sparse-by-dense and tensor-by-sparse multiplication are also discussed. Figure~\ref{fig:dxspfamilies} shows the different dense-by-sparse algorithms under consideration and the relationships between them. 
 
 The starting point is the dense outer-product formulation generated from \texttt{libxsmm}. Applying knowledge about the sparsity pattern yields MicroSparse, which avoids wasted computation but is restricted to very small matrix sizes. Decomposing a matrix into blocks, using MicroSparse for each block, and unrolling some of the outer loops yields UnrolledSparse, which is not restricted by matrix dimensions but is restricted by the number of nonzeros. In order to support matrices with many nonzeros, some regularity assumptions have to be made. 
 
-
-The simplest approach is TiledSparse, which assumes that a single block pattern is repeated exactly. To make this algorithm more practical, the assumption may be relaxed in two different ways. The first variation no longer assumes that each block has the same number of nonzeros, and hence the start of the block may be found via a simple loop. Relaxing this assumption yields BlockedSparse. BlockSparse assumes 
-
-
-
-
-\section{Sparse Microkernel}
-
-The SparseMicrokernel is our first attempt to account for the sparsity pattern while building off of the state of the art for dense matrix multiplication. Our key assumption is that the matrices A and C are small enough to fit entirely in registers: $(n + k) * (m/8) <= 32$. Generating the dense GEMM for this problem effectively extracts the dense microkernel. This microkernel has no loops (otherwise it couldn't amortize the cost of loading and storing A and C) and this makes it easy to modify.
-
-The sparse microkernel is a straightforward modification of the dense microkernel. All FMA instructions \py{C[:,ni] += A[:,ki] .* B[ki, ni]} where \py{B[ki, ni] = 0} due to the sparsity pattern are removed. This is tricky to do in a general way; an abstraction designed for the purpose is described at length in Section X.XX. Next, any loads of a column of A corresponding to an empty row of B are removed. Finally, any loads and stores of a column of C corresponding to an empty column of B are removed. Pseudocode
-
-Pseudocode
-Constraints
-Degrees of freedom
+\begin{figure}[tbh]
+  \centering
+  \input{images/dxspfamilies}
+  \caption{Relationships between different dense-by-sparse multiplication algorithms}
+  \label{fig:dxspfamilies}
+\end{figure}
 
 
-Now we consider the format of the sparse matrix B. Assuming the pointer to B never moves, any format can yield correct results, though the choice of format strongly affects memory access patterns. Keeping B dense is suboptimal because the algorithm will be streaming adjacent nonzeros and it would be helpful if they occupied the same cache line. Breuer and Heinecke used a virtual compressed sparse column format, where the nonzeros were laid out in a plain 1D array ordered by columns. For SparseMicrokernel, a virtual compressed row format might yield even better locality, but this is insignificant because few cache lines are involved on sparse matrices of this size. 
+The simplest approach is TiledSparse, which assumes that a single block pattern is repeated exactly. This assumption is impractical because for most matrix patterns, the block pattern will fill in. Instead we can break the assumption into two parts and relax them separately. We can assume that there is only one block sparsity pattern, but some blocks are entirely zero, which yields the BlockSparse algorithm. Alternatively, we can assume that there are multiple block sparsity patterns, but they all have the same number of nonzeros, which yields PatternSparse. Relaxing both assumptions yields GeneralSparse, which can evade the number of nonzeros constraint with the most flexibility, but at the cost of additional overhead. Variations can be explored which extract the diagonal and handle it separately; this would be especially helpful for PaddedSparse in the case of matrices with a full diagonal and random fill-in elsewhere.
 
-Having chosen the format, the next step is to choose an addressing scheme for the elements of the sparse matrix. For now we assume that B points to the first entry in this matrix and the entries are all adjacent. Because the maximum number of elements in the matrix is 256, the load and FMA instructions remain below 8 bytes. When this assumption is relaxed, it may become beneficial to switch to scale-index addressing, but for now base-offset is sufficient.
+\section{Dense-by-sparse microkernel}
 
-Another question is alignment. The alignment of B is not particularly important because its elements are loaded one at a time, but very important for A and C, which are loaded in a vectorwise fashion. If not aligned on a 64-byte boundary, the vector load operation will suffer a delay because the data is split across two cache lines. Using the aligned vector load operation \py{vmovapd} will trigger a segmentation fault if the pointer is not actually aligned. On the other hand, the unaligned version \py{vmovupd} can handle both the aligned and unaligned case, and will not incur the penalty if the pointer is in fact aligned. This choice can be made independently of this and future algorithms.
+The MicroSparse kernel is our first attempt to account for the sparsity pattern while building off of the state of the art for dense matrix multiplication. Our key assumption is that the matrices A and C are small enough to fit entirely in registers: $(n + k) * (m/8) <= 32$. Generating the dense GEMM for this problem effectively extracts the dense microkernel. This microkernel has no loops (otherwise it couldn't amortize the cost of loading and storing A and C) and this makes it easy to modify.
 
-The performance of SparseMicrokernel shall be explored in Section X.XX. It is clear that removing the FMA instructions decreases the arithmetic intensity, and if the nonzeros are evenly distributed, there will be no accompanying decrease in memory bandwidth. Nevertheless the algorithm remains compute-bound and hence experiences an improved time-to-solution compared to its dense counterpart. Regardless of performance, SparseMicrokernel has limited utility in real problems, since it can only be applied to extremely small matrices. It is valuable primarily as a building block for the more complex algorithms developed next.
+The sparse microkernel is a straightforward modification of the dense microkernel. All FMA instructions \py{C[:,ni] += A[:,ki] .* B[ki, ni]} where \py{B[ki, ni] = 0} due to the sparsity pattern are removed. This is tricky to do in a general way; an abstraction designed for the purpose is described at length in Section X.XX. Next, any loads of a column of A corresponding to an empty row of B are removed. Finally, any loads and stores of a column of C corresponding to an empty column of B are removed. This is described via pseudocode in Figure~\ref{fig:micropseudo}.
 
-\begin{itemize}
-    \item Assume a dense A and a sparse B, with a fixed pattern known at compile time. As discussed in Section X.XX, 
-    \item Pack B into a virtual compressed-sparse-row or column format
-    \item Remove all fused-multiply-add and load instructions which are not needed
-    \item Make this the basic building block for more complicated algorithms 
-\end{itemize}
+\begin{figure}[htb]
+\centering
+  \begin{minted}[linenos=false,fontsize=\footnotesize]{text}
 
+    for each vector Vmi:
+        for each cell ni:
+            if B[:,ni] != 0:
+                emit load C[Vmi, ni]
 
+    for each vector Vmi:
+        for each cell ki:
+            if B[ki,:] != 0:
+                emit load A[Vmi, ki]
 
+    for each vector Vmi:
+        for each cell ki:
+            for each cell ni:
+                if B[ki,ni] != 0:
+                    emit fma C[Vmi, ni] += A[Vmi, ki] .* B[ki, ni]
 
-However, this has the following limitations:
-\begin{itemize}
-    \item Sparsity pattern must be known at compile time
-    \item Pattern must fit within vector registers: $m \leq 8;  n \leq 30$
-    \item (Dense $\times$ Sparse) $\neq$ (Sparse $\times$ Dense) due to vectorization
-    \item Choice of row-major vs column-major format determines which of the two vectorizes nicely: $(AB)^T = B^T A^T$
-\end{itemize}
+    for each vector Vmi:
+        for each cell ni:
+            if B[:,ni] != 0:
+                emit store C[Vmi, ni]
 
+  \end{minted}
+  \caption{Pseudocode for UnrolledSparse}
+\label{fig:micropseudo}
+\end{figure}
 
+Before proceeding to more complex algorithms, it is worthwhile to consider the degrees of freedom available. The first parameter to consider is the format of the sparse matrix B. Because the memory offsets of each \py{B[ki,ni]} are hardcoded into the FMA, any format will work as long as the pointer to B never moves. However, the choice of format strongly affects memory access patterns. Keeping B dense is suboptimal because the algorithm will be streaming nonzeros which are unduly spread across different cache lines. Breuer and Heinecke used a virtual compressed sparse column format, where the nonzeros were laid out in a plain 1D array ordered by columns. For SparseMicrokernel, a virtual compressed row format might have better locality because the $ni$ loop is innermost, but this is insignificant because few cache lines are involved on sparse matrices of this size. 
 
+Having chosen the format, the next step is to choose the addressing mode for the elements of the sparse matrix. For now we assume that B points to the first entry in this matrix and the entries are all adjacent. Because the maximum number of doubles in B is 256 and the cutoff for 7-byte FMAs is 128, it already makes sense to switch to scale-index addressing. Because this is complicated to do, it will be hidden behind an abstraction detailed in Section X.XX.
 
-The SparseMicrokernel algorithm is a straightforward modification: FMA instructions which operate on 
-broadcasted zero entries are eliminated, and the memory addresses of the nonzero entries are 
-shifted so that a sparse matrix format with better memory locality can be used. If an entire 
-row of B is zero, the corresponding column of A is not needed, so the corresponding load 
-operation is removed. Traversing the sparse matrix, finding the nonzeros, and finding the correct
-memory address for each cell is done using a high-level cursor abstraction, as described elsewhere.   
+Another question is alignment. The alignment of B is not particularly important because its elements are loaded one at a time, but very important for A and C, which are loaded in a vectorwise fashion. If not aligned on a 64-byte boundary, the vector load operation will suffer a delay because the data is split across two cache lines. Using the aligned vector load operation \py{vmovapd} will trigger a segmentation fault if the pointer is not actually aligned. On the other hand, the unaligned version \py{vmovupd} can handle both the aligned and unaligned case, and will not incur the penalty if the pointer is in fact aligned. Fortunately, this choice can be made independently of any other considerations.
 
-Eliminating the unnecessary instructions reduces both computational intensity and memory traffic.
+The performance of SparseMicrokernel shall be explored in Section X.XX. It is clear that removing the FMA instructions decreases the arithmetic intensity, and if the nonzeros are evenly distributed, there will be no accompanying decrease in memory bandwidth. Nevertheless the algorithm remains compute-bound and experiences an improved time-to-solution compared to its dense counterpart. Regardless of performance, SparseMicrokernel has limited utility in real problems, since it can only be applied to extremely small matrices. It is valuable primarily as a building block for the more complex algorithms developed next.
 
 
 \section{Unrolled dense-by-sparse multiplication}
 
-The goal of SparseUnrolled is to extend the idea of SparseMicrokernel to support larger matrix sizes. 
 
-0. Use the sparsemicrokernel internally. Decompose the matrix into blocks, 
-  - Switch from m,n,k to bm,bn,bk.
+The goal of UnrolledSparse is to support larger matrix sizes by building off of MicroSparse. The first key idea is to introduce a block decomposition: the generators traverse blocks $(Bmi, Bni, Bki)$ and delegate the multiplication of each block to MicroSparse. The second key idea is to account for the fact that different blocks contain different subpatterns by unrolling the $Bni$ and $Bki$ loops. The sparsity pattern is obviously invariant with respect to $Bmi$, so it is not necessary to unroll that loop. 
 
-Stream A into a ring buffer instead of loading everything at once and then storing.
+It is essential that $Bki$ be the innermost loop because this lets us accumulate changes to the block \py{C[Bmi, Bni]}, and then store the entire block exactly once. Otherwise, the repeated storing of each block of C becomes the primary bottleneck. This also means that we only reuse the inner part of MicroSparse, and we handle the loads and stores of C ourselves.
 
-  - also used by libxsmm
-  - constraint on the block size to bm=8, bn=30, bk=2 => k can be arbitrary
-  - The choice of block sizes will have no effect on the 
+Putting the $Bmi$ loop on the outside is the best choice for several reasons. Firstly, it consolidates instructions that are free of control dependencies, which improves pipeline efficiency and gives the processor more room to amortize loads of A and C. Secondly, it dramatically reduces the number of branches. Even if branches are predicted perfectly, KNL's issue-width bottleneck ensures that the instructions to increment and compare the counter register would displace FMAs, reducing performance.
 
-Because we aren't making any assumptions about the sparsity pattern's regularity, we must unroll the n, k loops. On the other hand, the sparsity pattern is invariant with respect to m, so there is no need to unroll the m loop. 
+Thus there is only one reasonable ordering for our loop nest. At the innermost level we unroll over the $Bki$ loop, laying down a sequence of sparse microkernels corresponding to a traversal of one panel of B, moving from top to bottom in short, fat slices. In the middle level, we unroll over $Bni$, corresponding to a traversal across panels of B from left to right. Finally, at the outermost level, we loop over $Bmi$: horizontal panels of A and C from top to bottom. This is described more precisely via pseudocode in Listing X.XX.
 
-It is essential that Bk be the innermost loop because this lets us accumulate changes to the block C[Bmi, Bni], and then store the entire block exactly once. Otherwise, the repeated storing of each block of C becomes the primary bottleneck. 
+This loop nesting looks very similar to what Goto calls GEPM\_VAR2, depicted in Figure~\ref{fig:gepm}. Note that Goto rejects this algorithm within one paragraph, making the exact opposite argument as we have made above, regarding the repeated storing of the C block. This is because Goto is focusing on a much larger scale: his C blocks fit only in the L2 cache, whereas ours fit entirely in registers: we get our inner ``GEPDot'' for free whereas his is especially costly.
 
-Putting the $m$ loop on the outside is the best choice for two reasons. Firstly, it consolidates instructions that are free of control dependencies, which improves pipeline efficiency and gives the processor more room to amortize loads of A and C. Secondly, it dramatically reduces the number of branches. Even if branches are predicted perfectly, KNL's issue-width bottleneck ensures that the instructions to increment and compare the counter register would displace FMAs, reducing performance. 
+The UnrolledSparse algorithm has three additional tuning parameters which must be chosen. These are the blocksizes $bm$, $bn$, and $bk$. Section X.XX explores how to choose these values heuristically. The choice of parameters and the set of problems which can be efficiently solved are subject to the following constraints:
 
-Thus there is only one reasonable ordering for our loop nest. At the innermost level we unroll over the $k$ loop, laying down a sequence of sparse microkernels corresponding to a traversal of one panel of B, moving from top to bottom in short, fat slices. In the middle level, we unroll over Bn, corresponding to a traversal across panels of B from left to right. Finally, at the outermost level, we loop over m: horizontal panels of A and C from top to bottom. This is described more precisely via pseudocode in Listing X.XX.
-
-This loop nesting looks very similar to what Goto calls GEPM\_VAR2, depicted in Figure~\ref{fig:gepm}. Note that Goto rejects this algorithm within one paragraph, making the exact opposite argument as we have made above, regarding the repeated storing of the C block. This is because Goto is focusing on a much larger scale: his C blocks fit only in the L2 cache, whereas ours fit entirely in registers: we get our inner ``GEPDot'' for free whereas his is very costly.
-
-The UnrolledSparse algorithm has three additional tuning parameters which must be chosen. These are the blocksizes bm, bn, and bk. They are subject to the following constraints:
-
-\begin{minted}{text}
-(bk + bn) * (bm / 8) <= 32  == The blocks must fit in registers
-bm % 8 = 0. The A and C blocks fit in registers
-m % 8 = 0. For now, A and C must be zero-padded. However, it is simple to extend this algorithm to mask the final row.
-1<=bk<=4, == The ring buffer is quite sufficient, and KNL has plenty of slots for register renaming.
-\end{minted}
-
-Choosing these variables automatically 
-
-There is one final constraint. Each nonzero in the sparsity pattern produces one FMA instruction. 
-
-Constraint on the number of nonzeros. Because the entire sparsity pattern is unrolled, the choice of blocksize has no effect on the amount of computation. However, it does impact the pattern of memory movement. This is difficult to predict because KNL  by the reorder buffer and hardware prefetching.
-
-
-* Take steps to avoid unnecessary numerical operations: 
--- minimal cursor movements. E.g. B never needs to be moved at all due to hardcoded addresses. It may still be desirable to decrease the size of the generated FMAs, but this can be achieved using scale-index addressing 
-
--- use while instead of for so that A pointer doubles as loop counter.
-
-
-* Discuss choice of block size
-
-
-Generate sparse microkernels for each (k,n) block of B, and unroll these into the instruction stream.
 \begin{itemize}
-      \item[$+$] Supports arbitrary matrix sizes
-      \item[$+$] Dense-style register blocking for a dense $\times$ sparse algorithm.
-      \item[$+$] Does not fill in any zeros -- no wasted flops
+  \item The A and C blocks must fit in registers: $(bk + bn) * (bm / 8) <= 32$
+  
+  \item Each nonzero in B produces exactly one FMA, and if there are too many of these, they will fill the instruction cache. This introduces a hard limit on the number of nonzeros, which shall be explored in depth in Section X.XX.
+  
+  \item The instruction cache bottleneck can be hit with fewer nonzeros depending on the choice of blocksizes, since different blocksizes result in different numbers of \py{vmovapd} instructions. This is explored in depth in Section X.XX.
 
-      \item[$-$] Generates an FMA instruction for each nonzero
-      \item[$-$] These FMA instructions are 10B, too large to stream
-      \item[$-$] Irregular location of blocks in memory prevents using tricks to reduce instruction size
-      \item[$-$] Total number of nonzeros is limited by size of instruction cache.
-
+  \item Choices of $(m,n,k)$ which do not evenly divide into small blocks are feasible, but not fully supported at the time of this writing.
 \end{itemize}
+
+The experiments discussed later consistently show that UnrolledSparse strikes a good balance between performance and flexibility. It supports most available matrix sizes, it does not fill in any zeros or waste any flops, and it uses a dense-style register blocking. It continues to perform well as the B matrix becomes dense -- the parallel efficiency increases -- and it degenerates to something similar to libxsmm. For fully dense matrices it performs slightly worse than libxsmm, and if it reaches the instruction cache limit it performs dramatically worse. In order to move past this constraint, we find ways to compress the number of FMAs below the number of actual nonzeros.
 
 \begin{figure}[tb]
   \centering
@@ -258,29 +215,20 @@ Generate sparse microkernels for each (k,n) block of B, and unroll these into th
 
      The basic idea behind TiledSparse is to scale the FullyUnrolledSparse algorithm to 
 matrices with more than 3100 nonzeros by assuming that the sparsity pattern is perfectly regular. 
-Specifically, we assume that there is a single sparsity pattern which tiles over the entire matrix
-and can be encoded as either a SparseMicrokernel or a FullyUnrolledSparse. The former, of course,
-subjects the tiled sparsity pattern to register block size constraints, whereas the latter merely 
-subjects it to number-of-nonzeros constraints. Our tiling assumption can be made without loss 
-of generality because we can always fill in zeros until we arrive at a regular pattern. (One
-way to do this is to partition the original matrix with a desired blocksize, and then take the 
-logical union of the sparsity patterns in each block.) The assumption does result in a loss of 
-practicality, however, as often the pattern will degenerate to dense. If the pattern is dense, 
-and the pattern-blocksize is chosen sensibly, the resulting algorithm will be very similar to 
-libxsmm.
+Specifically, we assume that there is a single sparsity pattern which tiles over the entire matrix and is small enough to be used by MicroSparse. Our tiling assumption can be made without loss 
+of generality because we can always fill in zeros until we arrive at a regular pattern. One
+way to do this is to partition the original matrix with the desired blocksize, and then take the 
+logical union of the sparsity patterns in each block. The assumption does result in a loss of 
+practicality, however, as often the pattern will degenerate to dense. If the pattern becomes dense, the resulting algorithm will be more or less similar to libxsmm depending on the choice of block sizes.
 
-There are several ways in which this algorithm may be modified. The first design variable is the
-choice of loops to unroll. Because each pattern-block occupies the same amount of memory, the 
-loops need only update the pointer to the current block, and thus may be unrolled trivially. 
-The optimal amount of unrolling depends mainly on the number of nonzeros in the sparsity pattern.
+There are several ways in which this algorithm may be modified.
+
+The first design variable is the choice of loops to unroll. Because each block occupies the same amount of memory, the loops need only update the pointer to the current block, which makes unrolling very simple. The optimal amount of unrolling depends mainly on the number of nonzeros in the sparsity pattern. 
 
 The second design variable is the representation of the sparse matrix in memory. The choice will
-directly affect both memory locality and FMA instruction size. (As discussed elsewhere, it is 
-helpful to keep the pointer's offset under 128, as FMA instructions above that threshold are
-10 bytes and below are 7 bytes.) A key constraint is regularity: This algorithm assumes it is
-possible to traverse the matrix block-by-block using simple pointer arithmetic, which constrains 
-the main layouts to (V){CSR, CSC, BCSR, BCSC}. (This assumption will be relaxed in 
-later algorithms.) The layout which best suits the memory accesses made by TiledSparse 
+directly affect both memory locality and FMA instruction size. The assumption that it is possible to traverse the matrix block-by-block using simple pointer arithmetic constrains 
+the feasible layouts to DNS, (V)CSR, and (V)CSC. The layout which best suits the 
+memory accesses made by TiledSparse 
 is VBCSR. If the layout is prescribed externally as something other than (V){BCSR, BCSC), 
 or if the pattern contains more than 128 nonzeros, it is recommended to use multiple cursors in 
 order to keep the FMA instruction size down. One possible interoperability trick is to store 
