@@ -14,23 +14,21 @@ Unfortunately, the case of the $K \cdot Q$ multiplication can not be simply plug
 The experimental setup is straightforward. The problem size is set as $m=40,~n=15,~k=9$, corresponding to a viscoelastic rheological model as described in~\cite{7568431}. The sparsity pattern used is shown on the right in Figure~\ref{fig:seissol_star}. The only variable measured is wall clock time, which was used to calculate speedup relative to \py{libxsmm}'s dense kernel. The two new kernels tested are UnrolledSparse and GeneralSparse. The only available degree of freedom for matrices this small is the $m$-block size; the two extremes, $bm=8$ and $bm=40$, were both considered. The TiledSparse and BlockSparse kernels, on the other hand, were not considered because they would either degenerate to UnrolledSparse or produce complete fill-in, depending on the chosen block sizes $bn, bk$. The performance of Breuer's sparse kernels was also tested for comparison. 
 
 
-
-  \begin{figure}[!htb]
-    \centering
-%    \begin{subfigure}[b]{0.4\textwidth}
-%      \centering
-      \includegraphics[width=0.75\textwidth]{images/seissol_comparison.pdf}
-      \caption{Performance comparison of different spgemm kernels for the 9x15 SeisSol `star' matrix}
-      \label{fig:perf_seissol}
-%    \end{subfigure}
-  \end{figure}
-
-
 The experiment shows that the UnrolledSparse kernel with $bm=8$ has the best performance, corresponding to a speedup of $1.83$ over dense. To put this in context, the upper bound on the speedup for this problem is $(n\cdot k)/nnz = 3.97$. The UnrolledSparse with the larger block size performs slightly worse, at $1.74$. The GeneralSparse with the larger block size performed similarly worse than its UnrolledSparse equivalent, which was expected due to the indirect jump penalty. Meanwhile, the GeneralSparse with the small block size experienced a slowdown. 
 
 The automatically generated Breuer kernel also experienced a slowdown relative to dense, which was not surprising considering the architectural disadvantages it is working against. However, an examination of the code revealed a bug: the SIMD vector length was being constrained to 32 bytes instead of 64. Manually fixing this led to a speedup of almost $1.5$ over dense, significantly better but still less than the UnrolledSparse kernel. The performance of the modified Breuer is expected to be similar for small matrices but then diverge as they get larger and denser, due to Breuer's lack of an accumulator for blocks of $C$. 
 
 This experiment can be repeated for different patterns of $K$, and also for the $A$-matrix sizes $n \in \{27, 36\}$. 
+
+  \begin{figure}[bt]
+    \centering
+%    \begin{subfigure}[b]{0.4\textwidth}
+%      \centering
+      \includegraphics[width=0.75\textwidth]{images/seissol_comparison.pdf}
+      \caption{Speedup of different sparse GEMM kernels for the $9\times 15$ SeisSol `star' matrix, relative to the dense libxsmm implementation. Higher is better. UnrolledSparse outperforms the alternatives regardless of choice of block size. A minor modification of Breuer tripled its performance, but it remains below UnrolledSparse. }
+      \label{fig:perf_seissol}
+%    \end{subfigure}
+  \end{figure}
 
 
 \section{Scaling of UnrolledSparse}
@@ -40,31 +38,32 @@ The goal of this experiment is to determine the range of problems which benefit 
 
 The experimental setup is as follows. The matrix sizes are taken to be $m=128, n=28, k=128$, and they are blocked according to $bm=8, bn=28, bk=4$. These numbers were chosen to try to match the blocking behavior of \py{libxsmm}. The B matrix uses CSC format and is filled with a varying number of nonzeros. Time-to-solution is measured and the achieved FLOP/S rate is calculated.
 
-  \begin{figure}[!htb]
+The results are shown in Figure~\ref{fig:unrolled_scaling}. The instruction cache limit is reached at around 3100 nonzeros. Because the implementation tested does not use scale-index addressing, all but the first 128 FMA instructions take up 10 bytes apiece. Thus, for 3100 nonzeros, the 32KB instruction cache must contain 30616 bytes of FMAs. The remainder is presumed to be filled with load/store instructions (which are also larger than necessary). If scale-index addressing is used instead, the upper limit is estimated to be around 4500. 
+
+Below this limit, there is a clear linear relationship between nonzeros and time. There is a constant penalty of around 4 microseconds. If the instruction cache limit had not been reached, the dense kernel would have outperformed the sparse kernel starting around 3400 nonzeros, when B is around 95\% dense.
+
+
+Although the UnrolledSparse demonstrates an improved time to solution, it performs less overall computation than the dense version, paradoxically reducing the flop count. When considering the performance of the dense kernel, a distinction must be drawn between ``hardware'' GFlops $:= 2\cdot m \cdot n \cdot k \cdot t^{-1}$ and ``nonzero'' GFlops $:= 2 \cdot m \cdot nnz \cdot t^{-1}$. The former reflects the work performed by the processor, whereas the latter reflects the work which was useful. Figure~\ref{fig:unrolled_perf} shows that the UnrolledSparse GFlops are bounded above by the dense hardware GFlops and bounded below by the dense nonzero GFlops. Encouragingly, the UnrolledSparse GFlops starts close to the nonzero GFlops and asymptotically approaches the hardware GFlops as the nonzeros increase. This means that the parallel efficiency improves as the matrix becomes dense.
+
+
+  \begin{figure}[H]
     \centering
-    \begin{subfigure}[b]{0.8\textwidth}
+    \begin{subfigure}[b]{0.75\textwidth}
       \centering
       \includegraphics[width=\textwidth]{images/fig2.pdf}
-      \caption{Time to solution for unrolledsparse}
+      \caption{Time to solution}
       \label{fig:unrolled_time}
     \end{subfigure}
-    \begin{subfigure}[b]{0.8\textwidth}
+    \begin{subfigure}[b]{0.75\textwidth}
       \centering
       \includegraphics[width=\textwidth]{images/fig3.pdf}
-      \caption{Performance of unrolledsparse}
+      \caption{Performance}
       \label{fig:unrolled_perf}
     \end{subfigure}
+    \caption{Scaling study of UnrolledSparse, varying the number of nonzeros. B is a $128\times 28$ sparse matrix filled with a random sparsity pattern; it becomes dense at $nnz=3584$ on the far right. The instruction cache limit is reached around $nnz=3100$; below this limit the time-to-solution scales linearly and produces a speedup. }
+    \label{fig:unrolled_scaling}
   \end{figure}
 
-  \begin{itemize}
-    \item For $nnz < 3100$, time-to-solution scales linearly.
-    \item For $nnz > 3200$, the FMAs completely fill the instruction cache (regardless of matrix dimensions!)
-    \item Fully unrolled sparse algorithm outperforms dense ``nonzero'' GFlops, but always underperforms dense ``hardware'' GFlops
-    
-
-    Linear relationship between nnzs and time, with a constant offset compared to dense.
-
-  \end{itemize} 
 
 
 
