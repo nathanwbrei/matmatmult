@@ -4,10 +4,11 @@
 
 
 \section{Performance comparison of practical examples}
+\label{section:exp_seissol_star}
 
 The goal of the first experiment is to show that the general approach can yield a speedup on matrices which are of practical interest. In the case of SeisSol, the compute kernels are recursively nested matrix multiplications of the pattern $Q' \mathrel{{+}{=}} K \cdot Q \cdot A$, where $K$ and $A$ are sparse and $Q$ is dense. The $A$ matrix always has the same shape and sparsity pattern, whereas there are many different matrices shaped like $K$. The performance of various kernels on the $Q \cdot A$ multiplication is depicted in Figure~\ref{fig:perf_seissol}. 
 
-Unfortunately, the case of the $K \cdot Q$ multiplication can not be simply plugged in to SeisSol due to the asymmetry between dense and sparse multiplication discussed in Section X.XX. However, if the dense matrices were stored in row-major format instead of column-major, the situation would be reversed. Because the $K$ matrix is larger, this might yield a greater speedup on SeisSol as a whole. For these reasons the transposed problem $Q \cdot K$ is also considered in Figure~\ref{fig:perf_seissol_K}.
+Unfortunately, the case of the $K \cdot Q$ multiplication can not be simply plugged in to SeisSol due to the asymmetry between dense and sparse multiplication discussed in Section~\ref{section:asymmetry}. However, if the dense matrices were stored in row-major format instead of column-major, the situation would be reversed. Because the $K$ matrix is larger, this might yield a greater speedup on SeisSol as a whole. For these reasons the transposed problem $Q \cdot K$ is also considered in Figure~\ref{fig:perf_seissol_K}.
 
 
 The experimental setup is straightforward. The problem size is set as $m=40,~n=15,~k=9$, corresponding to a viscoelastic rheological model as described in~\cite{7568431}. The sparsity pattern used is shown on the right in Figure~\ref{fig:seissol_star}. The only variable measured is wall clock time, which was used to calculate speedup relative to \py{libxsmm}'s dense kernel. The two new kernels tested are UnrolledSparse and GeneralSparse. The only available degree of freedom for matrices this small is the $m$-block size; the two extremes, $bm=8$ and $bm=40$, were both considered. The TiledSparse and BlockSparse kernels, on the other hand, were not considered because they would either degenerate to UnrolledSparse or produce complete fill-in, depending on the chosen block sizes $bn, bk$. The performance of Breuer's sparse kernels was also tested for comparison. 
@@ -27,12 +28,13 @@ The experimental setup is straightforward. The problem size is set as $m=40,~n=1
 
 The experiment shows that the UnrolledSparse kernel with $bm=8$ has the best performance, corresponding to a speedup of $1.83$ over dense. To put this in context, the upper bound on the speedup for this problem is $(n\cdot k)/nnz = 3.97$. The UnrolledSparse with the larger block size performs slightly worse, at $1.74$. The GeneralSparse with the larger block size performed similarly worse than its UnrolledSparse equivalent, which was expected due to the indirect jump penalty. Meanwhile, the GeneralSparse with the small block size experienced a slowdown. 
 
-The automatically generated Breuer kernel also experienced a slowdown relative to dense, which was not surprising due to the analysis in Section X.XX. However, an examination of the code revealed a bug: the SIMD vector length was being constrained to 32 bytes instead of 64. Manually fixing this led to a speedup of almost $1.5$ over dense, significantly better but still less than the UnrolledSparse kernel. The performance of the modified Breuer is expected to be similar for small matrices but then diverge as they get larger and denser, due to Breuer's lack of an accumulator for blocks of $C$. 
+The automatically generated Breuer kernel also experienced a slowdown relative to dense, which was not surprising considering the architectural disadvantages it is working against. However, an examination of the code revealed a bug: the SIMD vector length was being constrained to 32 bytes instead of 64. Manually fixing this led to a speedup of almost $1.5$ over dense, significantly better but still less than the UnrolledSparse kernel. The performance of the modified Breuer is expected to be similar for small matrices but then diverge as they get larger and denser, due to Breuer's lack of an accumulator for blocks of $C$. 
 
 This experiment can be repeated for different patterns of $K$, and also for the $A$-matrix sizes $n \in \{27, 36\}$. 
 
 
 \section{Choice of block sizes}
+\label{section:exp_unrolled_sizing}
 
 The previous section demonstrated the utility of UnrolledSparse kernel, and also showed that the choice of block sizes $bm,bn,bk$ affects the overall performance. The KNL architecture places a number of constraints on the optimal block size, which is described in depth for the dense case by~\ref{Heinecke:2016:LAS:3014904.3015017}. The goal of this experiment is to test the performance of UnrolledSparse for different block sizes and see to what extent the empirical sparse results match with the theoretical dense analysis. This can also lead to heuristics for automatically choosing the block sizes.
 
@@ -77,6 +79,8 @@ Now let's turn to the $nnz=2000$ case. The pattern looks similar for $bm=8, bn\i
 
 
 \section{Scaling of UnrolledSparse}
+\label{section:exp_unrolled_scaling}
+
 
   Matrix sizes: $m=128, n=28, k=128$.
   Microkernel block sizes: $bm=8, bn=28, bk=4$.
@@ -110,6 +114,8 @@ Now let's turn to the $nnz=2000$ case. The pattern looks similar for $bm=8, bn\i
 
 
 \section{Performance of GeneralSparse}
+\label{section:exp_jump_scaling}
+
 
   \begin{figure}[!htb]
     \centering

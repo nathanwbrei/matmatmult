@@ -108,6 +108,7 @@ Future: type safety, instruction reordering, simulation
 
 
 \section{Cursors}
+\label{section:cursors}
 
     The \emph{matrix cursor} is an abstraction that allows the code generators to cleanly traverse a sparse matrix and access its contents while only using logical coordinates. The name was chosen because of its similarities to the cursor in a text editor, which must translate movement and insert commands from 2D screen coordinates into a 1D memory location which depends on the lengths on the neighboring lines. The term 'cursor' has already been overloaded to describe a kind of iterator into a database; this is also a kind of iterator. MatrixCursor performs the following tasks:
 
@@ -115,7 +116,7 @@ Future: type safety, instruction reordering, simulation
 
     \item[Traversing a matrix by blocks.] MatrixCursor translates logical block coordinates \texttt{(Bki, Bni)} into a movement instruction. This instruction updates a register pointing to the start of the `active' block. The logical block coordinates may be either absolute or relative to the active block.
 
-    \item[Optionally tracking which block is active.] Generating a GEMM is much simpler if the generator can model the state of the machine while deciding which code to emit in order to modify said state. Not all generators implemented currently do this; some emit loops which do not get simulated, and then assume that the loops maintain certain invariants. This is the start of a more theoretical discussion in Section X.XX. 
+    \item[Optionally tracking which block is active.] Generating a GEMM is much simpler if the generator can model the state of the machine while deciding which code to emit in order to modify said state. Not all generators implemented currently do this; some emit loops which do not get simulated, and then assume that the loops maintain certain invariants. This is the start of a more theoretical discussion in Section~\ref{section:theory}. 
 
     \item[Accessing cells within a block.] MatrixCursor translates logical cell coordinates \texttt{(bki, bni)} into a \texttt{MemoryAddress} operand. Cell coordinates are relative to the top-left-corner of the active block. It also generates a comment string (which can be rendered alongside the assembly) indicating which logical coordinates lie behind the otherwise inscrutable memory address.
 
@@ -202,6 +203,7 @@ Internally, the cursors all maintain an implicit or explicit table of offsets, m
 
 
 \section{Symbolic execution and reification}
+\label{section:theory}
 
 
 In a very general sense, the GEMM generators implemented here all take information which was previously discovered at runtime and move it to compile time. Up until now, this activity has been denoted by the verb ``unroll''. However, this term is somewhat misleading. It comes from the concept of loop unrolling, a standard compiler optimization[ref to book]. Unrolling a loop is a path-independent transformation of an abstract syntax tree which has no access to new information. Unrolling a sparsity pattern is a path-dependent transformation of an (even more) abstract syntax tree which depends on the local program state space. A better word for this activity might be \emph{reification}. 
