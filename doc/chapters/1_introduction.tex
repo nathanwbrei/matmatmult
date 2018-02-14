@@ -25,24 +25,30 @@ A worthwhile use of the vast computational resources available in 2018 is on sei
   \label{fig:seissol_star}
 \end{figure}
 
-\section{Hardware Constraints}
+\section{Hardware constraints}
 \label{section:knl}
 
-Although the motivation is straightforward, it is growing increasingly difficult to implement in practice because it is working against current trends in computer architecture. An growing number of the top500 computers are using GPUs or Xeon Phis. This trend is likely to continue because it allows greater parallelism at a lower energy cost. It was desired to run the code on LRZ's CoolMUC3 cluster, which uses Knights Landing.
+Although the motivation is straightforward, it is challenging in practice because the problem is working against current trends in computer architecture. A growing number of the Top500 computers are using manycore processors such as GPUs or Xeon Phis. This trend is likely to continue because it allows greater parallelism and throughput at a lower energy cost. For this particular work, the goal is further optimize the kernels for LRZ's CoolMUC3 cluster, which uses Knights Landing.
 
-Knights Landing (KNL) is the second-generation Intel Xeon Phi, a manycore processor that offers greater parallelism and less power consumption in exchange for a slower clock speed. An overview is given by~\cite{Sodani:2016:KLS:2927511.2927563} and a more comprehensive resource is given by~\cite{Jeffers:2016:IXP:3050856}. Unlike its predecessor, Knights Corner, KNL is a host processor rather than a coprocessor, which means that it can run the entire x86-64 instruction set, albeit with a performance penalty for some operations. KNL has two kinds of memory, a high-bandwidth MCDRAM and a high-capacity DDR4. Each processor contains between 64 and 72 cores with 4 hyperthreads per core, resulting in at least 256 logical CPUs. The instruction-level parallelism is similarly impressive, being the first processor to implement the AVX-512 instruction set extensions. These provide 32 vector registers, each of which holds 64 bytes, allowing 8 double-precision floating point numbers to be operated on simultaneously in each \gls{VPU}. Instruction-level performance is further improved by an enhanced \gls{FMA} instruction, which performs $c := c + a*b$ in a single cycle, optionally including a broadcast and a mask. Thus the theoretical peak performance of each chip is given as:
+Knights Landing (KNL) is the second-generation Intel Xeon Phi, a manycore processor that offers greater parallelism and less power consumption in exchange for a slower clock speed. An overview is given by~\cite{Sodani:2016:KLS:2927511.2927563} and a more comprehensive resource is given by~\cite{Jeffers:2016:IXP:3050856}. Unlike its predecessor, Knights Corner, KNL is a host processor rather than a coprocessor, which means that it can run the entire x86-64 instruction set, albeit with a performance penalty for some operations. KNL has two kinds of memory, a high-bandwidth MCDRAM and a high-capacity DDR4. Each processor contains between 64 and 72 cores with 4 hyperthreads per core, resulting in at least 256 logical CPUs. The instruction-level parallelism is similarly impressive due to the AVX-512 instruction set extensions. These provide 32 vector registers, each of which holds 64 bytes, allowing 8 double-precision floating point numbers to be operated on simultaneously in each \gls{VPU}. Instruction-level performance is further improved by an enhanced \gls{FMA} instruction, which performs $c := c + a*b$ in a single cycle, optionally including a broadcast and a mask. Thus the theoretical peak performance is given as:
 
 \[
-36~\frac{tiles}{chip} \times 2~\frac{cores}{tile} \times 2~\frac{VPUs}{core} \times 16~\frac{double~flops}{VPU \cdot cycle} \times 1.3~\frac{GCycles}{sec} = 3~\frac{double~TFlop}{sec\cdot chip}
+2~\frac{\text{VPUs}}{\text{core}} \times 16~\frac{\text{double flops}}{\text{VPU} \cdot \text{cycle}} \times 1.3~\frac{\text{GCycles}}{\text{sec}} = 41.6~\frac{\text{double GFlop}}{\text{sec}\cdot \text{core}}
   \label{eq:knl_peak_perf}
 \]
 
-This peak performance is in practice merely an upper bound, as it assumes a steady-state throughput of 2 FMAs per cycle. The only algorithms which come close to achieving this are dense matrix multiplication and (to a lesser extent) LU and Cholesky factorization. If the algorithm cannot be vectorized at all, the attainable performance drops by a factor of 8, and if it cannot use the FMA instructions, it drops by a further factor of 2. Hence inherently scalar algorithms perform dramatically worse. This may be a reasonable tradeoff: since scalar algorithms are much more likely to be memory-bound, the extra flops might be wasted. Nevertheless this provides a strong incentive to find creative ways to make the most of the vector registers. 
+\[
+36~\frac{\text{tiles}}{\text{chip}} \times 2~\frac{\text{cores}}{\text{tile}} \times 41.6~\frac{\text{double~GFlop}}{\text{sec}\cdot \text{core}} = 3.0~\frac{\text{double TFlop}}{\text{sec}\cdot \text{chip}}
+  \label{eq:knl_peak_perf}
+\]
 
-Another key constraint is cache bandwidth. With only one store unit, KNL can store at most 64B/cycle, corresponding to one vector register. This means that it is essential to accumulate all possible changes to that vector register before storing it. It also makes loop unrolling more important, since this is the only way to amortize the cost of loads and stores.
+This peak performance is in practice merely an upper bound, as it assumes a steady-state throughput of 2 FMAs per cycle. The algorithms which approach this are mainly dense matrix multiplication or LU/Cholesky factorization. If the algorithm cannot be vectorized at all, the attainable performance drops by a factor of 8, and if it cannot use the FMA instructions, it drops by a further factor of 2. Hence inherently scalar algorithms perform dramatically worse. This may be a reasonable tradeoff: since scalar algorithms are much more likely to be memory-bound, the extra flops might be wasted. Nevertheless this provides a strong incentive to find creative ways to make the most of the vector registers. 
 
-A number of related bottlenecks encompass the instruction pipeline. Because Knights Landing was derived from the older Silvermont architecture, which was optimized for low power consumption, the instruction pipeline is simpler and narrower. The instruction cache can only provide 16B/cycle, and the decoder can only handle 2 instructions/cycle. Meanwhile, a single \gls{FMA} instruction takes up between 7 and 10 bytes. The most important constraint, however, is that the out-of-order execution pipeline can only issue 2 instructions per cycle. This means that any instruction which is not an FMA \emph{displaces} an FMA, halving the potential computational efficiency of one cycle.
+Another key constraint is cache bandwidth. With only one store unit, KNL can store at most 64B/cycle, corresponding to one vector register. This means that it is essential to accumulate all possible changes to that vector register before storing it. It also makes loop unrolling quite important for amortizing the cost of loads and stores.
 
+A number of related bottlenecks encompass the instruction pipeline. Because Knights Landing was derived from the older Silvermont architecture, which was optimized for low power consumption, the instruction pipeline is simpler and narrower. The instruction cache provides 16B/cycle, and the decoder handles 2 instructions/cycle. For comparison, a single \gls{FMA} instruction takes up between 7 and 10 bytes. The least expected constraint, however, is that the out-of-order execution pipeline can only issue 2 instructions per cycle. This means that any instruction which is not vector arithmetic (e.g. an FMA) \emph{displaces} a vector arithmetic instruction, halving the potential computational efficiency of one cycle.
+
+In summary, there is a variety of architectural constraints which make Knights Landing well-suited for large dense operations, and correspondingly less well-suited for small sparse operations. SeisSol still performs well on KNL, because of its scalability across threads and nodes. Nevertheless its performance responds to optimizations of its inner matrix kernels.
 
 \begin{figure}[tb]
 \centering
@@ -50,69 +56,90 @@ A number of related bottlenecks encompass the instruction pipeline. Because Knig
 \caption{Block diagram of the Knights Landing architecture, taken from~\cite{Sodani:2016:KLS:2927511.2927563}. As shown in (a), each processor is divided into 36 tiles connected in a 2D mesh. As shown in (b), each tile contains 2 cores and a shared L2 cache. Each core has two VPUs and its own L1 caches.}
 \end{figure}
 
+
 \section{Previous approaches}
 
-There is already a substantial amount of effort invested in improving the compute kernels of SeisSol. 
+    Significant work has already been undertaken to optimize the performance of the sparse matrix kernels. There are three main approaches which have been explored. Originally an off-the-shelf sparse matrix routine was used. Later, this was replaced by a custom kernel generated for each specific sparsity pattern, introduced by Breuer in~\cite{breuer}. Finally, this was replaced by a dense kernel optimized for small matrices and wide registers, introduced by Heinecke in~\cite{Heinecke:2016:LAS:3014904.3015017}. The decision to use the dense kernel on KNL is discussed in depth in~\cite{Jeffers:2016:IXP:3050856}. 
+    
+    There are several properties of the SeisSol matrix chains which can be leveraged to improve performance. Firstly, these matrices remain quite small: the largest matrix dimension under consideration is 56 and the smallest is 9. This means that they can be assumed to fit in cache. Secondly, the sparsity patterns are constant. This is because they are derived from the basis functions, which themselves depend on the desired order of accuracy and the choice of viscous damping model. These properties do not appear to play to the strengths of Knights Landing, but they do provide the programmer something to work with.
 
-\subsection{CSC sparse multiplication}
-  The first approach used standard compressed-sparse-column multiplication. This algorithm goes back to WHOM? . It looks as follows:
+    There are also several constraints. SeisSol is already carefully parallelized via MPI and OpenMP, and the kernels are expected to run within each thread. This means that only instruction-level parallelism shall be considered in this work. Likewise, the strategy for utilizing KNL's high-bandwidth memory is determined at a much higher level, and shall not be considered here.
 
+\subsection{Off-the-shelf sparse matrix routines}
 
-  It has the following advantages: It is extremely general, placing no constraints on the matrix size or sparsity. 
-  The sparsity pattern itself is known only at runtime. This generality makes it extremely amenable to abstraction, so a 
+      The most straightforward approach to handling SeisSol's small sparse matrix kernels is to use off-the-shelf dense-by-sparse multiplication routines such as those provided by MKL~\cite{IntelCSCMM}. This approach benefits from being very general: it places no constraints on the matrix size or sparsity, and relegates knowledge of the sparsity pattern to runtime. The matrix is stored in a common format such as CSC, which store indexes so that no information is lost and other routines may interact in a relatively abstract manner. The routines themselves take up a small, fixed amount of memory which does not depend on the matrix sparsity pattern.
 
-  Nevertheless, the standard csc multiplication algorithm suffers from several crucial disadvantages: 
+      However, Breuer and Heinecke~\cite{breuer} show that this approach leaves a considerable amount of performance on the table. Firstly, they have a high memory usage. Secondly, they have a low computational intensity. Thirdly, they are difficult to vectorize because . Finally, the innermost loop over the entries of the sparse matrix cannot be unrolled, because it relies on control flow. Due to the issue width constraint, 
 
-\begin{description}
-  \item[High memory usage]
+      \begin{description}
+        \item[Cache bandwidth] The indexes 
+        \item[Computational intensity]
+        \item[Inability to unroll the innermost loop] This hurts pipeline efficiency.
+        \item[Scalar operations]
 
-  \item[Computational intensity]
+        The indices are looked up at runtime. Firstly, this requires storing the indices, doubling the amount of memory needed. If only one matrix is sparse, the total number of flops is $2 * m * n * nnz$, with nnz=1/4*n*k, this means that the arithmetic intensity [FLOPs/byte] is 1/8 that of dense matrix multiplication. 
+        Although the format lays everything out in memory as efficiently, the algorithm must nevertheless loop over k. The resulting control dependency prevents . The fact that the sparsity pattern is only known at compile time prevents unrolling. 
+        A dense-by-sparse algorithm would still benefit from vectorization, but if the 
 
-  \item[Inability to unroll the innermost loop] This hurts pipeline efficiency.
-
-  \item[Scalar operations]
-
-  The indices are looked up at runtime. Firstly, this requires storing the indices, doubling the amount of memory needed. If only one matrix is sparse, the total number of flops is $2 * m * n * nnz$, with nnz=1/4*n*k, this means that the arithmetic intensity [FLOPs/byte] is 1/8 that of dense matrix multiplication. 
-  Although the format lays everything out in memory as efficiently, the algorithm must nevertheless loop over k. The resulting control dependency prevents . The fact that the sparsity pattern is only known at compile time prevents unrolling. 
-  A dense-by-sparse algorithm would still benefit from vectorization, but if the 
-
-\end{description}
+      \end{description}
 
 
-In the case of SeisSol, the sparsity patterns are derived from the basis functions, which themselves depend mainly on order of accuracy and the choice of viscous damping model. These parameters are all chosen at compile time. Secondly, the problem size is always small: the largest dimension is either 34 (corresponding to ) 56. 
+      Standard compressed-sparse-column multiplication
+        \begin{itemize}
+          \item[$+$] Algorithm uses a (small) constant number of instructions.
+          \item[$-$] Index lookups require indirect memory access, causing lots of problems for the execution pipeline.
+          \item[$-$] $sparse \times sparse$ is fundamentally scalar. (However, BSR can be vectorized.)
+          \item[$-$] Disregards the fact that the sparsity pattern is known at compile time.
+        \end{itemize}
 
-In the case of Knights Landing, these problems are all acerbated. 
 
 
-  Standard compressed-sparse-column multiplication
+
+\subsection{Sparse kernel generation}
+    
+      Breuer's solution to the inefficiencies in the previous approach was to generate a custom kernel for each sparse matrix product. The generator runs in a separate phase before compilation, and takes as inputs the matrix sizes, the target architecture, and a file describing the sparsity pattern. From this information it emits a C function to perform the multiplication. These functions differ from their predecessors in several key ways. 
+
+      \begin{enumerate}
+        \item The sparsity pattern is expressed in a direct sequence of multiply-adds; indices are hardcoded. This means that the indirect lookups are eliminated completely, and the indices need not even be present. Thus the CSC format becomes a `virtual' CSC format, effectively just an array of nonzero matrix entries ordered by columns. This in turn takes pressure off the caches. 
+
+        \item The code has far less control flow. Whereas the classic kernels must loop over individual elements of B, these kernels have in effect unrolled both inner loops, so that only the outermost loop remains. The compiler is instructed to vectorize this. 
+
+        \item This unrolling emits one FMA per nonzero in the matrix B, which means that the size of this algorithm can run up against the instruction cache limit if B becomes too large or dense.
+
+        \item The generator for CSC dense-by-sparse is dramatically simpler and more performant than for CSC sparse-by-dense. This asymmetry comes from the vectorization, and will be discussed in more detail in Section~\ref{section:asymmetry}.
+
+      \end{enumerate}
+
+      This approach yielded a speedup of 2.2 on Sandy Bridge using AVX-128 instructions. However, the performance declined on Haswell and Knights Landing. 
+
+      The following justification for switching to dense is quoted straight from~\cite{Jeffers:2016:IXP:3050856}:
+      \begin{quotation}
+      As we are operating out of L1 without significant reuse in the case of the sparse variant, this limits us to at most 50\% of peak performance of the core as we can only store one register per cycle. The dense variants have register accumulators and can therefore exploit both VPUs and catch up.
+      \end{quotation}
+
+      This is an algorithmic limitation, not an architectural one. If the code generator scheduled its loads, stores, and FMAs such that accumulated into a carefully-sized block of C, the 
+
+
+
+\subsection{Dense kernel generation}
+
+    The dense kernel generation is part of a separate library called libxsmm.~\cite{Heinecke:2016:LAS:3014904.3015017} Libxsmm 
+
     \begin{itemize}
-      \item[$+$] Generality.
-      \item[$+$] Algorithm uses a (small) constant number of instructions.
-      \item[$-$] Index lookups require indirect memory access, causing lots of problems for the execution pipeline.
-      \item[$-$] $sparse \times sparse$ is fundamentally scalar. (However, BSR can be vectorized.)
-      \item[$-$] Disregards the fact that the sparsity pattern is known at compile time.
+      \item Memory access patterns and register blockings optimized for KNL
+
+      \item (Implementation) Code generator emits assembly directly 
+
+      \item Filling in zero entries wastes both flops and memory bandwidth
+
     \end{itemize}
 
-  Sparsity pattern unrolled into instruction stream
-    \begin{itemize}
-    \item[$+$] Index lookups removed completely
-    \item[$+$] $dense \times sparse$ case can be vectorized perfectly 
-    \item[$-$] Generates one FMA instruction for every nonzero
-    \item[$-$] (Implementation) Memory access pattern is suboptimal on KNL
-    \item[$-$] (Implementation) Intel compiler struggles to generate efficient assembly
-    \end{itemize}
 
-  Current approach: Dense matrix multiplication via libxsmm
-    \begin{itemize}
-    \item[$+$] Memory access patterns and register blockings optimized for KNL
-    \item[$+$] (Implementation) Code generator emits assembly directly 
-    \item[$-$] Filling in zero entries wastes both flops and memory bandwidth
-    \end{itemize}
 
 
   \section{Goals, approach, and design space}
 
-  Each of the existing algorithms discussed in the preceding section encounter different  bottlenecks and constraints. \py{SpGemm} and \py{libxsmm} solve a more general problem than strictly necessary, and Breuer does not use registers Thus there appears to be room to create more complicated algorithms which combine the desirable features of each. The three existing algorithms can be thought of as poles in a barycentric design space, and the aim is to find points in the middle which finesse around the bottlenecks in the corners. One corner has high compute intensity and optimal register usage but wasted flops; another has no wasted flops but many control dependencies and lower compute intensity; the last has no wasted flops and high compute intensity, but poor register usage. The center ought to have decent compute intensity, decent register usage, few control dependencies, and few wasted flops. 
+  Each of the existing algorithms discussed in the preceding section encounter different bottlenecks and constraints. \py{SpGemm} and \py{libxsmm} solve a more general problem than strictly necessary, and Breuer does not use registers Thus there appears to be room to create more complicated algorithms which combine the desirable features of each. The three existing algorithms can be thought of as poles in a barycentric design space, and the aim is to find points in the middle which finesse around the bottlenecks in the corners. One corner has high compute intensity and an optimal register blocking, but wasted flops; another has no wasted flops but many control dependencies and lower compute intensity; the last has no wasted flops and high compute intensity, but no register blocking. The center ought to have decent compute intensity, a decent register blocking, few control dependencies, and few wasted flops. 
 
 
   To keep the scope of this work bounded, we adhere to following assumptions:
