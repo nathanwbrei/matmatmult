@@ -154,11 +154,11 @@ The experiments discussed later consistently show that UnrolledSparse strikes a 
       \begin{minted}[linenos=false,fontsize=\footnotesize]{text}
         loop over m blocks:
 
-           unroll loop over n blocks:
+           unroll over n blocks:
 
               load C block into registers
 
-              unroll loop over k blocks:
+              unroll over k blocks:
 
                  load A block into registers
                  blockwise C += A * B
@@ -167,11 +167,10 @@ The experiments discussed later consistently show that UnrolledSparse strikes a 
 
               store C block from registers
               move A to far left
-              move B to top + right 1 block
               move C right 1 block
 
            move A down 1 block
-           move C down 1 block
+           move C far left, down 1 block
       \end{minted}    
       \caption{Pseudocode for UnrolledSparse}
     \label{fig:pseudocode_unrolled}
@@ -185,7 +184,7 @@ The experiments discussed later consistently show that UnrolledSparse strikes a 
 
               load C block into registers
 
-              unroll loop over k blocks:
+              unroll over k blocks:
 
                  load A block into registers
                  blockwise C += A * B
@@ -198,13 +197,13 @@ The experiments discussed later consistently show that UnrolledSparse strikes a 
               move C right 1 block
 
            move A down 1 block
-           move C down 1 block
+           move C far left, down 1 block
       \end{minted}    
       \caption{Pseudocode for TiledSparse}
     \label{fig:pseudocode_tiled}
 
   \end{subfigure}
-    \caption{Pseudocode for UnrolledSparse and TiledSparse. UnrolledSparse unrolls two inner loops, emitting a microkernel for every block of B. TiledSparse unrolls only the innermost loop, emitting a microkernel for every (identical) block in one panel of B.}
+    \caption{Pseudocode for UnrolledSparse and TiledSparse. UnrolledSparse unrolls two inner loops, emitting a microkernel for every block of B. TiledSparse unrolls only the innermost loop, emitting a microkernel for every (identical) block in one panel of B. Note that the `unroll' command replaces `move' statements with hardcoded memory addresses when possible.}
     \label{fig:pseudocode_unrolled_tiled}
 
 \end{figure}
@@ -213,45 +212,15 @@ The experiments discussed later consistently show that UnrolledSparse strikes a 
 
 \section{Tiled dense-by-sparse multiplication}
 
-     The basic idea behind TiledSparse is to scale the FullyUnrolledSparse algorithm to 
-matrices with more than 3100 nonzeros by assuming that the sparsity pattern is perfectly regular. 
-Specifically, we assume that there is a single sparsity pattern which tiles over the entire matrix and is small enough to be used by MicroSparse. Our tiling assumption can be made without loss 
-of generality because we can always fill in zeros until we arrive at a regular pattern. One
-way to do this is to partition the original matrix with the desired blocksize, and then take the 
-logical union of the sparsity patterns in each block. The assumption does result in a loss of 
-practicality, however, as often the pattern will degenerate to dense. If the pattern becomes dense, the resulting algorithm will be more or less similar to libxsmm depending on the choice of block sizes.
+The basic idea behind TiledSparse is to scale the FullyUnrolledSparse algorithm to matrices with more nonzeros than the instruction cache permits by assuming that the sparsity pattern is perfectly regular. Specifically, we assume that there is a single sparsity pattern which tiles over the entire matrix and is small enough to be used by MicroSparse. Our tiling assumption can be made without loss of generality because we can always fill in zeros until we arrive at a regular pattern. One way to do this is to partition the original matrix with the desired blocksize, and then take the logical union of the sparsity patterns in each block. The assumption does result in a loss of practicality, however, as often the pattern will degenerate to dense. If the pattern becomes dense, the resulting algorithm will be more or less similar to libxsmm depending on the choice of block sizes.
 
-There are several ways in which this algorithm may be modified.
+We now decide the order in which the loops are nested, and also which loops are unrolled. As with UnrolledSparse, the $Bki$ loop should be the innermost in order to accumulate updates to C, and it is advantageous to unroll it unless the matrix is very large and not very sparse, in which case it may still be advantageous to partially unroll it (though this is not yet supported). The $Bni$ loop can not be unrolled, however, because this would once again yield one FMA per nonzero and we would be back to UnrolledSparse. Unrolling the $Bmi$ loop is similarly likely to curtail this algorithm's scaling to higher nnzs, albeit with less predictability. There is little expected benefit to interchanging the $Bmi$ and $Bni$ loops, but we are free to do so.
 
-The first design variable is the choice of loops to unroll. Because each block occupies the same amount of memory, the loops need only update the pointer to the current block, which makes unrolling very simple. The optimal amount of unrolling depends mainly on the number of nonzeros in the sparsity pattern. 
+Pseudocode showing TiledSparse is provided in Figure~\ref{fig:pseudocode_tiled}. Intriguingly, the only difference between UnrolledSparse and TiledSparse (at the abstraction level shown) is the $Bni$ loop is no longer unrolled. However, this conceals another important difference. When the $Bni$ loop is unrolled, the commands to move the B pointer gets completely absorbed into the memory addresses, whose offsets are absolute. When the $Bni$ loop is not unrolled, we must move the B pointer to the start of the corresponding panel, in which case the offsets are relative. This is a simple add operation, but it requires that each block takes up the same, expected amount of space in memory. Depending on the origin of the data, it might be a challenge to enforce that the layout in memory is consistent with the tiled sparsity pattern.
 
-The second design variable is the representation of the sparse matrix in memory. The choice will
-directly affect both memory locality and FMA instruction size. The assumption that it is possible to traverse the matrix block-by-block using simple pointer arithmetic constrains 
-the feasible layouts to DNS, (V)CSR, and (V)CSC. The layout which best suits the 
-memory accesses made by TiledSparse 
-is VBCSR. If the layout is prescribed externally as something other than (V){BCSR, BCSC), 
-or if the pattern contains more than 128 nonzeros, it is recommended to use multiple cursors in 
-order to keep the FMA instruction size down. One possible interoperability trick is to store 
-the matrix in COO format, but order the values according to VBCSR. Of course, this is fragile 
-if the matrix gets modified.
+Pattern-specific zero-padding of sparse matrices is not something numerical libraries typically allow, but a specialized class can be provided for that purpose. If this class stores the matrix in COO format, and does so using a structure of arrays, it can mimic any virtual storage format by simply reordering the entries. Given an unpadded matrix of numeric data alongside a matrix containing the sparsity pattern, it can construct a new matrix which contains both the numeric data and the correct zero padding in an arbitrary format. 
 
-As mentioned earlier, the main limitation to this algorithm is the tendency for the block pattern to 
-fill in until it becomes mostly dense. Otherwise, it is limited to having fewer than ~3000 nonzeros 
-in the pattern. It does not require the tiling to be perfect (where the bottommost and rightmost 
-tiles are full sized), although this makes the generator more complicated and reduces the allowed 
-number of nonzeros in the pattern to $3000 - nnz(top_right) - nnz(bottom_right) - nnz(bottom_left)$. 
-
-
-
-        Assume there exists a sparse pattern which tiles perfectly over B.
-        \begin{itemize}
-        \item[$+$] We can reuse a single microkernel, reducing the number of instructions
-        \item[$+$] We can visit blocks in a loop efficiently, using pointer tricks to reduce instruction size.
-        \item[$-$] This regularity assumption is likely too strong.
-        \item[$-$] In practice, the sparsity pattern would often become dense.
-        \end{itemize}
-
-
+There are several improvements possible. TiledSparse can be modified to support a non-perfect tiling with a fringe on the bottom and right. It is even possible to remove the block size constraint by replacing the MicroSparse kernel with an UnrolledSparse kernel. Nevertheless, it will take much bigger modifications to escape the problem of the sparsity pattern filling to dense.
 
 
 \section{Block dense-by-sparse multiplication}
