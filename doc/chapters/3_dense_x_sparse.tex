@@ -47,7 +47,7 @@ The sparse microkernel is a straightforward modification of the dense microkerne
                 emit store C[Vmi, ni]
 
   \end{minted}
-  \caption{Pseudocode for UnrolledSparse}
+  \caption{Pseudocode for MicroSparse}
 \label{fig:micropseudo}
 \end{figure}
 
@@ -320,10 +320,18 @@ There is of course a tradeoff: in order to redirect control flow to the correct 
 
 How do we automatically choose GeneralSparse parameters?
 
-\section{Sparse-by-dense multiplication}
+\section{Future algorithms}
 
-One pattern which emerges in sparse matrices is to 
+\subsection{Sparse-by-dense multiplication}
 
-\section{Tensor-matrix multiplication}
+
+
+\subsection{Tensor-by-sparse multiplication}
+
+Another possible future direction to explore is multiplication of sparse matrices with tensors. Breuer and Heinecke demonstrated with EDGE~\cite{10.1007/978-3-319-58667-0_3} that seismic simulations based on ADER-DG can be \emph{fused}, where ensembles of forward simulations are run in parallel within one execution. This has some immediate advantages. Read-only data structures can be shared, dramatically reducing memory movement. On the other hand, the computations in question can be vectorized across the third dimension.
+
+This formulation has some useful consequences for sparse kernels. Firstly, it eliminates inefficiencies caused by awkwardly sized data structures, such as matrices with 9 rows, and effortlessly ensures that memory accesses are aligned with cache line boundaries. Secondly, it gets away from the outer-product formulation: along the $m,n,k$ directions it resembles a naive matrix multiplication with no vectorization at all. This means that the sparse-by-tensor case can be unrolled just as well as the tensor-by-sparse case. 
+
+
 
 
