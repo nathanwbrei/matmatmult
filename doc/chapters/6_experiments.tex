@@ -6,7 +6,7 @@
 \section{Performance comparison of practical examples}
 \label{section:exp_seissol_star}
 
-The goal of the first experiment is to show that the general approach can yield a speedup on matrices which are of practical interest. In the case of SeisSol, the compute kernels are recursively nested matrix multiplications of the pattern $Q' \mathrel{{+}{=}} K \cdot Q \cdot A$, where $K$ and $A$ are sparse and $Q$ is dense. The $A$ matrix always has the same shape and sparsity pattern, whereas there are many different matrices shaped like $K$. The performance of various kernels on the $Q \cdot A$ multiplication is depicted in Figure~\ref{fig:perf_seissol}. 
+The goal of this first experiment is to show that the general approach can yield a speedup on matrices which are of practical interest. In the case of SeisSol, the compute kernels are recursively nested matrix multiplications of the pattern $Q' \mathrel{{+}{=}} K \cdot Q \cdot A$, where $K$ and $A$ are sparse and $Q$ is dense. The $A$ matrix always has the same shape and sparsity pattern, whereas there are many different matrices shaped like $K$. The performance of various kernels on the $Q \cdot A$ multiplication is depicted in Figure~\ref{fig:perf_seissol}. 
 
 Unfortunately, the case of the $K \cdot Q$ multiplication can not be simply plugged in to SeisSol due to the asymmetry between dense and sparse multiplication discussed in Section~\ref{section:asymmetry}. However, if the dense matrices were stored in row-major format instead of column-major, the situation would be reversed. Because the $K$ matrix is larger, this might yield a greater speedup on SeisSol as a whole. For these reasons the transposed problem $Q \cdot K$ is also considered in Figure~\ref{fig:perf_seissol_K}.
 
@@ -112,8 +112,26 @@ Now let's turn to the $nnz=2000$ case. The pattern looks similar for $bm=8, bn\i
   \end{figure}
 
 
-\section{Performance of GeneralSparse}
+\section{Scaling of GeneralSparse}
 \label{section:exp_jump_scaling}
+
+The UnrolledSparse approach is fundamentally unable to scale beyond a certain number of nonzeros, and the GeneralSparse approach seeks to ameliorate this by reintroducing some limited control flow and filling in zero entries. The extent of the fill-in depends heavily on the structure of the original sparsity pattern. On the other hand, the time to solution is expected to increase linearly with the number of jumps. We would like examine how this \emph{jump penalty} varies with the number of nonzeros.
+
+
+with each jumps is expected to be linear with the number of jumps. Thus we can measure a jump penalty  Because the number of jumps is equal to the \emph{total} number of nonempty blocks, the matrix size, 
+
+
+This becomes tricky to predict because it is coupled to the matrix and block sizes.
+
+
+  This experiment explores how the performance is affected by the total number of jumps, and how that varies with number of nonzeros and matrix size. 
+
+First we examine how the performance varies according to the number of jumps.  
+
+
+explores the effect of increasing the number of jumps while keeping the matrix size constant. This is repeated for several choices of $nnz$ in order to see how . This is achieved by taking a matrix with a random sparsity pattern and repeatedly partitioning it with 
+
+Because GeneralSparse currently delegates to MicroSparse instead of UnrolledSparse, the maximum block sizes are limited, 
 
 
   \begin{figure}[!htb]

@@ -261,17 +261,15 @@ There is of course a tradeoff: in order to redirect control flow to the correct 
   \item Unroll the \py{Bn} and \py{Bk} loops completely. For each block, move the \py{A,B,C} pointers to the start of the active block, and save a return address to a register. This is effectively a (non-ABI-compliant) function call, except it avoids the stack completely. Perform a direct jump to the correct GEMM. The GEMM itself performs the indirect jump to the return address stored in the register. This approach is explored in \py{src/jumptables/jumptable_unrolled.cpp}.
 \end{itemize}
 
-\subsection{Pseudocode}
+Pseudocode
+Degrees of Freedom
 
-
-\subsection{Degrees of Freedom}
 \begin{description}
   \item[Decision to unroll Bm-loop] 
   \item[Code alignment and padding]
 \end{description}
 
-
-\subsection{Constraints}
+Constraints
 
 \begin{enumerate}
 
@@ -285,7 +283,7 @@ There is of course a tradeoff: in order to redirect control flow to the correct 
 
 \end{enumerate}
 
-\subsection{Choosing parameters}
+Parameter choice
 
 How do we automatically choose GeneralSparse parameters?
 

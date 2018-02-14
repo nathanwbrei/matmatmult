@@ -1,7 +1,7 @@
 \chapter{Background}
 \label{chapter:review}
 
-\section{Matrix multiplication}
+\section{The BLAS abstraction}
 
 Dense and sparse matrix multiplication account for a surprising fraction of all computation, particularly in scientific and engineering fields. Since any optimization or algorithmic improvement has the potential to improve the performance of programs across the board, these algorithms have been organized under a series of common interfaces. Not only does this make it easy to reuse the best known implementation of many fundamental linear algebra operations, but it also confers other advantages: robustness is increased by the careful handling of edge cases, portability is increased because a programmer can link to the best implementation for their target architecture, and readability is increased because numerical algorithms can all work at the same abstraction level. The first such interface, \gls{BLAS}, was introduced in 1979 by Lawson~\cite{Lawson:1979:BLA:355841.355847} and only supported dense vector and matrix operations. Later interfaces, such as LAPACK, build upon and extend \gls{BLAS} to support increasingly complex operations; the history and design of such interfaces is covered by Dongarra in~\cite{Dongarra:1998:NLA:552704}. 
 
@@ -39,6 +39,8 @@ dgemm(m, n, k, alpha, A, lda, B, ldb, beta, C, ldc)
 
 
 A sparse BLAS interface was not standardized until 2002, as described by Duff in~\cite{Duff:2002:OSB:567806.567810}. Compared with the dense case, sparse matrix operations are considerably more difficult to pin down because the performance of each operation depends heavily -- often asymptotically -- on the memory layout, which in turn depends on both the chosen storage format and the sparsity pattern, which is often known only at runtime. The choice of storage format is tightly coupled with the implementation of the operations, making abstraction difficult. Thus there are a multitude of different storage formats, with not entirely consistent naming conventions. The formats used in this work are described in Figure~\ref{fig:formats} and illustrated throughout Chapter~\ref{chapter:algs}. Ultimately, a sparse BLAS works well when the matrices are large, are constrained to a common format such as CSC, and have unpredictable or nonconstant sparsity patterns; otherwise a custom implementation might be able to do much better.
+
+
 
 \begin{figure}
 
@@ -83,48 +85,7 @@ What naming conventions do we use?
 
 
 
-\section{Variable naming conventions}
-
-
-This work uses the BLAS naming conventions wherever possible. These conventions must be extended to handle 
-Firstly, iteration variable names are derived from the size variable names by adding the suffix \py{-i}. Secondly, we wish to iterate not only over cells, but also blocks and vectors. The naming convention handles this via a prefix. In effect, \py{m,n,k} determine the iteration \emph{direction}, and the prefix determines the units. Finally, we introduce the direction \py{l} to handle the third dimension, when working with tensors. The complete grammar is provided in Figure~\ref{fig:grammar}. This convention adds much-needed predictability and ease of comprehension inside deeply nested loops. It also helps ensure that iteration variables stay within the correct range. The most common pattern is to iterate over matrix blocks, and then inside each block iterate over cells (for sparse matrices) and vectors (for dense matrices). An example of this is given below:
-
-\begin{minted}{python}
-for ki in range(k):
-	print(B[ki,ni])
-\end{minted}
-
-\begin{figure}[tbh]
-  \centering
-  \begin{subfigure}[l]{0.48\textwidth}
-      \begin{minted}[linenos=false,fontsize=\small]{text}
-    <var>       ::= [<units>]<direction>[i]
-    <units>     ::= b | B | v | V
-    <direction> ::= m | n | k | l
-  \end{minted}
-  \end{subfigure}
-  ~~~~
-  \begin{subfigure}[r]{0.45\textwidth}
-    \centering
-    \begin{tabular}{cll}
-		\toprule
-		Units    & Mnemonic & Meaning \\
-		\midrule
-
-		none  & Cell          & Cells in the matrix      \\
-		b     & Intra-block   & Cells in a block         \\
-		B     & Inter-block   & Blocks in the matrix     \\
-		v     & Intra-vector  & Cells in a block         \\
-		V     & Inter-vector  & Vectors in a block       \\
-		\bottomrule
-	\end{tabular}
-  \end{subfigure}
-  \caption{Grammar for variable names.}
-  \label{fig:grammar}
-\end{figure}
-
-
-\section{The outer-product formulation}
+\section{Outer-product formulation}
 
 Having subdivided a large matrix into blocks small enough to fit in registers, and having chosen the optimal traversal order for these blocks, it only remains to perform the multiplication of these blocks themselves. This is not trivial due to the constraints of working with vector registers. The state of the art is known as the outer-product formulation.
 
@@ -164,16 +125,14 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 \label{fig:outerproduct}
 \end{figure}
 
-\section{Sparsity pattern unrolling}
 
-\section{Memory addressing schemes}
+\section{Dense optimization considerations}
 
 The simplest scheme is to use pointer-offset addressing, where the pointer is in a register and the offset is hardcoded, such as \texttt{rsi + 22}. The downside of this approach is that when the offset is greater than 128*8, (i.e. there are more than 128 nonzeros in B), the resulting FMA instructions take up 10 bytes, which will cause a bottleneck as described in Section~\ref{section:knl}. A more sophisticated scheme uses scale-index addressing, which uses two registers and two hardcoded values, such as \texttt{B + 8*i + 22}. These FMA instructions only take up 7 bytes; their main downside is that the generated code becomes harder to understand.
 
 
 
-
-\section{Dense-by-sparse vs sparse-by-dense asymmetry}
+\section{Sparse optimization considerations}
 \label{section:asymmetry}
 (Dense $\times$ Sparse) $\neq$ (Sparse $\times$ Dense) due to vectorization
 
@@ -184,3 +143,43 @@ Choice of row-major vs column-major format determines which of the two vectorize
 - MKL
 - Row-major vs Column-major
 
+
+
+\section{Naming conventions}
+
+This work uses the BLAS naming conventions wherever possible. These conventions must be extended to handle 
+Firstly, iteration variable names are derived from the size variable names by adding the suffix \py{-i}. Secondly, we wish to iterate not only over cells, but also blocks and vectors. The naming convention handles this via a prefix. In effect, \py{m,n,k} determine the iteration \emph{direction}, and the prefix determines the units. Finally, we introduce the direction \py{l} to handle the third dimension, when working with tensors. The complete grammar is provided in Figure~\ref{fig:grammar}. This convention adds much-needed predictability and ease of comprehension inside deeply nested loops. It also helps ensure that iteration variables stay within the correct range. The most common pattern is to iterate over matrix blocks, and then inside each block iterate over cells (for sparse matrices) and vectors (for dense matrices). An example of this is given below:
+
+\begin{minted}{python}
+for ki in range(k):
+	print(B[ki,ni])
+\end{minted}
+
+\begin{figure}[tbh]
+  \centering
+  \begin{subfigure}[l]{0.48\textwidth}
+      \begin{minted}[linenos=false,fontsize=\small]{text}
+    <var>       ::= [<units>]<direction>[i]
+    <units>     ::= b | B | v | V
+    <direction> ::= m | n | k | l
+  \end{minted}
+  \end{subfigure}
+  ~~~~
+  \begin{subfigure}[r]{0.45\textwidth}
+    \centering
+    \begin{tabular}{cll}
+		\toprule
+		Units    & Mnemonic & Meaning \\
+		\midrule
+
+		none  & Cell          & Cells in the matrix      \\
+		b     & Intra-block   & Cells in a block         \\
+		B     & Inter-block   & Blocks in the matrix     \\
+		v     & Intra-vector  & Cells in a block         \\
+		V     & Inter-vector  & Vectors in a block       \\
+		\bottomrule
+	\end{tabular}
+  \end{subfigure}
+  \caption{Grammar for variable names.}
+  \label{fig:grammar}
+\end{figure}
