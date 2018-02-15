@@ -2,7 +2,7 @@
 import scipy
 import csv
 
-raw_data_file = "exp4/output/exp4.26235.out"
+raw_data_file = "experiments/unrolled_scaling/data/exp4.26235.out"
 nnzs = []
 microsecs = []
 baseline_nnzs = 0
@@ -30,36 +30,32 @@ baseline_gflops = [2*128*128*28*1e-3/baseline_microsecs for nnz in nnzs]
 baseline_nzgflops = [2*128*nnz*1e-3/baseline_microsecs for nnz in nnzs]
 gflops = [2*128*nnz*1e-3/time for (nnz,time) in zip(nnzs, microsecs)]
 
-from matplotlib import pyplot as plt
-plt.xlabel("Nonzeros")
-plt.ylabel("Microseconds")
-plt.xticks(scipy.arange(0, baseline_nnzs, 400))
-plt.yticks(scipy.arange(0, max(microsecs+[baseline_microsecs]), 10))
-plt.plot(nnzs, microsecs, "-o")
-plt.axhline(y=baseline_microsecs, color="r", linestyle = '--')
-plt.savefig("exp4/fig.pdf")
-
 # Now let's make it nice
-import prettyplotlib as ppl
-from prettyplotlib import brewer2mpl
+#import prettyplotlib as ppl
+#from prettyplotlib import brewer2mpl
 
-fig, ax = ppl.subplots(1)
-ppl.plot(ax, nnzs, baseline_microsecs_list, label="Baseline wall clock time", linewidth=0.75)
-ppl.plot(ax, nnzs, microsecs, label="Fully unrolled wall clock time", linewidth=0.75)
-ppl.plot(ax, nnzs, microsecs, linewidth=0.75)
-ppl.legend(ax)
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas
+
+sns.set(style="darkgrid")
+fig, ax = plt.subplots(figsize=(6, 6))
+
+plt.plot(nnzs, baseline_microsecs_list, label="Baseline wall clock time")
+plt.plot(nnzs, microsecs, label="Fully unrolled wall clock time")
+plt.legend()
 plt.xlabel("Nonzeros")
 plt.ylabel("Microseconds")
-plt.savefig("exp4/fig2.pdf")
+plt.savefig("doc/images/unrolled_scaling_time.pdf")
 
-fig, ax = ppl.subplots(1)
+fig, ax2 = plt.subplots(figsize=(6, 6))
 plt.xlabel("Nonzeros")
 plt.ylabel("GFlops")
-ppl.plot(ax, nnzs, baseline_gflops, label="Baseline hardware GFlops", linewidth=0.75)
-ppl.plot(ax, nnzs, baseline_nzgflops, label="Baseline nonzero GFlops", linewidth=0.75)
-ppl.plot(ax, nnzs, gflops, label="Fully unrolled GFlops", linewidth=0.75)
-ppl.legend(ax)
-plt.savefig("exp4/fig3.pdf")
+plt.plot(nnzs, baseline_gflops, label="Baseline hardware GFlops")
+plt.plot(nnzs, baseline_nzgflops, label="Baseline nonzero GFlops")
+plt.plot(nnzs, gflops, label="Fully unrolled GFlops")
+plt.legend()
+plt.savefig("doc/images/unrolled_scaling_flops.pdf")
 
 
 

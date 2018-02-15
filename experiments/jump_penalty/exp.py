@@ -37,30 +37,32 @@ class JumpPenaltyExperiment:
 
 
     def all_params(self):
-        for nnzs in range(12, 193, 12):
 
-            yield Scenario(self.reldir, nnzs, 1).make_libxsmm_test()
-            yield Scenario(self.reldir, nnzs, 1).make_unrolled_test()
+        for nnzs in [400, 800, 1200, 1600, 2000, 2400, 2800]:
 
-            for njumps in [1,2,3,4,6,8,12,24]:
-                if (nnzs <= njumps * 16 * 16):
-                    s = Scenario(self.reldir, nnzs, njumps)
-                    s.make_mtx()
-                    yield s.make_jump_test()
+
+            for bk in [4,8,16]:
+                s = Scenario(self.reldir, nnzs, bk)
+                s.make_mtx()
+                yield s.make_jump_test()
+
+            yield Scenario(self.reldir, nnzs, 16).make_libxsmm_test()
+            yield Scenario(self.reldir, nnzs, 16).make_unrolled_test()
+
 
 
 class Scenario:
 
-    def __init__(self, reldir:str, nnzs:int, njumps:int):
+    def __init__(self, reldir:str, nnzs:int, bk:int):
 
         bm = 8
         bn = 8
-        bk = 24//njumps
-        m = 8
-        n = 8
-        k = 24
+        bk = bk
+        m = 64
+        n = 64
+        k = 64
 
-        self.name = f"jump_penalty_{njumps}_{nnzs}"
+        self.name = f"jump_penalty_{bk}_{nnzs}"
         self.reldir = reldir
         self.pattern = Matrix.rand_bool(nnzs, k, n, 1066)
         self.mtx_filename = reldir + self.name + ".mtx"

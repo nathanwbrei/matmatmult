@@ -1,0 +1,16 @@
+Running program!
+jump_penalty_16_400_libxsmm, 14.6612
+jump_penalty_16_400_unrolled, 4.08068
+jump_penalty_16_400_general, 9.23525
+jump_penalty_8_400_general, 13.309
+jump_penalty_4_400_general, 23.1451
+jump_penalty_4_800_general, 26.6835
+jump_penalty_8_800_general, 16.8642
+jump_penalty_16_800_general, 12.0208
+jump_penalty_16_800_libxsmm, 14.6462
+jump_penalty_16_800_unrolled, 6.23212
+jump_penalty_4_1600_general, 32.5691
+jump_penalty_8_1600_general, 22.0252
+jump_penalty_16_1600_general, 16.5054
+jump_penalty_16_1600_libxsmm, 14.6494
+jump_penalty_16_1600_unrolled, 9.6247
