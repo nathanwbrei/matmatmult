@@ -13,7 +13,7 @@ The starting point is the dense outer-product formulation generated from \texttt
 \end{figure}
 
 
-The simplest approach is TiledSparse, which assumes that a single block pattern is repeated exactly. This assumption is impractical because for most matrix patterns, the block pattern will fill in. Instead we can break the assumption into two parts and relax them separately. We can assume that there is only one block sparsity pattern, but some blocks are entirely zero, which yields the BlockSparse algorithm. Alternatively, we can assume that there are multiple block sparsity patterns, but they all have the same number of nonzeros, which yields PatternSparse. Relaxing both assumptions yields GeneralSparse, which can evade the number of nonzeros constraint with the most flexibility, but at the cost of additional overhead. Variations can be explored which extract the diagonal and handle it separately; this would be especially helpful for PaddedSparse in the case of matrices with a full diagonal and random fill-in elsewhere.
+The simplest approach is TiledSparse, which assumes that a single block pattern is repeated exactly. This assumption is impractical because for most matrix patterns, the block pattern will fill in. Instead we can break the assumption into two parts and relax them separately. We can assume that there is only one block sparsity pattern, but some blocks are entirely zero, which yields the BlockedSparse algorithm. Alternatively, we can assume that there are multiple block sparsity patterns, but they all have the same number of nonzeros, which yields PatternSparse. Relaxing both assumptions yields GeneralSparse, which can evade the number of nonzeros constraint with the most flexibility, but at the cost of additional overhead. Variations can be explored which extract the diagonal and handle it separately; this would be especially helpful for PaddedSparse in the case of matrices with a full diagonal and random fill-in elsewhere.
 
 \section{Dense-by-sparse microkernel}
 
@@ -223,79 +223,62 @@ Pattern-specific zero-padding of sparse matrices is not something numerical libr
 There are several improvements possible. TiledSparse can be modified to support a non-perfect tiling with a fringe on the bottom and right. It is even possible to remove the block size constraint by replacing the MicroSparse kernel with an UnrolledSparse kernel. Nevertheless, it will take much bigger modifications to escape the problem of the sparsity pattern filling to dense.
 
 
-\section{Block dense-by-sparse multiplication}
-
-  Assume that B is decomposed into blocks which are either empty or `full'. `Full' blocks all have the same sparsity pattern. This is a sparse generalization of the block-sparse-column format.
-
-  \begin{itemize}
-  \item[$+$] We can reuse a single microkernel, reducing the number of instructions
-  \item[$+$] The zero blocks reduce the number of filled-in nonzeros.
-  \item[$-$] We can no longer visit blocks by using a loop with pointer arithmetic. \\Our options are:
-    \begin{itemize}
-    \item Look up the block location from a table in memory
-    \item Unroll the block locations into the instruction stream and repeatedly jump to the microkernel.
-    \end{itemize}
-  \end{itemize}
-
-
-
-
-* What are the performance bottlenecks?
-* What sparse matrix format constraints?
-* What block size constraints?
-* On which matrices is this likely to be efficient? On which matrices is this likely to be inefficient?
 
 
 \section{General dense-by-sparse multiplication}
 
 The general dense-by-sparse algorithm comes from relaxing \emph{both} of the key ideas of TiledSparse: There can be any number of different block patterns, and each pattern may contain any number of nonzeros. GeneralSparse contains a collection of MicroSparse GEMMs, and chooses the correct GEMM for each block of B. It is free to scale to larger matrix sizes than those supported by UnrolledSparse, because it can be compressed. Judiciously filling in zeros can arbitrarily reduce the number of unique block patterns, which in turn reduces the number of GEMMs. Thus GeneralSparse degrades gracefully, similar to TiledSparse. As the matrices grow larger and denser, the algorithm will converge towards either BlockedSparse or dense, depending on the original sparsity pattern. In contrast to TiledSparse and BlockedSparse, however, the fill-in (and hence wasted FLOPs) can be effectively minimized.
 
-There is of course a tradeoff: in order to redirect control flow to the correct block GEMM, an indirect jump is needed. This introduces control dependencies and brings the branch predictor into play. For each indirect jump there will be additional latency, along with poorer memory movement amortization. There are several different strategies possible, each a modification which resolves problems introduced by the previous:
+There is of course a tradeoff: in order to redirect control flow to the correct block GEMM, one direct and one indirect jump are needed. This must happen for every non-empty block of B. Each indirect jump will add latency; this is analyzed and estimated in Section~\ref{section:exp_jump_scaling}. It might be possible to reduce this latency by putting padding around the jump instructions; this has not yet been tried.
 
-\begin{itemize}
-  \item The first approach is a straightforward jump table. Suppose the different block GEMMs are numbered $0,1,...$. Then a \emph{jump table} can be laid out in the instruction stream. The address of each 
+To efficiently handle the multiway control flow, we start with a low-level pattern called a \emph{jump table}. Assume the control variable \py{x} is a small integer. The destination addresses are laid out in an array \py{A}, and control is transferred by jumping to the address stored in \py{A[x]}. This happens in constant time regardless of the size of \py{x}.
+
+There are two different ways we can apply this to our problem. One approach involves putting all of the MicroSparse kernels inside of a loop nest over $Bn$ and $Bk$. Somewhere else, we lay out a $Bk \times Bn$ array which contains the address of the kernel corresponding to each block. The loop nest updates pointers to the start of the active blocks of A and C, updates the pointer into the address matrix, and then performs a single indirect jump using that pointer. Note that either the MicroSparse kernel must be responsible for moving B to the start of the next block, or the starting locations of each block must be stored in another array.
+
+The second approach involves unrolling the $Bn$ and $Bk$ loops completely. For each block, we move the A, B, C pointers to the start of the active block, and save a return address to a register. This is effectively a (non-ABI-compliant) function call, except it avoids the stack completely. We perform a direct jump to the correct block kernel. The kernel itself performs the indirect jump to the return address stored in the register. This approach is more performant because it avoids doing the jump when it knows that the current block is empty.
 
 
-  \item Modify (1) to avoid the extra lookup by putting the address of the GEMM in the block array directly. Loop over this array, moving the \py{A,B,C} pointers to the start of the block, and performing an indirect jump to the GEMM at the address in the current array. Put all of the GEMMs in the center of the loop. There are three downsides to this approach: Firstly, each non-empty block has both an indirect jump (to the correct GEMM) and a direct jump (back to the body of the loop). Secondly, completely empty blocks still generate an indirect jump. Thirdly, there is no possibility of unrolling. This approach is explored in \py{src/jumptables/jumptable_looped.cpp}.
-
-  \item Unroll the \py{Bn} and \py{Bk} loops completely. For each block, move the \py{A,B,C} pointers to the start of the active block, and save a return address to a register. This is effectively a (non-ABI-compliant) function call, except it avoids the stack completely. Perform a direct jump to the correct GEMM. The GEMM itself performs the indirect jump to the return address stored in the register. This approach is explored in \py{src/jumptables/jumptable_unrolled.cpp}.
-\end{itemize}
-
-Pseudocode
-Degrees of Freedom
-
-\begin{description}
-  \item[Decision to unroll Bm-loop] 
-  \item[Code alignment and padding]
-\end{description}
-
-Constraints
+GeneralSparse is subject to following constraints:
 
 \begin{enumerate}
 
   \item The total number of indirect jumps should be minimized. This favors a larger block size.
 
-  \item The routine must fit in the 32kB instruction cache, which constrains both the sum of nonzeros in each \emph{unique} block, as well as the total number of nonzero blocks. The latter constraint could possibly be finessed by storing the pointers to the start of each block and the corresponding GEMM routine in an array in the data cache instead of unrolling it into the instruction stream.
+  \item The routine must fit in the 32kB instruction cache, which constrains the sum of nonzeros in each \emph{unique} block. 
 
-  \item The sparse matrix should be stored in \emph{block} compressed sparse row or column format in order to have good data locality.
+  \item The sparse matrix must be stored in \emph{block} compressed sparse row or column format. Otherwise, the offsets of the entries in a block (relative to the start of that block) are no longer constant, and the microkernel returns incorrect results. 
 
   \item Blocks should be uniformly sized. This is an implementation detail; the constraint may be removed in the future by implementing another MatrixCursor as described in Section~\ref{section:cursors}.
 
 \end{enumerate}
 
-Parameter choice
+Automatically choosing parameters for GeneralSparse is tricker than for the preceding kernels. Ironically, the only parameters needed are a valid choice of $bn$ and $bk$. To minimize the jump penalty, they should be chosen as large as possible. However, for any particular choice, the algorithm cannot estimate its performance until it has compressed the matrix-wide sparsity pattern. This can become computationally expensive.
 
-How do we automatically choose GeneralSparse parameters?
+The aforementioned sparsity pattern compression can be accomplished with a greedy algorithm. It maintains a set of unique block patterns that together cover all of the blocks. As long as the sum of nonzeros in this set exceeds the instruction cache limit, the algorithm chooses the two which are most similar according to logical XOR, and then merges them using logical OR.
 
-\section{Future algorithms}
 
-\subsection{Sparse-by-dense multiplication}
 
+\section{Algorithms not implemented}
+
+\subsection{Blocked dense-by-sparse multiplication}
+
+  The key idea behind BlockedSparse was to partially relax the TiledSparse assumption. Specifically, we would allow only one block sparsity pattern, but also allow empty blocks. This is reminiscent of the existing BSR format, except the blocks are internally sparse instead of dense. 
+
+  This is ultimately just a simplified case of GeneralSparse. The additional assumptions mean that the generated code is much shorter because it contains only one MicroSparse kernel, and that the indirect jump can be replaced with a direct jump. Neither of these changes is expected to yield a substantial performance increase. The overwhelming majority of matrices will perform worse on BlockedSparse compared to GeneralSparse due to additional fill-in.
+
+  We can assume that there is only one block sparsity pattern, but some blocks are entirely zero, which yields the BlockedSparse algorithm. Alternatively, we can assume that there are multiple block sparsity patterns, but they all have the same number of nonzeros, which yields PatternSparse.
+
+
+\subsection{Padded dense-by-sparse multiplication}
+
+  PaddedSparse partially relaxes the other TiledSparse assumption -- there may be multiple unique block patterns, but there is always a constant offset between blocks in memory. This is achieved by padding zeros in memory similar to how TiledSparse fills in its block pattern. Unlike TiledSparse, this doesn't affect the flop count; it merely spreads the nonzeros out in memory. The principal advantage to this approach is that it compresses sparsity patterns like GeneralSparse, but is safe to use with the CSC and CSR storage formats. 
+
+  One sparse matrix pattern which occasionally shows up in scientific and engineering applications has a full diagonal and a uniform random smattering of off-diagonals. This would be well-suited for PaddedSparse if the diagonal were to be extracted first and folded into the blocks of C using a vector dot product operation instead of a broadcast.
 
 
 \subsection{Tensor-by-sparse multiplication}
 
-Another possible future direction to explore is multiplication of sparse matrices with tensors. Breuer and Heinecke demonstrated with EDGE~\cite{10.1007/978-3-319-58667-0_3} that seismic simulations based on ADER-DG can be \emph{fused}, where ensembles of forward simulations are run in parallel within one execution. This has some immediate advantages. Read-only data structures can be shared, dramatically reducing memory movement. On the other hand, the computations in question can be vectorized across the third dimension.
+Sparse-by-dense multiplication is significantly more difficult due to the asymmetry inherent in the outer-product formulation. One possible alternative is multiplication of sparse matrices with tensors. Breuer and Heinecke demonstrated with EDGE~\cite{10.1007/978-3-319-58667-0_3} that seismic simulations based on ADER-DG can be \emph{fused}, where ensembles of forward simulations are run in parallel within one execution. This has some immediate advantages. Read-only data structures can be shared, dramatically reducing memory movement. Meanwhile, the computations can be vectorized along the third dimension.
 
 This formulation has some useful consequences for sparse kernels. Firstly, it eliminates inefficiencies caused by awkwardly sized data structures, such as matrices with 9 rows, and effortlessly ensures that memory accesses are aligned with cache line boundaries. Secondly, it gets away from the outer-product formulation: along the $m,n,k$ directions it resembles a naive matrix multiplication with no vectorization at all. This means that the sparse-by-tensor case can be unrolled just as well as the tensor-by-sparse case. 
 
