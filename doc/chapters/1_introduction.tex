@@ -5,6 +5,11 @@
 
 \section{Motivation}
 
+SeisSol is a high-level
+
+
+It is based on ADER-DG~\cite{GJI:GJI3193}, a discontinuos Galerkin method 
+
 A worthwhile use of the vast computational resources available in 2018 is on seismic simulations. 
 
 \begin{description}
@@ -39,7 +44,6 @@ Knights Landing (KNL) is the second-generation Intel Xeon Phi, a manycore proces
 
 \[
 36~\frac{\text{tiles}}{\text{chip}} \times 2~\frac{\text{cores}}{\text{tile}} \times 41.6~\frac{\text{double~GFlop}}{\text{sec}\cdot \text{core}} = 3.0~\frac{\text{double TFlop}}{\text{sec}\cdot \text{chip}}
-  \label{eq:knl_peak_perf}
 \]
 
 This peak performance is in practice merely an upper bound, as it assumes a steady-state throughput of 2 FMAs per cycle. The algorithms which approach this are mainly dense matrix multiplication or LU/Cholesky factorization. If the algorithm cannot be vectorized at all, the attainable performance drops by a factor of 8, and if it cannot use the FMA instructions, it drops by a further factor of 2. Hence inherently scalar algorithms perform dramatically worse. This may be a reasonable tradeoff: since scalar algorithms are much more likely to be memory-bound, the extra flops might be wasted. Nevertheless this provides a strong incentive to find creative ways to make the most of the vector registers. 

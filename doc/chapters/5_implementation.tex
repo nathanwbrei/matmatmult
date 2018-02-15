@@ -39,73 +39,50 @@ The most basic piece of machinery we need is a Python representation of the asse
 
 The solution to this conundrum is to decouple these representations. The AST is stripped down to be nothing more than a data container with a constructor that enforces some basic completeness invariants. The fields are chosen to be as \emph{complete} and \emph{orthogonal} as possible. The goals of being simple to work with, and of having a close mapping to the resulting assembly, are both disregarded with prejudice. Responsibility for the former is moved to the DSL, and responsibility for the latter is moved to the prettyprinter. This separation of concerns opens up long-term possibilities such as emitting C intrinsics instead of plain assembly, and in the short term it keeps the code legible.
 
-The syntax tree is built up in stages of increasing complexity. All AST nodes inherit from the abstract base class \py{AsmStmt}, which enforces the existence of an \py{accept()} method, a \py{comment} string, and nothing else. A limited attempt was made to provide type information, which ultimately consisted of . 
+The syntax tree is built up in stages of increasing complexity. All AST nodes inherit from the abstract base class \py{AsmStmt}, which enforces the existence of an \py{accept()} method, a \py{comment} string, and nothing else. 
 
 \subsection{Operands}
-Operands are the primitive `nouns' in this language. They consist of:
-Type information may be attached, but this is tricky 
-\begin{description}
-  \item[Constant] An immediate value
-  \item[Label]
-  \item[Register]
-  \item[MemoryAddress]
-\end{description}
+Operands are the primitive `nouns' in this language. They consist of constants, labels, registers, and memory addresses. They can all be stringified into pseudocode or into GAS syntax. However, they are simpler than GAS's own concept of operands. For example, the FMA instruction expresses a broadcast operand like this: \verb|16(%%rsi)%{1to8%}|, whereas our language makes the operand be a plain memory address \py{(rsi, None, 1, 16)} and passes responsibility for realizing that this operand needs to be broadcasted on to the \py{fma()} instruction. The weird GAS syntax for achieving this exists only in the GAS prettyprinter.
 
 \subsection{Instructions}
 
 An instruction is an AST node which can be mapped into one or more assembly instructions. This work currently only requires seven different instructions, which are described below. 
 
 \begin{description}
-  \item [Move] Copy data from one Operand to another. This supports both vector and scalar 
-  \item [Fused multiply add] This accepts 
-  \item [Add] Supports both vector and scalar add
-  \item [Compare] Wraps the \py{cmp} instruction
-  \item [Jump to label] 
-  \item [Declare label] \py{DeclLabelStmt} inserts a label into the assembly
-  \item [Declare data] \py{DeclDataStmt} pastes a \py{Label} or a \py{Constant} directly into the code segment, essentially wrapping the \py{db,dw,dd,dq} instructions. It is useful for creating jump tables or constant arrays. It could be modified to target other segments as well.
+  \item [Move] Wraps \verb|mov|, \verb|vmovapd|, and \verb|vmovupd|, using type information to choose. 
+  \item [Fma] Wraps \verb|vfmadd231pd|. Can optionally broadcast from a MemoryAddress. The choice of precision should eventually be determined from type information. Specifying mask registers will be needed as well.
+  \item [Add] Wraps \verb|add| for now; should eventually handle the vectorized version as well. 
+  \item [Compare] Compares two Operands, without getting confused over which is the left-hand side and which is the right.
+  \item [Jump] Jumps to an Operand; jump is indirect if the Operand is not a Label. Also supports local labels with direction specifiers. Unlike GAS, the direction specifier is part of the Jump node, not part of the Label. Whether or not a label is represented as local is independent of the underlying Label itself.
+  \item [DeclLabel] Declares a label.
+  \item [DeclData] Pastes a \py{Label} or a \py{Constant} directly into the code segment, wrapping the \py{db,dw,dd,dq} instructions. It is useful for creating jump tables or constant arrays. It could be modified to target other segments as well.
 \end{description}
 
-\subsection{Blocks}
-enables reusable components, comments, stack traces, etc. Currently utterly lacking in type safety. Slightly better than a preprocessor, functions which make a component generally contain a bunch of asserts beforehand. Many components are simply a function which returns a block. This is how unrolling is currently implemented in the generators.
+\subsection{Blocks} 
 
-\begin{itemize}
-  \item Load, store, mask
-  \item Mask computation
-  \item Sparse microkernel
-\end{itemize}
+Blocks are the first level of structure. A block is simply a list of AST nodes, along with a comment. Blocks are valuable because they make it possible to recover a stack trace \emph{through the code being generated} if the code generation fails. If the code generation succeeds, the prettyprinter indents based on block structure, making the code far more readable. 
+
+A common pattern inside the code generators is to have a function which takes certain parameters and returns a Block. This is used to generate reusable components, such as the inner part of MicroSparse, or register block movements. This is only slightly better than a preprocessor, because there is nothing controlling that the AST nodes inside the block make any sense together. Such functions usually benefit from having assert statements to enforce preconditions necessary for the generation to succeed.
 
 \subsection{Forms}
-Forms ==> Sort of an unhygenic macro with arguments. Somehow rearranges or transforms its sub-blocks while otherwise behaving like a block. Completely independent of the program execution state. It is possible to make this hygenic by using abstract registers and adding a register assignment step. Currently used for loops and jump tables, which shall be discussed later. Extends Block, overrides contents(). Stateless.
+
+Forms are the next level of structure. Whereas a block behaves like a simple container, forms behave more like a macro. They accept as arguments one or more blocks, and then transform these arguments however they see fit. This is how JumpTables are implemented. They accept Blocks containing each of the MicroSparse kernels, and they arrange them around the necessary labels and jumps. While this could be done using just a function that returns a Block, doing so would throw away the higher-level information about what is really going on. By keeping this information, we are essentially adding new syntax to our AST.
 
 \subsection{Commands}
-not really used at the present. The goal is to express higher-level ideas which require knowledge of the program's state at runtime. This allows information from runtime to be moved to compile time, For instance, matrixcursor movement commands, loop unroll commands. Might also allow . Will be discussed later. Stateful.
 
+Commands are experimental and don't currently work. Their purpose is to express higher-level ideas which require knowledge of the program's state at runtime. This should be contrasted with Forms, which manipulate the AST without any such knowledge. Commands allow information -- that was previously known only at runtime -- to be moved to compile time. The motivating example is the matrix sparsity pattern. When we wish to move a pointer to B to the next block, and the block size is irregular, \emph{and we are unrolling the loop}, we can do so. We can track the location of the pointer as each new instruction is emitted, and use the sparsity pattern to calculate the offset to the start of the next block. Commands generalize this idea, and shall be explored further in Section~\ref{section:theory}, once we have covered matrix cursors. 
 
-\section{Syntactic Sugar}
+\section{Interacting with an AST}
 
-Operands:
-Instructions: functions
-Blocks: S-exprs, builders
+The mechanisms for interacting with an AST were deliberately separated from the data structure itself in order to enforce a clean separation of concerns. We end up with two main interfaces: a human-facing interface for assembling ASTs, and a machine-facing interface for traversing and modifying them. 
 
+The human interface is pure syntactic sugar. All of the KNL registers and datatypes are defined as global variables along with functions which are defined as conveniently as possible for constructing different AST nodes. A `machine context' stores sensible defaults for choices like precision, alignment, and eventually perhaps vector length and available ISA extensions. An eventual goal is to make these swappable, so that the same generator may output AVX2 instead of AVX512 simply by loading a different module.
 
-\py{vmov(zmm0, rax+22) ==> vmovapd()}. Potential to determine from parameters instead of from dsl. 
+When it comes to organizing instructions into blocks, there are two options available. The first is a BlockBuilder class, which allows the programmer to add AST nodes to the current block, open a deeper block, or close the current block and move to its parent. This is particularly convenient when a loop is being manually unrolled. The second option is an interface inspired by S-expressions, where a block is merely a function call, and its contents the argument list. This is more convenient for laying out nested, static code such as non-unrolled loops.
 
+The machine interface is a Visitor Pattern. A Visitor Pattern allows a method to be defined polymorphically for all AST nodes in an isolated, self-contained, extensible way while maintaining static type safety. In practice what this means is that the AST nodes all have an \py{accept(self, visitor)} method, and each new `method' is in reality a Visitor class which contains specialized methods \py{visitMov(), visitFma(), visitAdd(),} etc. Thus every function which might wish to traverse the AST lives in its own separate module.
 
-\section{Visitors}
-
-What is the Visitor pattern?
-
-Quick overview of visitor pattern. Decoupling of operations over syntax tree from tree itself. Tree only contains data, each 'verb' receives its own Python module.
-
-
-Pretty printing. Accumulating comments.
-
-Debugging
-
-Counting instructions, declaring registers as used or clobbered
-
-Future: type safety, instruction reordering, simulation
-
+Visitors currently exist for prettyprinting the AST into valid GAS syntax, prettyprinting into pseudocode, counting FMA instructions, and determining which registers have been used or modified. In the future they could be used for static type checking, instruction reordering, or abstract interpretation.
 
 \section{Cursors}
 \label{section:cursors}
@@ -126,7 +103,7 @@ Future: type safety, instruction reordering, simulation
 
     \end{description}
 
-    This is achieved through the following interface:
+    This is achieved through the interface in Listing~\ref{lst:matrixcursor_interface}.
     \begin{listing}
         \begin{minted}{python}
 
@@ -172,79 +149,48 @@ Future: type safety, instruction reordering, simulation
 
         \item[Handling different matrix formats] Various cursors currently support column-major dense, column-major sparse, CSC, CSR, BCSC, and BCSR matrix formats. Future work could readily extend this to support diagonal formats as well. It is also important here that the generators validate that they can handle the choice of format. 
 
-        \item[Handling different memory addressing schemes] The choice of memory addressing scheme strongly affects instruction size, notably in the case of FMAs. A common optimization is to use scale-index addressing, which looks as follows:
-
-         \begin{minted}{python}
-         base_register + (scale_constant * index_register) + offset_constant
-         \end{minted}
-
-         The downside is that this involves using an unknown number of scalar registers and obfuscates the code. The generator itself is agnostic to the format of address given.
+        \item[Handling different memory addressing schemes] The choice of memory addressing scheme strongly affects instruction size, notably in the case of FMAs. Scale-index addressing is preferred, but this requires maintaining a collection of registers whose sole purpose is to be part of the memory address,
+        and then choosing a combination of base and index registers such that the offset stays under 128. 
 
     \end{description}
 
-Internally, the cursors all maintain an implicit or explicit table of offsets, mapping 
-    The following cursor implementations play various roles 
+    The following cursor implementations currently exist. A future cursor could support variable block sizes.
 
     \begin{description}
+        \item[TiledCursor] assumes a single sparsity pattern which tiles perfectly. 
+
         \item[DenseCursor] supports column-major and row-major dense matrix formats including padding. It is used to traverse every dense matrix. Under the hood, it is a facade around TiledCursor.
 
         \item[MiniCursor] handles the case of a sparse matrix which has not been divided into blocks. Under the hood, it is also a facade around TiledCursor.
 
-        \item[TiledCursor] 
+        \item[BlockCursor] handles the case 
 
-        \item[BlockCursor]
         \item[GeneralBlockCursor] Note: While this has not yet been implemented, it is technically straightforward.
     \end{description}
-
-    * BCSR
-    * SIBlockCursor
-    * Irregular blocksize cursor. BlockedSparse and GeneralSparse
-
 
 
 \section{Symbolic execution and reification}
 \label{section:theory}
 
 
-In a very general sense, the GEMM generators implemented here all take information which was previously discovered at runtime and move it to compile time. Up until now, this activity has been denoted by the verb ``unroll''. However, this term is somewhat misleading. It comes from the concept of loop unrolling, a standard compiler optimization[ref to book]. Unrolling a loop is a path-independent transformation of an abstract syntax tree which has no access to new information. Unrolling a sparsity pattern is a path-dependent transformation of an (even more) abstract syntax tree which depends on the local program state space. A better word for this activity might be \emph{reification}. 
+In a very general sense, the GEMM generators implemented here all take information which was previously discovered at runtime and move it to compile time. Up until now, this activity has been denoted by the verb ``unroll''. However, this term is somewhat misleading. It comes from the concept of loop unrolling, a standard compiler optimization. Unrolling a loop is a path-independent transformation of an abstract syntax tree which has no access to new information. Unrolling a sparsity pattern is a path-dependent transformation of an (even more) abstract syntax tree which depends on the local program state space. A better word for this activity might be \emph{reification}. 
 
-The pseudocode for UnrolledSparse and TiledSparse differ only by a single line, but their implementations differ substantially. This is because there is a deep asymmetry between how a looped block and an unrolled block interact with MatrixCursor. The critical question is ``Is a MatrixCursor stateful or not?'' An unrolled block which traverses a MatrixCursor needs to track the current CursorLocation one way or another. (Even a simple iteration variable is in effect simulating the state of the program's runtime.) On the other hand, a looped block knows nothing about
+The pseudocode for UnrolledSparse and TiledSparse differ only by a single line, but their implementations differ substantially. This is because there is a deep asymmetry between how a looped block and an unrolled block interact with MatrixCursor. The critical question is ``Is a MatrixCursor stateful or not?'' An unrolled block which traverses a MatrixCursor needs to track the current CursorLocation one way or another. (Even a simple iteration variable is in effect simulating the state of the program's runtime.) On the other hand, a looped block knows nothing about this, and instead must rely on assumed invariants, such as a constant, perfectly tiled sparsity pattern.
 
-It is possible, but nontrivial and inelegant, to thread the MatrixCursor state 
+In order to unify the concepts of a loop and an ``unrolled'' (reified) loop, so that we may automatically generate assembly code for both using the same tools, it is necessary to thread the machine state consistently throughout the code generation. This is effectively a symbolic execution of the code. 
 
-Due to Python's eager evaluation of expressions, it is nontrivial and inelegant. An elegant solution does exist, and will be described below, even though it is beyond the scope of this work.
-
-
-0. Weirdness surrounding unrolling, threading through machine state. 
-
-1. AST->Symbolic execution
-
-2. Concept of a command. Concept of a virtual machine outputting 
-
-3. Recast Matrix, MatrixCursor, RegisterBlocks as a virtual machine
-
-4. Computer algebra system as a virtual machine. Work already being done 
-
-5. Formally verifying?
-
-6. Design space of correct algorithms. Creating an 'optimal' GEMM instead of an 'optimized' one
+Because the AST can be extended to support higher-level concepts using Forms and Commands, this symbolic execution need not only concern itself with transformations of individual registers and memory addresses. It can work at an arbitrary abstraction level. In fact, pieces of a high-level interpreter already exist: the Matrix, RegisterBlock, and MatrixCursor classes all work together to capture most of the matrix-multiplication semantics. If the methods on these classes were recasted as Commands, we would end up with a high-level imperative language specifically for matrix multiplication. Executing this language on the high-level interpreter would effectively translate the commands down to lower-level assembly code. 
 
 
+\section{User Manual}
 
 
-
-
-One advantage to expressing a complete AST in Python
-
-
-
-
-\section{Code organization}
 
 \subsection{sparsemmgen}
 
-\texttt{sparsemmgen} is the primary entry point for the program. It requires a minimal set of parameters: the choice of algorithm generator, values of $m, n, k, lda, ldb, ldc,$ and the path to an MTX file containing the sparsity pattern. It emits a C function containing inline assembly straight to standard out. For closer control over the generators it accepts optional parameters: values of $bm, bn, bk$, the output filename, the output function name, and output format. The latter allows the user to choose between GCC, GAS, or pseudocode. 
+\texttt{sparsemmgen} is the primary entry point for the program. It requires a minimal set of parameters: the choice of algorithm generator, values of $m, n, k, lda, ldb, ldc,$ and the path to an MTX file containing the sparsity pattern. It emits a C function containing inline assembly straight to standard out. For closer control over the generators it accepts optional parameters: values of $bm, bn, bk$, the output filename, the output function name, and output format. The latter allows the user to choose between GCC, GAS, or pseudocode.
 
+If the user does not provide the optional parameters, the generator will attempt to choose values automatically based off of heuristics derived via experiment and a little bit of brute force. 
 
 
 \subsection{libxsmmproxy}
@@ -269,6 +215,11 @@ In the case of dense-by-sparse multiplication, a brute-force approach is not eve
 
 
 \subsection{runexperiment}
-The third main entry point is \texttt{runexperiment}, which generates a 
+
+The experiments discussed in the next chapter can all be reproduced by calling \py{runexperiment}. The experiments rely on generated data being in the correct directory, so it is best to clone the repository on the cluster and run it from there. A Python wrapper for interacting with SLURM is provided, and it supports remoting over SSH. If the SLURM setup breaks down, there are also recipes in the Makefile for building and running each experiment once the C++ code has been generated.
+
+
+
+
 
 

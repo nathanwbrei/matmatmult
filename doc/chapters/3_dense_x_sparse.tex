@@ -71,16 +71,16 @@ Putting the $Bmi$ loop on the outside is the best choice for several reasons. Fi
 
 Thus there is only one reasonable ordering for our loop nest. At the innermost level we unroll over the $Bki$ loop, laying down a sequence of sparse microkernels corresponding to a traversal of one panel of B, moving from top to bottom in short, fat slices. In the middle level, we unroll over $Bni$, corresponding to a traversal across panels of B from left to right. Finally, at the outermost level, we loop over $Bmi$: horizontal panels of A and C from top to bottom. This is described more precisely via pseudocode in Figure~\ref{fig:pseudocode_unrolled}.
 
-This loop nesting looks very similar to what Goto calls GEPM\_VAR2, depicted in Figure~\ref{fig:gepm}. Note that Goto rejects this algorithm within one paragraph, making the exact opposite argument as we have made above, regarding the repeated storing of the C block. This is because Goto is focusing on a much larger scale: his C blocks fit only in the L2 cache, whereas ours fit entirely in registers: we get our inner ``GEPDot'' for free whereas his is especially costly.
+This loop nesting looks very similar to what Kazushige Goto~\cite{Goto:2008:AHM:1356052.1356053} calls GEPM\_VAR2. Note that Goto rejects this algorithm within one paragraph, making the exact opposite argument as we have made above, regarding the repeated storing of the C block. This is because Goto is focusing on a much larger scale: his C blocks fit only in the L2 cache, whereas ours fit entirely in registers: we get our inner ``GEPDot'' for free whereas his is especially costly.
 
 The UnrolledSparse algorithm has three additional tuning parameters which must be chosen. These are the blocksizes $bm$, $bn$, and $bk$. Section~\ref{section:exp_unrolled_sizing} explores how to choose these values heuristically. The choice of parameters and the set of problems which can be efficiently solved are subject to the following constraints:
 
 \begin{itemize}
   \item The A and C blocks must fit in registers: $(bk + bn) * (bm / 8) <= 32$
   
-  \item Each nonzero in B produces exactly one FMA, and if there are too many of these, they will fill the instruction cache. This introduces a hard limit on the number of nonzeros, which shall be explored in depth in ~\ref{exp_unrolled_scaling}
+  \item Each nonzero in B produces exactly one FMA, and if there are too many of these, they will fill the instruction cache. This introduces a hard limit on the number of nonzeros, which shall be explored in depth in Section~\ref{section:exp_unrolled_scaling}
   
-  \item The instruction cache bottleneck can be hit with fewer nonzeros depending on the choice of blocksizes, since different blocksizes result in different numbers of \py{vmovapd} instructions. This is covered in Section~\ref{exp_unrolled_sizing}.
+  \item The instruction cache bottleneck can be hit with fewer nonzeros depending on the choice of blocksizes, since different blocksizes result in different numbers of \py{vmovapd} instructions. This is covered in Section~\ref{section:exp_unrolled_sizing}.
 
   \item Choices of $(m,n,k)$ which do not evenly divide into small blocks are feasible, but not fully supported at the time of this writing.
 \end{itemize}
