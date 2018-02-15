@@ -2,3 +2,8 @@
 \chapter{Conclusion}
 \label{chapter:conclusion}
 
+
+This work approached the problem of speeding up a sparse matrix multiplication kernel on a variety of different levels. At one level, the goal was to make a very specific matrix multiplication faster. At a higher level, the goal was to create a generator which could produce a kernel for a wide range of input problems. Once this was done, it naturally followed to see how the kernel scaled across the space of input problems, and to analyze the effect of different parameter choices. As this analysis revealed flaws which could be fixed via small algorithmic changes, a family of different generators emerged. Though these generators made very different assumptions, they looked tantalizingly similar in pseudocode and quite different in implementation. This led to a search for a more powerful and abstract code generator, which could mix the concepts of compile time and runtime in a useful way.
+
+This entire work is peppered with short remarks about work left for the future. The most important is probably to find a sparse kernel for column-major sparse-by-dense products.
+

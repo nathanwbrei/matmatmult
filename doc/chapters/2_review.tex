@@ -1,7 +1,7 @@
 \chapter{Background}
 \label{chapter:review}
 
-\section{The BLAS abstraction}
+\section{Historical development}
 
 Dense and sparse matrix multiplication account for a surprising fraction of all computation, particularly in scientific and engineering fields. Since any optimization or algorithmic improvement has the potential to improve the performance of programs across the board, these algorithms have been organized under a series of common interfaces. Not only does this make it easy to reuse the best known implementation of many fundamental linear algebra operations, but it also confers other advantages: robustness is increased by the careful handling of edge cases, portability is increased because a programmer can link to the best implementation for their target architecture, and readability is increased because numerical algorithms can all work at the same abstraction level. The first such interface, \gls{BLAS}, was introduced in 1979 by Lawson~\cite{Lawson:1979:BLA:355841.355847} and only supported dense vector and matrix operations. Later interfaces, such as LAPACK, build upon and extend \gls{BLAS} to support increasingly complex operations; the history and design of such interfaces is covered by Dongarra in~\cite{Dongarra:1998:NLA:552704}. 
 
@@ -121,40 +121,28 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 \section{The dense-by-sparse vs sparse-by-dense asymmetry}
 \label{section:asymmetry}
 
-This work 
+The outer product formulation can be easily adapted into a column-major dense-by-sparse matrix product, because the dense A matrix is loaded column by column, and the sparse B matrix is loaded element by element. It can be vectorized perfectly, and zero entries in B eliminate exactly one FMA instruction. In contrast, the column-major sparse-by-dense matrix product vectorizes particularly badly. In order to load a full vector column of sparse A, the zero values must be filled in and the sparsity lost. For row-major formats, the reverse is true. The outer product formulation can simply load individual elements along a column of A, load rows of B, and stores back to rows of C. Thus the sparse-by-dense becomes easy and dense-by-sparse becomes hard. 
 
-(Dense $\times$ Sparse) $\neq$ (Sparse $\times$ Dense) due to vectorization
-
-Choice of row-major vs column-major format determines which of the two vectorizes nicely: $(AB)^T = B^T A^T$
-
-- Outer-product formulation
-- Breuer
-- MKL
-- Row-major vs Column-major
-
+This becomes less surprising when we remember that row-major and column-major formats are related to each other by the transpose operation, which has the property $(AB)^T = B^T A^T$. This hints at a solution: Transpose the matrices, perform the sparse operation, and transpose them back. Unfortunately this is too costly to do in an innermost loop. Breuer's solution to this problem was to identify contiguous entries and then mask everything else; noncontiguous entries were handled as scalars. A more elegant solution remains to be found.
 
 
 \section{Naming conventions}
 
-This work uses the BLAS naming conventions wherever possible. These conventions must be extended to handle 
-Firstly, iteration variable names are derived from the size variable names by adding the suffix \py{-i}. Secondly, we wish to iterate not only over cells, but also blocks and vectors. The naming convention handles this via a prefix. In effect, \py{m,n,k} determine the iteration \emph{direction}, and the prefix determines the units. Finally, we introduce the direction \py{l} to handle the third dimension, when working with tensors. The complete grammar is provided in Figure~\ref{fig:grammar}. This convention adds much-needed predictability and ease of comprehension inside deeply nested loops. It also helps ensure that iteration variables stay within the correct range. The most common pattern is to iterate over matrix blocks, and then inside each block iterate over cells (for sparse matrices) and vectors (for dense matrices). An example of this is given below:
+This work uses the BLAS naming conventions wherever possible. These conventions must be extended in several ways. Firstly, iteration variable names are derived from the size variable names by adding the suffix \py{-i}. Secondly, we wish to iterate not only over cells, but also blocks and vectors. The naming convention handles this via a prefix. In effect, \py{m,n,k} determine the iteration \emph{direction}, and the prefix determines the units. If iterating over a matrix in isolation, \py{r,c} directions are preferred. Finally, we introduce the direction \py{l} to handle the third dimension, when working with tensors. A grammar is provided in Figure~\ref{fig:grammar}. This convention adds much-needed predictability and ease of comprehension inside deeply nested loops. It also helps ensure that iteration variables stay within the correct range. The most common pattern is to iterate over matrix blocks, and then inside each block iterate over cells (for sparse matrices) and vectors (for dense matrices). An example is given in Figure~\ref{fig:samplegrammar}. 
 
-\begin{minted}{python}
-for ki in range(k):
-	print(B[ki,ni])
-\end{minted}
+
 
 \begin{figure}[tbh]
   \centering
-  \begin{subfigure}[l]{0.48\textwidth}
-      \begin{minted}[linenos=false,fontsize=\small]{text}
+  \begin{subfigure}[t]{0.6\textwidth}
+      \begin{verbatim}
     <var>       ::= [<units>]<direction>[i]
     <units>     ::= b | B | v | V
-    <direction> ::= m | n | k | l
-  \end{minted}
+    <direction> ::= m | n | k | l | r | c
+  \end{verbatim}
   \end{subfigure}
   ~~~~
-  \begin{subfigure}[r]{0.45\textwidth}
+  \begin{subfigure}[t]{0.6\textwidth}
     \centering
     \begin{tabular}{cll}
 		\toprule
@@ -164,11 +152,30 @@ for ki in range(k):
 		none  & Cell          & Cells in the matrix      \\
 		b     & Intra-block   & Cells in a block         \\
 		B     & Inter-block   & Blocks in the matrix     \\
-		v     & Intra-vector  & Cells in a block         \\
+		v     & Intra-vector  & Cells in a vector        \\
 		V     & Inter-vector  & Vectors in a block       \\
 		\bottomrule
 	\end{tabular}
   \end{subfigure}
-  \caption{Grammar for variable names.}
+    \caption{Grammar for variable names.}
   \label{fig:grammar}
 \end{figure}
+\begin{figure}[tbh]
+  \begin{subfigure}[b]{\textwidth}
+  \begin{minted}{python}
+    for Bci in range(Bc):       # Iterate over blocks of columns
+        for Bri in range(Br):   # Iterate over blocks of rows
+            index = blocks[Bri, Bci]	# Get index of current block
+            pattern = patterns[index]	# Get pattern for current block
+            for bci in range(bc):               # Iterate over column entries inside block
+                for bri in range(br):           # Iterate over row entries inside block
+                    if pattern[bri,bci]:
+                        offsets[Bri*br + bri, Bci*bc + bci] = x   # 
+                        x += 1
+
+\end{minted}
+\end{subfigure}
+  \caption{Sample code demonstrating the variable naming convention. This code calculates the memory offset of each nonzero element in a sparse matrix when it is stored in VBCSC format.}
+  \label{fig:samplegrammar}
+\end{figure}
+

@@ -82,7 +82,7 @@ The second observation is that the best choice of $bn$ is directly tied to $bm$.
 
 This is consistent with libxsmm, which abandoned their 2D blocking of C ($16 \times 3$) in favor of a 1D blocking ($8 \times 30$) specifically for \gls{KNL}. They argue that the movement of columns of A into registers needs to be minimized relative to the number of FMAs in that block because of the narrow out-of-order execution issue width discussed earlier. Some of this reasoning applies to UnrolledSparse, since a smaller $bn$ 
 
-Now let's turn to the $nnz=2000$ case. The pattern looks similar for $bm=8, bn\in\{8,12,16,24\}$, but becomes qualitatively different for all $bm > 8$ or $bn < 6$. This is a plane in the problem space, beyond which performance falls off a cliff. 
+Now let's turn to the $nnz=2000$ case. The pattern looks similar for $bm=8, bn\in\{8,12,16,24\}$, but becomes qualitatively different for all $bm > 8$ or $bn < 6$. This is a plane in the problem space, beyond which performance falls off a cliff, again due to the instruction cache limit described previously.
 
 
   \begin{figure}[H]

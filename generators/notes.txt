@@ -1,14 +1,37 @@
-
-# TODO: Try to forcefeed a bajillion FMA instructions
-
-SMALL THINGS I CAN DO ANYTIME
------------------------------
-* Fix dxsp flowchart graphic
-* m,n,k diagram
+Introduction: SeisSOl
 
 
-CODING I STILL WANT TO DO
--------------------------
-* Choose best block size for tiledsparse
-* Choose best block decomp for generalsparse
-* Impl Tensor thing
+X  Alg: UnrolledSparse
+X  Alg: TiledSparse
+X  Acknowledgements
+X  Resolve Section X.XX
+X  Fix equation in intro
+X  Exp: UnrolledScaling
+X  Choose title
+X  Abstract
+X  Exp: Jumptables
+X  Alg: GeneralSparse
+X  Alg: Block and PatternSparse
+
+
+_  Impl: All
+_  Intro: Breuer
+_  Intro: Libxsmm
+_  Intro: SeisSol
+_  Review: Goto
+_  Exp: All
+_  Conclusion
+
+_  Remove Goto figure reference
+_  Better syntax for loop indices, libxsmm
+_  Sample unrolledsparse and generalsparse implementations
+_  Add another plot
+_  Understand why the cliff happens
+
+
+
+1. Goals
+2. Development
+2. Pseudocode
+2. Degrees of freedom. How to choose.
+2. Limitations
