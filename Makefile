@@ -84,6 +84,11 @@ jumptable: src/jumptable/jumptable.cpp src/jumptable/jumptable_unrolled.cpp src/
 	objdump -D build/jumptable_unrolled > src/jumptable/jumptable_unrolled.asm
 	objdump -D build/jumptable_looped > src/jumptable/jumptable_looped.asm
 
+strided: src/strided/strided.cpp
+#	g++ -g -mavx512f -std=c++11 -O2 -I $(EIGEN_HOME) -o build/test_generated src/cpptests/test_generated.cpp
+	g++ -g -mavx2 -std=c++11 -O3 -o build/strided src/strided/strided.cpp
+	g++ -g -mavx2 -std=c++11 -O3 -S -o build/strided.asm src/strided/strided.cpp
+	build/strided
 
 
 generate_gen256:
@@ -105,6 +110,7 @@ test_eigen: src/cpptests/test_eigen.cpp
 test_generated: src/cpptests/test_generated.cpp
 	g++ -g -mavx512f -std=c++11 -O2 -I $(EIGEN_HOME) -o build/test_generated src/cpptests/test_generated.cpp
 	build/test_generated
+
 
 
 
