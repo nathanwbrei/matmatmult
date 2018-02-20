@@ -89,7 +89,7 @@ class Matrix(Generic[T]):
         m = self._underlying
         m = m.astype(numpy.int)
         mm = csc_matrix(m)
-        mmwrite(filename, mm)
+        mmwrite(filename, mm, symmetry='general')
 
 
     # TODO: This currently only supports a perfect tiling
