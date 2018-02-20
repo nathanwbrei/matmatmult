@@ -91,6 +91,16 @@ struct DenseMatrix : public Matrix {
       }
     }
   }
+
+  void transpose() {
+    for (int ci=0; ci<cols; ci++) {
+      for (int ri=0; ri<ci; ri++) {
+        double temp = values[ld*ci+ri];
+        values[ld*ci+ri] = values[ld*ri+ci];
+	values[ld*ri+ci] = temp;
+      }
+    }
+  }
 };
 
 

@@ -88,6 +88,8 @@ strided: src/strided/strided.cpp
 #	g++ -g -mavx512f -std=c++11 -O2 -I $(EIGEN_HOME) -o build/test_generated src/cpptests/test_generated.cpp
 	g++ -g -mavx512f -std=c++11 -O3 -S -o src/strided/strided-gcc.asm src/strided/strided.cpp
 	icpc -O3 -xMIC-AVX512 -std=c++11 -S -o src/strided/strided-icpc.asm src/strided/strided.cpp
+	icpc -g -O1 -xMIC-AVX512 -std=c++11 -I include -lrt -o build/test_strided src/strided/test_strided.cpp
+	build/test_strided
 
 
 generate_gen256:
