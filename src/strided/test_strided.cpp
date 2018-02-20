@@ -1,4 +1,4 @@
-
+#include <immintrin.h>
 #include <iostream>
 #include <memory>
 
@@ -542,6 +542,7 @@ void test_libxsmm_sparse() {
 int main(int argc, char** argv) {
     test_rowmajor_spxd();
     test_libxsmm_dense();
+    test_libxsmm_sparse();
     return 0;
 }
 
