@@ -86,9 +86,8 @@ jumptable: src/jumptable/jumptable.cpp src/jumptable/jumptable_unrolled.cpp src/
 
 strided: src/strided/strided.cpp
 #	g++ -g -mavx512f -std=c++11 -O2 -I $(EIGEN_HOME) -o build/test_generated src/cpptests/test_generated.cpp
-	g++ -g -mavx2 -std=c++11 -O3 -o build/strided src/strided/strided.cpp
-	g++ -g -mavx2 -std=c++11 -O3 -S -o build/strided.asm src/strided/strided.cpp
-	build/strided
+	g++ -g -mavx512f -std=c++11 -O3 -S -o src/strided/strided-gcc.asm src/strided/strided.cpp
+	icpc -O3 -xMIC-AVX512 -std=c++11 -S -o src/strided/strided-icpc.asm src/strided/strided.cpp
 
 
 generate_gen256:
