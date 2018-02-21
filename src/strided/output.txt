@@ -1,3 +1,2 @@
-rowmajor_spxd, 0.0278173
-libxsmm_dense, 0.0534433
-libxsmm_sparse, 0.306361
+ys = 0, 0, 0, 7, 0, 0, 0, 0, 
+ys = 1.1, 9, 17, 25, 33, 41, 49, 57, 
