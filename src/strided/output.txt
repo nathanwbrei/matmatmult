@@ -1,2 +1,4 @@
-ys = 0, 0, 0, 7, 0, 0, 0, 0, 
-ys = 1.1, 9, 17, 25, 33, 41, 49, 57, 
+rowmajor_spxd, 0.0268317
+gatherscatter_spxd, 0.194529
+libxsmm_dense, 0.053497
+libxsmm_sparse, 0.314927
