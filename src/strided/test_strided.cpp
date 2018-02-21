@@ -14,66 +14,66 @@ void rowmajor_spxd(const double* A, const double* B, double* C) {
     "movq %2, %%rdx\n\t"    // C
 
     // Gather entire C-block
-    "vmovapd 0(%%rdx), %%zmm24\r\n"         // C[0,:]
-    "vmovapd 64(%%rdx), %%zmm25\r\n"        // C[1,:]
-    "vmovapd 128(%%rdx), %%zmm26\r\n"       // C[2,:]
-    "vmovapd 192(%%rdx), %%zmm27\r\n"       // C[3,:]
-    "vmovapd 256(%%rdx), %%zmm28\r\n"       // C[4,:]
-    "vmovapd 320(%%rdx), %%zmm29\r\n"       // C[5,:]
-    "vmovapd 384(%%rdx), %%zmm30\r\n"       // C[6,:]
-    "vmovapd 448(%%rdx), %%zmm31\r\n"       // C[7,:]
+    "vmovapd 0(%%rdx), %%zmm24\n\t"         // C[0,:]
+    "vmovapd 64(%%rdx), %%zmm25\n\t"        // C[1,:]
+    "vmovapd 128(%%rdx), %%zmm26\n\t"       // C[2,:]
+    "vmovapd 192(%%rdx), %%zmm27\n\t"       // C[3,:]
+    "vmovapd 256(%%rdx), %%zmm28\n\t"       // C[4,:]
+    "vmovapd 320(%%rdx), %%zmm29\n\t"       // C[5,:]
+    "vmovapd 384(%%rdx), %%zmm30\n\t"       // C[6,:]
+    "vmovapd 448(%%rdx), %%zmm31\n\t"       // C[7,:]
 
     // Gather B[ki,:] for all ki
-    "vmovapd 0(%%rsi), %%zmm0\r\n"          // B[0,:]
-    "vmovapd 64(%%rsi), %%zmm1\r\n"         // B[1,:]
-    "vmovapd 128(%%rsi), %%zmm2\r\n"        // B[2,:]
-    "vmovapd 192(%%rsi), %%zmm3\r\n"        // B[3,:]
-    "vmovapd 256(%%rsi), %%zmm4\r\n"        // B[4,:]
-    "vmovapd 320(%%rsi), %%zmm5\r\n"        // B[4,:]
-    "vmovapd 384(%%rsi), %%zmm6\r\n"        // B[4,:]
-    "vmovapd 448(%%rsi), %%zmm7\r\n"        // B[4,:]
+    "vmovapd 0(%%rsi), %%zmm0\n\t"          // B[0,:]
+    "vmovapd 64(%%rsi), %%zmm1\n\t"         // B[1,:]
+    "vmovapd 128(%%rsi), %%zmm2\n\t"        // B[2,:]
+    "vmovapd 192(%%rsi), %%zmm3\n\t"        // B[3,:]
+    "vmovapd 256(%%rsi), %%zmm4\n\t"        // B[4,:]
+    "vmovapd 320(%%rsi), %%zmm5\n\t"        // B[4,:]
+    "vmovapd 384(%%rsi), %%zmm6\n\t"        // B[4,:]
+    "vmovapd 448(%%rsi), %%zmm7\n\t"        // B[4,:]
 
     // C[0,:] += broadcast(A[ri,0]) * B[0,:] for ri in range(r) if A[ri,0] != 0
-    "vfmadd231pd 0(%%rdi)%{1to8%}, %%zmm0, %%zmm24\r\n"       // C[0,:] += A[0,0] .* B[0,:]
-    "vfmadd231pd 8(%%rdi)%{1to8%}, %%zmm0, %%zmm31\r\n"       // C[7,:] += A[7,0] .* B[0,:]
+    "vfmadd231pd 0(%%rdi)%{1to8%}, %%zmm0, %%zmm24\n\t"       // C[0,:] += A[0,0] .* B[0,:]
+    "vfmadd231pd 8(%%rdi)%{1to8%}, %%zmm0, %%zmm31\n\t"       // C[7,:] += A[7,0] .* B[0,:]
 
     // C[1,:] += broadcast(A[ri,1]) * B[1,:] for ri in range(r) if A[ri,1] != 0
-    "vfmadd231pd 16(%%rdi)%{1to8%}, %%zmm1, %%zmm25\r\n"       // C[1,:] += A[1,1] * B[1,:]
-    "vfmadd231pd 24(%%rdi)%{1to8%}, %%zmm1, %%zmm27\r\n"       // C[3,:] += A[3,1] * B[1,:]
+    "vfmadd231pd 16(%%rdi)%{1to8%}, %%zmm1, %%zmm25\n\t"       // C[1,:] += A[1,1] * B[1,:]
+    "vfmadd231pd 24(%%rdi)%{1to8%}, %%zmm1, %%zmm27\n\t"       // C[3,:] += A[3,1] * B[1,:]
 
     // C[2,:] += broadcast(A[ri,2]) * B[2,:] for ri in range(r) if A[ri,2] != 0
-    "vfmadd231pd 32(%%rdi)%{1to8%}, %%zmm2, %%zmm26\r\n"       // C[2,:] += A[2,2] * B[2,:]
-    "vfmadd231pd 40(%%rdi)%{1to8%}, %%zmm2, %%zmm31\r\n"       // C[7,:] += A[7,2] * B[2,:]
+    "vfmadd231pd 32(%%rdi)%{1to8%}, %%zmm2, %%zmm26\n\t"       // C[2,:] += A[2,2] * B[2,:]
+    "vfmadd231pd 40(%%rdi)%{1to8%}, %%zmm2, %%zmm31\n\t"       // C[7,:] += A[7,2] * B[2,:]
 
     // C[3,:] += broadcast(A[ri,3]) * B[3,:] for ri in range(r) if A[ri,3] != 0
-    "vfmadd231pd 48(%%rdi)%{1to8%}, %%zmm3, %%zmm25\r\n"       // C[1,:] += A[1,3] * B[3,:]
-    "vfmadd231pd 56(%%rdi)%{1to8%}, %%zmm3, %%zmm27\r\n"       // C[3,:] += A[3,3] * B[3,:]
+    "vfmadd231pd 48(%%rdi)%{1to8%}, %%zmm3, %%zmm25\n\t"       // C[1,:] += A[1,3] * B[3,:]
+    "vfmadd231pd 56(%%rdi)%{1to8%}, %%zmm3, %%zmm27\n\t"       // C[3,:] += A[3,3] * B[3,:]
 
     // C[4,:] += broadcast(A[ri,4]) * B[4,:] for ri in range(r) if A[ri,4] != 0
-    "vfmadd231pd 64(%%rdi)%{1to8%}, %%zmm4, %%zmm28\r\n"       // C[4,:] += A[4,4] * B[4,:]
-    "vfmadd231pd 72(%%rdi)%{1to8%}, %%zmm4, %%zmm31\r\n"       // C[7,:] += A[7,4] * B[4,:]
+    "vfmadd231pd 64(%%rdi)%{1to8%}, %%zmm4, %%zmm28\n\t"       // C[4,:] += A[4,4] * B[4,:]
+    "vfmadd231pd 72(%%rdi)%{1to8%}, %%zmm4, %%zmm31\n\t"       // C[7,:] += A[7,4] * B[4,:]
 
     // C[5,:] += broadcast(A[ri,5]) * B[5,:] for ri in range(r) if A[ri,5] != 0
-    "vfmadd231pd 80(%%rdi)%{1to8%}, %%zmm5, %%zmm29\r\n"       // C[5,:] += A[5,5] * B[5,:]
+    "vfmadd231pd 80(%%rdi)%{1to8%}, %%zmm5, %%zmm29\n\t"       // C[5,:] += A[5,5] * B[5,:]
 
     // C[6,:] += broadcast(A[ri,6]) * B[6,:] for ri in range(r) if A[ri,6] != 0
-    "vfmadd231pd 88(%%rdi)%{1to8%}, %%zmm6, %%zmm30\r\n"       // C[6,:] += A[6,6] * B[6,:]
+    "vfmadd231pd 88(%%rdi)%{1to8%}, %%zmm6, %%zmm30\n\t"       // C[6,:] += A[6,6] * B[6,:]
 
     // C[7,:] += broadcast(A[ri,7]) * B[7,:] for ri in range(r) if A[ri,7] != 0
-    "vfmadd231pd 96(%%rdi)%{1to8%}, %%zmm7, %%zmm24\r\n"       // C[0,:] += A[0,7] * B[7,:]
-    "vfmadd231pd 104(%%rdi)%{1to8%}, %%zmm7, %%zmm26\r\n"      // C[2,:] += A[2,7] * B[7,:]
-    "vfmadd231pd 112(%%rdi)%{1to8%}, %%zmm7, %%zmm28\r\n"      // C[4,:] += A[4,7] * B[7,:]
-    "vfmadd231pd 120(%%rdi)%{1to8%}, %%zmm7, %%zmm31\r\n"      // C[7,:] += A[7,7] * B[7,:]
+    "vfmadd231pd 96(%%rdi)%{1to8%}, %%zmm7, %%zmm24\n\t"       // C[0,:] += A[0,7] * B[7,:]
+    "vfmadd231pd 104(%%rdi)%{1to8%}, %%zmm7, %%zmm26\n\t"      // C[2,:] += A[2,7] * B[7,:]
+    "vfmadd231pd 112(%%rdi)%{1to8%}, %%zmm7, %%zmm28\n\t"      // C[4,:] += A[4,7] * B[7,:]
+    "vfmadd231pd 120(%%rdi)%{1to8%}, %%zmm7, %%zmm31\n\t"      // C[7,:] += A[7,7] * B[7,:]
 
     // Scatter entire C-block
-    "vmovapd %%zmm24, 0(%%rdx)\r\n"         // C[0,:]
-    "vmovapd %%zmm25, 64(%%rdx)\r\n"        // C[1,:]
-    "vmovapd %%zmm26, 128(%%rdx)\r\n"       // C[2,:]
-    "vmovapd %%zmm27, 192(%%rdx)\r\n"       // C[3,:]
-    "vmovapd %%zmm28, 256(%%rdx)\r\n"       // C[4,:]
-    "vmovapd %%zmm29, 320(%%rdx)\r\n"       // C[5,:]
-    "vmovapd %%zmm30, 384(%%rdx)\r\n"       // C[6,:]
-    "vmovapd %%zmm31, 448(%%rdx)\r\n"       // C[7,:]
+    "vmovapd %%zmm24, 0(%%rdx)\n\t"         // C[0,:]
+    "vmovapd %%zmm25, 64(%%rdx)\n\t"        // C[1,:]
+    "vmovapd %%zmm26, 128(%%rdx)\n\t"       // C[2,:]
+    "vmovapd %%zmm27, 192(%%rdx)\n\t"       // C[3,:]
+    "vmovapd %%zmm28, 256(%%rdx)\n\t"       // C[4,:]
+    "vmovapd %%zmm29, 320(%%rdx)\n\t"       // C[5,:]
+    "vmovapd %%zmm30, 384(%%rdx)\n\t"       // C[6,:]
+    "vmovapd %%zmm31, 448(%%rdx)\n\t"       // C[7,:]
 
     : : "m"(A), "m"(B), "m"(C) : "zmm0","zmm1","zmm17","zmm18","zmm19","zmm2","zmm20","zmm21","zmm22","zmm23","zmm24","zmm25","zmm26","zmm27","zmm28","zmm29","zmm3","zmm30","zmm31","zmm4","zmm5","zmm6","zmm7","zmm8");
 };
@@ -116,10 +116,10 @@ void playground() {
     "kxnorw %%k0, %%k0, %%k1\n\t"  // set k1=all true. DOES WORK.
     // "kxnorw %%k1, %%k0, %%k0\n\t"  // set k1=all true. DOES NOT WORK.
 
-    "vpgatherdq 8(%%r10,%%ymm20,8), %%zmm24%{%%k1%}\r\n"
+    "vpgatherdq 8(%%r10,%%ymm20,8), %%zmm24%{%%k1%}\n\t"
     "kxnorw %%k0, %%k0, %%k1\n\t"  // set k1=all true. DOES WORK.
-    "vpgatherdq 16(%%r10,%%ymm20,8), %%zmm25%{%%k1%}\r\n"
-    "vmovupd %%zmm25, 0(%%r11)\r\n"
+    "vpgatherdq 16(%%r10,%%ymm20,8), %%zmm25%{%%k1%}\n\t"
+    "vmovupd %%zmm25, 0(%%r11)\n\t"
 
     :
     : "m"(xs), "m"(ys), "m"(indirects)
@@ -153,20 +153,20 @@ void gatherscatter_spxd(const double* A, const double* B, double* C) {
     "kxnorw %%k0, %%k0, %%k3\n\t"  // set k3=all true. 
     "kxnorw %%k0, %%k0, %%k4\n\t"  // set k4=all true. 
 
-    "vpgatherdq 0(%%rdx,%%ymm20,8), %%zmm24%{%%k1%}\r\n"    // C[0,:]
-    "vpgatherdq 8(%%rdx,%%ymm20,8), %%zmm25%{%%k2%}\r\n"    // C[1,:]
-    "vpgatherdq 16(%%rdx,%%ymm20,8), %%zmm26%{%%k3%}\r\n"   // C[2,:]
-    "vpgatherdq 24(%%rdx,%%ymm20,8), %%zmm27%{%%k4%}\r\n"   // C[3,:]
+    "vpgatherdq 0(%%rdx,%%ymm20,8), %%zmm24%{%%k1%}\n\t"    // C[0,:]
+    "vpgatherdq 8(%%rdx,%%ymm20,8), %%zmm25%{%%k2%}\n\t"    // C[1,:]
+    "vpgatherdq 16(%%rdx,%%ymm20,8), %%zmm26%{%%k3%}\n\t"   // C[2,:]
+    "vpgatherdq 24(%%rdx,%%ymm20,8), %%zmm27%{%%k4%}\n\t"   // C[3,:]
 
     "kxnorw %%k0, %%k0, %%k1\n\t"  // set k1=all true. 
     "kxnorw %%k0, %%k0, %%k2\n\t"  // set k2=all true. 
     "kxnorw %%k0, %%k0, %%k3\n\t"  // set k3=all true. 
     "kxnorw %%k0, %%k0, %%k4\n\t"  // set k4=all true. 
 
-    "vpgatherdq 0(%%rdx,%%ymm20,8), %%zmm28%{%%k1%}\r\n"    // C[4,:]
-    "vpgatherdq 0(%%rdx,%%ymm20,8), %%zmm29%{%%k2%}\r\n"    // C[5,:]
-    "vpgatherdq 0(%%rdx,%%ymm20,8), %%zmm30%{%%k3%}\r\n"    // C[6,:]
-    "vpgatherdq 0(%%rdx,%%ymm20,8), %%zmm31%{%%k4%}\r\n"    // C[7,:]
+    "vpgatherdq 0(%%rdx,%%ymm20,8), %%zmm28%{%%k1%}\n\t"    // C[4,:]
+    "vpgatherdq 0(%%rdx,%%ymm20,8), %%zmm29%{%%k2%}\n\t"    // C[5,:]
+    "vpgatherdq 0(%%rdx,%%ymm20,8), %%zmm30%{%%k3%}\n\t"    // C[6,:]
+    "vpgatherdq 0(%%rdx,%%ymm20,8), %%zmm31%{%%k4%}\n\t"    // C[7,:]
 
 
 
@@ -176,54 +176,54 @@ void gatherscatter_spxd(const double* A, const double* B, double* C) {
     "kxnorw %%k0, %%k0, %%k3\n\t"
     "kxnorw %%k0, %%k0, %%k4\n\t"
 
-    "vpgatherdq 0(%%rsi,%%ymm20,8), %%zmm0%{%%k1%}\r\n"    // B[0,:]
-    "vpgatherdq 8(%%rsi,%%ymm20,8), %%zmm1%{%%k2%}\r\n"    // B[1,:]
-    "vpgatherdq 16(%%rsi,%%ymm20,8), %%zmm2%{%%k3%}\r\n"   // B[2,:]
-    "vpgatherdq 24(%%rsi,%%ymm20,8), %%zmm3%{%%k4%}\r\n"   // B[3,:]
+    "vpgatherdq 0(%%rsi,%%ymm20,8), %%zmm0%{%%k1%}\n\t"    // B[0,:]
+    "vpgatherdq 8(%%rsi,%%ymm20,8), %%zmm1%{%%k2%}\n\t"    // B[1,:]
+    "vpgatherdq 16(%%rsi,%%ymm20,8), %%zmm2%{%%k3%}\n\t"   // B[2,:]
+    "vpgatherdq 24(%%rsi,%%ymm20,8), %%zmm3%{%%k4%}\n\t"   // B[3,:]
 
     "kxnorw %%k0, %%k0, %%k1\n\t"
     "kxnorw %%k0, %%k0, %%k2\n\t"
     "kxnorw %%k0, %%k0, %%k3\n\t"
     "kxnorw %%k0, %%k0, %%k4\n\t"
 
-    "vpgatherdq 32(%%rsi,%%ymm20,8), %%zmm4%{%%k1%}\r\n"    // B[4,:]
-    "vpgatherdq 40(%%rsi,%%ymm20,8), %%zmm5%{%%k2%}\r\n"    // B[5,:]
-    "vpgatherdq 48(%%rsi,%%ymm20,8), %%zmm6%{%%k3%}\r\n"    // B[6,:]
-    "vpgatherdq 56(%%rsi,%%ymm20,8), %%zmm7%{%%k4%}\r\n"    // B[7,:]
+    "vpgatherdq 32(%%rsi,%%ymm20,8), %%zmm4%{%%k1%}\n\t"    // B[4,:]
+    "vpgatherdq 40(%%rsi,%%ymm20,8), %%zmm5%{%%k2%}\n\t"    // B[5,:]
+    "vpgatherdq 48(%%rsi,%%ymm20,8), %%zmm6%{%%k3%}\n\t"    // B[6,:]
+    "vpgatherdq 56(%%rsi,%%ymm20,8), %%zmm7%{%%k4%}\n\t"    // B[7,:]
 
 
 
     // C[0,:] += broadcast(A[ri,0]) * B[0,:] for ri in range(r) if A[ri,0] != 0
-    "vfmadd231pd 0(%%rdi)%{1to8%}, %%zmm0, %%zmm24\r\n"       // C[0,:] += A[0,0] .* B[0,:]
-    "vfmadd231pd 8(%%rdi)%{1to8%}, %%zmm0, %%zmm31\r\n"       // C[7,:] += A[7,0] .* B[0,:]
+    "vfmadd231pd 0(%%rdi)%{1to8%}, %%zmm0, %%zmm24\n\t"       // C[0,:] += A[0,0] .* B[0,:]
+    "vfmadd231pd 8(%%rdi)%{1to8%}, %%zmm0, %%zmm31\n\t"       // C[7,:] += A[7,0] .* B[0,:]
 
     // C[1,:] += broadcast(A[ri,1]) * B[1,:] for ri in range(r) if A[ri,1] != 0
-    "vfmadd231pd 16(%%rdi)%{1to8%}, %%zmm1, %%zmm25\r\n"       // C[1,:] += A[1,1] * B[1,:]
-    "vfmadd231pd 24(%%rdi)%{1to8%}, %%zmm1, %%zmm27\r\n"       // C[3,:] += A[3,1] * B[1,:]
+    "vfmadd231pd 16(%%rdi)%{1to8%}, %%zmm1, %%zmm25\n\t"       // C[1,:] += A[1,1] * B[1,:]
+    "vfmadd231pd 24(%%rdi)%{1to8%}, %%zmm1, %%zmm27\n\t"       // C[3,:] += A[3,1] * B[1,:]
 
     // C[2,:] += broadcast(A[ri,2]) * B[2,:] for ri in range(r) if A[ri,2] != 0
-    "vfmadd231pd 32(%%rdi)%{1to8%}, %%zmm2, %%zmm26\r\n"       // C[2,:] += A[2,2] * B[2,:]
-    "vfmadd231pd 40(%%rdi)%{1to8%}, %%zmm2, %%zmm31\r\n"       // C[7,:] += A[7,2] * B[2,:]
+    "vfmadd231pd 32(%%rdi)%{1to8%}, %%zmm2, %%zmm26\n\t"       // C[2,:] += A[2,2] * B[2,:]
+    "vfmadd231pd 40(%%rdi)%{1to8%}, %%zmm2, %%zmm31\n\t"       // C[7,:] += A[7,2] * B[2,:]
 
     // C[3,:] += broadcast(A[ri,3]) * B[3,:] for ri in range(r) if A[ri,3] != 0
-    "vfmadd231pd 48(%%rdi)%{1to8%}, %%zmm3, %%zmm25\r\n"       // C[1,:] += A[1,3] * B[3,:]
-    "vfmadd231pd 56(%%rdi)%{1to8%}, %%zmm3, %%zmm27\r\n"       // C[3,:] += A[3,3] * B[3,:]
+    "vfmadd231pd 48(%%rdi)%{1to8%}, %%zmm3, %%zmm25\n\t"       // C[1,:] += A[1,3] * B[3,:]
+    "vfmadd231pd 56(%%rdi)%{1to8%}, %%zmm3, %%zmm27\n\t"       // C[3,:] += A[3,3] * B[3,:]
 
     // C[4,:] += broadcast(A[ri,4]) * B[4,:] for ri in range(r) if A[ri,4] != 0
-    "vfmadd231pd 64(%%rdi)%{1to8%}, %%zmm4, %%zmm28\r\n"       // C[4,:] += A[4,4] * B[4,:]
-    "vfmadd231pd 72(%%rdi)%{1to8%}, %%zmm4, %%zmm31\r\n"       // C[7,:] += A[7,4] * B[4,:]
+    "vfmadd231pd 64(%%rdi)%{1to8%}, %%zmm4, %%zmm28\n\t"       // C[4,:] += A[4,4] * B[4,:]
+    "vfmadd231pd 72(%%rdi)%{1to8%}, %%zmm4, %%zmm31\n\t"       // C[7,:] += A[7,4] * B[4,:]
 
     // C[5,:] += broadcast(A[ri,5]) * B[5,:] for ri in range(r) if A[ri,5] != 0
-    "vfmadd231pd 80(%%rdi)%{1to8%}, %%zmm5, %%zmm29\r\n"       // C[5,:] += A[5,5] * B[5,:]
+    "vfmadd231pd 80(%%rdi)%{1to8%}, %%zmm5, %%zmm29\n\t"       // C[5,:] += A[5,5] * B[5,:]
 
     // C[6,:] += broadcast(A[ri,6]) * B[6,:] for ri in range(r) if A[ri,6] != 0
-    "vfmadd231pd 88(%%rdi)%{1to8%}, %%zmm6, %%zmm30\r\n"       // C[6,:] += A[6,6] * B[6,:]
+    "vfmadd231pd 88(%%rdi)%{1to8%}, %%zmm6, %%zmm30\n\t"       // C[6,:] += A[6,6] * B[6,:]
 
     // C[7,:] += broadcast(A[ri,7]) * B[7,:] for ri in range(r) if A[ri,7] != 0
-    "vfmadd231pd 96(%%rdi)%{1to8%}, %%zmm7, %%zmm24\r\n"       // C[0,:] += A[0,7] * B[7,:]
-    "vfmadd231pd 104(%%rdi)%{1to8%}, %%zmm7, %%zmm26\r\n"      // C[2,:] += A[2,7] * B[7,:]
-    "vfmadd231pd 112(%%rdi)%{1to8%}, %%zmm7, %%zmm28\r\n"      // C[4,:] += A[4,7] * B[7,:]
-    "vfmadd231pd 120(%%rdi)%{1to8%}, %%zmm7, %%zmm31\r\n"      // C[7,:] += A[7,7] * B[7,:]
+    "vfmadd231pd 96(%%rdi)%{1to8%}, %%zmm7, %%zmm24\n\t"       // C[0,:] += A[0,7] * B[7,:]
+    "vfmadd231pd 104(%%rdi)%{1to8%}, %%zmm7, %%zmm26\n\t"      // C[2,:] += A[2,7] * B[7,:]
+    "vfmadd231pd 112(%%rdi)%{1to8%}, %%zmm7, %%zmm28\n\t"      // C[4,:] += A[4,7] * B[7,:]
+    "vfmadd231pd 120(%%rdi)%{1to8%}, %%zmm7, %%zmm31\n\t"      // C[7,:] += A[7,7] * B[7,:]
 
     // Scatter entire C-block
     "kxnorw %%k0, %%k0, %%k1\n\t"
@@ -231,20 +231,20 @@ void gatherscatter_spxd(const double* A, const double* B, double* C) {
     "kxnorw %%k0, %%k0, %%k3\n\t"
     "kxnorw %%k0, %%k0, %%k4\n\t"
 
-    "vpscatterdq %%zmm24, 0(%%rdx,%%ymm20,8)%{%%k1%}\r\n"    // C[0,:]
-    "vpscatterdq %%zmm25, 8(%%rdx,%%ymm20,8)%{%%k2%}\r\n"    // C[1,:]
-    "vpscatterdq %%zmm26, 16(%%rdx,%%ymm20,8)%{%%k3%}\r\n"   // C[2,:]
-    "vpscatterdq %%zmm27, 24(%%rdx,%%ymm20,8)%{%%k4%}\r\n"   // C[3,:]
+    "vpscatterdq %%zmm24, 0(%%rdx,%%ymm20,8)%{%%k1%}\n\t"    // C[0,:]
+    "vpscatterdq %%zmm25, 8(%%rdx,%%ymm20,8)%{%%k2%}\n\t"    // C[1,:]
+    "vpscatterdq %%zmm26, 16(%%rdx,%%ymm20,8)%{%%k3%}\n\t"   // C[2,:]
+    "vpscatterdq %%zmm27, 24(%%rdx,%%ymm20,8)%{%%k4%}\n\t"   // C[3,:]
 
     "kxnorw %%k0, %%k0, %%k1\n\t"
     "kxnorw %%k0, %%k0, %%k2\n\t"
     "kxnorw %%k0, %%k0, %%k3\n\t"
     "kxnorw %%k0, %%k0, %%k4\n\t"
 
-    "vpscatterdq %%zmm28, 32(%%rdx,%%ymm20,8)%{%%k1%}\r\n"    // C[4,:]
-    "vpscatterdq %%zmm29, 40(%%rdx,%%ymm20,8)%{%%k2%}\r\n"    // C[5,:]
-    "vpscatterdq %%zmm30, 48(%%rdx,%%ymm20,8)%{%%k3%}\r\n"    // C[6,:]
-    "vpscatterdq %%zmm31, 56(%%rdx,%%ymm20,8)%{%%k4%}\r\n"    // C[7,:]
+    "vpscatterdq %%zmm28, 32(%%rdx,%%ymm20,8)%{%%k1%}\n\t"    // C[4,:]
+    "vpscatterdq %%zmm29, 40(%%rdx,%%ymm20,8)%{%%k2%}\n\t"    // C[5,:]
+    "vpscatterdq %%zmm30, 48(%%rdx,%%ymm20,8)%{%%k3%}\n\t"    // C[6,:]
+    "vpscatterdq %%zmm31, 56(%%rdx,%%ymm20,8)%{%%k4%}\n\t"    // C[7,:]
 
     : 
     : "m"(A), "m"(B), "m"(C), "m"(indices)
