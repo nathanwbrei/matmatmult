@@ -118,10 +118,10 @@ test_generated: src/cpptests/test_generated.cpp
 
 
 presentation:
-	cd doc; pdflatex -shell-escape -interaction=batchmode -halt-on-error -output-directory=../build presentation.tex
+	cd doc; pdflatex -shell-escape -interaction=batchmode -halt-on-error -output-directory=../build presentation_sccs.tex
 
 presentation-verbose:
-	cd doc; pdflatex -shell-escape -interaction=nonstopmode -halt-on-error -output-directory=../build presentation.tex
+	cd doc; pdflatex -shell-escape -interaction=nonstopmode -halt-on-error -output-directory=../build presentation_sccs.tex
 
 presentation-auto:
 	fswatch -0 -o -r -l 2 -e ".*" -i"\.tex" doc | xargs -0 -n 1 -I NONE make presentation
