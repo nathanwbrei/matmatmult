@@ -7,6 +7,132 @@
 #include "timing.h"
 
 
+
+void playground() {
+
+  double xs_underlying[64] = {0,1,2,3,4,5,6,7,
+                              8,9,10,11,12,13,14,15,
+                              0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0 };
+/*                            16.9,17,18,19,20,21,22,23,
+                              24,25,26,27,28,29,30,31,
+                              32,33,34,35,36,37,38,39,
+                              40,41,42,43,44,45,46,47,
+                              48,49,50,51,52,53,54,55,
+                              56,57,58,59,60,61,62,63};
+*/
+  double * xs = xs_underlying; 
+
+  std::cout << "xs = " << std::endl;
+  for (int r=0; r<8; r++){
+    for (int c=0; c<8; c++){
+      std::cout << xs[r*8+c] << ", ";
+    } 
+  std::cout << std::endl;
+  }
+  
+
+    // https://stackoverflow.com/questions/25622745/transpose-an-8x8-float-using-avx-avx2/25627536#25627536
+    // https://stackoverflow.com/questions/29519222/how-to-transpose-a-16x16-matrix-using-simd-instructions/41262731#comment69729282_41262731
+
+    //permute n 32-bit rows
+    //permute n 64-bit rows
+    //...
+    //permute n simd_width/2-bit rows
+
+    /*
+    __t0 = _mm256_unpacklo_ps(row0, row1);
+    __t1 = _mm256_unpackhi_ps(row0, row1);
+    __t2 = _mm256_unpacklo_ps(row2, row3);
+    __t3 = _mm256_unpackhi_ps(row2, row3);
+    __t4 = _mm256_unpacklo_ps(row4, row5);
+    __t5 = _mm256_unpackhi_ps(row4, row5);
+    __t6 = _mm256_unpacklo_ps(row6, row7);
+    __t7 = _mm256_unpackhi_ps(row6, row7);
+    __tt0 = _mm256_shuffle_ps(__t0,__t2,_MM_SHUFFLE(1,0,1,0));
+    __tt1 = _mm256_shuffle_ps(__t0,__t2,_MM_SHUFFLE(3,2,3,2));
+    __tt2 = _mm256_shuffle_ps(__t1,__t3,_MM_SHUFFLE(1,0,1,0));
+    __tt3 = _mm256_shuffle_ps(__t1,__t3,_MM_SHUFFLE(3,2,3,2));
+    __tt4 = _mm256_shuffle_ps(__t4,__t6,_MM_SHUFFLE(1,0,1,0));
+    __tt5 = _mm256_shuffle_ps(__t4,__t6,_MM_SHUFFLE(3,2,3,2));
+    __tt6 = _mm256_shuffle_ps(__t5,__t7,_MM_SHUFFLE(1,0,1,0));
+    __tt7 = _mm256_shuffle_ps(__t5,__t7,_MM_SHUFFLE(3,2,3,2));
+    row0 = _mm256_permute2f128_ps(__tt0, __tt4, 0x20);
+    row1 = _mm256_permute2f128_ps(__tt1, __tt5, 0x20);
+    row2 = _mm256_permute2f128_ps(__tt2, __tt6, 0x20);
+    row3 = _mm256_permute2f128_ps(__tt3, __tt7, 0x20);
+    row4 = _mm256_permute2f128_ps(__tt0, __tt4, 0x31);
+    row5 = _mm256_permute2f128_ps(__tt1, __tt5, 0x31);
+    row6 = _mm256_permute2f128_ps(__tt2, __tt6, 0x31);
+    row7 = _mm256_permute2f128_ps(__tt3, __tt7, 0x31);
+    */
+
+  __asm__ __volatile__(
+    "movq %0, %%rdx\n\t"    // xs
+
+    "vmovupd 0(%%rdx), %%zmm24\n\t"         // C[0,:]
+    "vmovupd 64(%%rdx), %%zmm25\n\t"        // C[1,:]
+    "vmovupd 128(%%rdx), %%zmm26\n\t"       // C[2,:]
+    "vmovupd 192(%%rdx), %%zmm27\n\t"       // C[3,:]
+    "vmovupd 256(%%rdx), %%zmm28\n\t"       // C[4,:]
+    "vmovupd 320(%%rdx), %%zmm29\n\t"       // C[5,:]
+    "vmovupd 384(%%rdx), %%zmm30\n\t"       // C[6,:]
+    "vmovupd 448(%%rdx), %%zmm31\n\t"       // C[7,:]
+
+    "vunpcklpd %%zmm24, zmm25, %%zmm16%{%%k1%}\n\t"  // t0
+    "vunpckhpd %%zmm24, zmm25, %%zmm17%{%%k1%}\n\t"
+    "vunpcklpd %%zmm26, zmm27, %%zmm18%{%%k1%}\n\t"
+    "vunpckhpd %%zmm26, zmm27, %%zmm19%{%%k1%}\n\t"
+    "vunpcklpd %%zmm28, zmm29, %%zmm20%{%%k1%}\n\t"
+    "vunpckhpd %%zmm28, zmm29, %%zmm21%{%%k1%}\n\t"
+    "vunpcklpd %%zmm30, zmm31, %%zmm22%{%%k1%}\n\t"
+    "vunpckhpd %%zmm30, zmm31, %%zmm23%{%%k1%}\n\t"  // t7
+
+    "vshufpd $68,  %%zmm16, %%zmm18, %%zmm8%{%%k1%}\n\t"   // tt0
+    "vshufpd $238, %%zmm16, %%zmm18, %%zmm9%{%%k1%}\n\t"
+    "vshufpd $68,  %%zmm17, %%zmm19, %%zmm10%{%%k1%}\n\t"
+    "vshufpd $238, %%zmm17, %%zmm19, %%zmm11%{%%k1%}\n\t"
+    "vshufpd $68,  %%zmm20, %%zmm22, %%zmm12%{%%k1%}\n\t"
+    "vshufpd $238, %%zmm20, %%zmm22, %%zmm13%{%%k1%}\n\t"
+    "vshufpd $68,  %%zmm21, %%zmm23, %%zmm14%{%%k1%}\n\t"
+    "vshufpd $238, %%zmm21, %%zmm23, %%zmm15%{%%k1%}\n\t"  // tt7
+
+    "kxnorw %%k0, %%k0, %%k1\n\t"  // set k1=all true.
+    //"vunpcklpd %%zmm24, %%zmm25, %%zmm26%{%%k1%}\n\t"
+    //"vunpckhpd %%zmm24, %%zmm25, %%zmm27%{%%k1%}\n\t"
+    "vshufpd $0, %%zmm24, %%zmm25, %%zmm27%{%%k1%}\n\t"
+    "vshufpd $1, %%zmm24, %%zmm25, %%zmm28%{%%k1%}\n\t"
+    "vshufpd $2, %%zmm24, %%zmm25, %%zmm29%{%%k1%}\n\t"
+    "vshufpd $3, %%zmm24, %%zmm25, %%zmm30%{%%k1%}\n\t"
+    "vshufpd $68, %%zmm24, %%zmm25, %%zmm31%{%%k1%}\n\t"
+    
+    "vmovupd %%zmm24, 0(%%rdx)\n\t"         // C[0,:]
+    "vmovupd %%zmm25, 64(%%rdx)\n\t"        // C[1,:]
+    "vmovupd %%zmm26, 128(%%rdx)\n\t"       // C[2,:]
+    "vmovupd %%zmm27, 192(%%rdx)\n\t"       // C[3,:]
+    "vmovupd %%zmm28, 256(%%rdx)\n\t"       // C[4,:]
+    "vmovupd %%zmm29, 320(%%rdx)\n\t"       // C[5,:]
+    "vmovupd %%zmm30, 384(%%rdx)\n\t"       // C[6,:]
+    "vmovupd %%zmm31, 448(%%rdx)\n\t"       // C[7,:]
+
+    :
+    : "m"(xs)
+    : "rdx","zmm0","zmm1","zmm17","zmm18","zmm19","zmm2","zmm20","zmm21","zmm22","zmm23","zmm24","zmm25","zmm26","zmm27","zmm28","zmm29","zmm3","zmm30","zmm31","zmm4","zmm5","zmm6","zmm7","zmm8");
+
+  std::cout << std::endl << "xs = " << std::endl;
+  for (int r=0; r<8; r++){
+    for (int c=0; c<8; c++){
+      std::cout << xs[r*8+c] << ", ";
+    } 
+    std::cout << std::endl;     
+  }
+}
+
+
 void rowmajor_spxd(const double* A, const double* B, double* C) {
   __asm__ __volatile__(
     "movq %0, %%rdi\n\t"    // A
@@ -77,61 +203,8 @@ void rowmajor_spxd(const double* A, const double* B, double* C) {
 
     : : "m"(A), "m"(B), "m"(C) : "zmm0","zmm1","zmm17","zmm18","zmm19","zmm2","zmm20","zmm21","zmm22","zmm23","zmm24","zmm25","zmm26","zmm27","zmm28","zmm29","zmm3","zmm30","zmm31","zmm4","zmm5","zmm6","zmm7","zmm8");
 };
- 
-void playground() {
 
-//  int indirects_underlying[16] = {2,8,16,24,32,40,48,56,0,0,0,0,0,0,0,0};
-  int indirects_underlying[16] = {0,8,16,24,32,40,48,56,0,0,0,0,0,0,0,0};
-  int * indirects = indirects_underlying;
 
-  double xs_underlying[64] = {0.1,1.1,2.1,3.1,4.1,5.1,6.1,7.1,
-                              8,9,10,11,12,13,14,15,
-                              16.9,17,18,19,20,21,22,23,
-                              24,25,26,27,28,29,30,31,
-                              32,33,34,35,36,37,38,39,
-                              40,41,42,43,44,45,46,47,
-                              48,49,50,51,52,53,54,55,
-                              56,57,58,59,60,61,62,63};
-
-  double * xs = xs_underlying; 
-
-  double ys_underlying[8] = {0,0,0,7,0,0,0,0};
-  double * ys = ys_underlying;
-
-  std::cout << "ys = ";
-  for (int i=0; i<8; i++){
-      std::cout << ys[i] << ", ";
-  }
-  std::cout << std::endl;
-
-  __asm__ __volatile__(
-    "movq %0, %%r10\n\t"    // xs
-    "movq %1, %%r11\n\t"    // ys
-    "movq %2, %%r12\n\t"    // indirects
-
-    // TODO: Figure why it won't accept loading into ymm
-    // "vmovdqu 0(%%r12), %%ymm20\n\t"   // get indices, only need the 8
-    "vmovdqu32 0(%%r12), %%zmm20\n\t"    // get indices, need 16 for no good reason
-
-    "kxnorw %%k0, %%k0, %%k1\n\t"  // set k1=all true. DOES WORK.
-    // "kxnorw %%k1, %%k0, %%k0\n\t"  // set k1=all true. DOES NOT WORK.
-
-    "vpgatherdq 8(%%r10,%%ymm20,8), %%zmm24%{%%k1%}\n\t"
-    "kxnorw %%k0, %%k0, %%k1\n\t"  // set k1=all true. DOES WORK.
-    "vpgatherdq 16(%%r10,%%ymm20,8), %%zmm25%{%%k1%}\n\t"
-    "vmovupd %%zmm25, 0(%%r11)\n\t"
-
-    :
-    : "m"(xs), "m"(ys), "m"(indirects)
-    : "r10","r11","r12","zmm0","zmm1","zmm17","zmm18","zmm19","zmm2","zmm20","zmm21","zmm22","zmm23","zmm24","zmm25","zmm26","zmm27","zmm28","zmm29","zmm3","zmm30","zmm31","zmm4","zmm5","zmm6","zmm7","zmm8");
-
-  std::cout << "ys = ";
-  for (int i=0; i<8; i++){
-      std::cout << ys[i] << ", ";
-  }
-  std::cout << std::endl;
-
-}
 
 void gatherscatter_spxd(const double* A, const double* B, double* C) {
 
@@ -248,6 +321,88 @@ void gatherscatter_spxd(const double* A, const double* B, double* C) {
 
     : 
     : "m"(A), "m"(B), "m"(C), "m"(indices)
+    : "rdx","rdi","rsi","r12","k1","k2","k3","k4","zmm0","zmm1","zmm17","zmm18","zmm19","zmm2","zmm20","zmm21","zmm22","zmm23","zmm24","zmm25","zmm26","zmm27","zmm28","zmm29","zmm3","zmm30","zmm31","zmm4","zmm5","zmm6","zmm7","zmm8");
+};
+
+
+
+void registertranspose_spxd(const double* A, const double* B, double* C) {
+
+  __asm__ __volatile__(
+    "movq %0, %%rdi\n\t"    // A
+    "movq %1, %%rsi\n\t"    // B
+    "movq %2, %%rdx\n\t"    // C
+
+    // Gather entire C-block
+    "vmovapd 0(%%rdx), %%zmm24\n\t"         // C[0,:]
+    "vmovapd 64(%%rdx), %%zmm25\n\t"        // C[1,:]
+    "vmovapd 128(%%rdx), %%zmm26\n\t"       // C[2,:]
+    "vmovapd 192(%%rdx), %%zmm27\n\t"       // C[3,:]
+    "vmovapd 256(%%rdx), %%zmm28\n\t"       // C[4,:]
+    "vmovapd 320(%%rdx), %%zmm29\n\t"       // C[5,:]
+    "vmovapd 384(%%rdx), %%zmm30\n\t"       // C[6,:]
+    "vmovapd 448(%%rdx), %%zmm31\n\t"       // C[7,:]
+
+    // Gather B[ki,:] for all ki
+    "vmovapd 0(%%rsi), %%zmm0\n\t"          // B[0,:]
+    "vmovapd 64(%%rsi), %%zmm1\n\t"         // B[1,:]
+    "vmovapd 128(%%rsi), %%zmm2\n\t"        // B[2,:]
+    "vmovapd 192(%%rsi), %%zmm3\n\t"        // B[3,:]
+    "vmovapd 256(%%rsi), %%zmm4\n\t"        // B[4,:]
+    "vmovapd 320(%%rsi), %%zmm5\n\t"        // B[4,:]
+    "vmovapd 384(%%rsi), %%zmm6\n\t"        // B[4,:]
+    "vmovapd 448(%%rsi), %%zmm7\n\t"        // B[4,:]
+
+    // Transpose C block
+    // Transpose B block
+
+
+    // C[0,:] += broadcast(A[ri,0]) * B[0,:] for ri in range(r) if A[ri,0] != 0
+    "vfmadd231pd 0(%%rdi)%{1to8%}, %%zmm0, %%zmm24\n\t"       // C[0,:] += A[0,0] .* B[0,:]
+    "vfmadd231pd 8(%%rdi)%{1to8%}, %%zmm0, %%zmm31\n\t"       // C[7,:] += A[7,0] .* B[0,:]
+
+    // C[1,:] += broadcast(A[ri,1]) * B[1,:] for ri in range(r) if A[ri,1] != 0
+    "vfmadd231pd 16(%%rdi)%{1to8%}, %%zmm1, %%zmm25\n\t"       // C[1,:] += A[1,1] * B[1,:]
+    "vfmadd231pd 24(%%rdi)%{1to8%}, %%zmm1, %%zmm27\n\t"       // C[3,:] += A[3,1] * B[1,:]
+
+    // C[2,:] += broadcast(A[ri,2]) * B[2,:] for ri in range(r) if A[ri,2] != 0
+    "vfmadd231pd 32(%%rdi)%{1to8%}, %%zmm2, %%zmm26\n\t"       // C[2,:] += A[2,2] * B[2,:]
+    "vfmadd231pd 40(%%rdi)%{1to8%}, %%zmm2, %%zmm31\n\t"       // C[7,:] += A[7,2] * B[2,:]
+
+    // C[3,:] += broadcast(A[ri,3]) * B[3,:] for ri in range(r) if A[ri,3] != 0
+    "vfmadd231pd 48(%%rdi)%{1to8%}, %%zmm3, %%zmm25\n\t"       // C[1,:] += A[1,3] * B[3,:]
+    "vfmadd231pd 56(%%rdi)%{1to8%}, %%zmm3, %%zmm27\n\t"       // C[3,:] += A[3,3] * B[3,:]
+
+    // C[4,:] += broadcast(A[ri,4]) * B[4,:] for ri in range(r) if A[ri,4] != 0
+    "vfmadd231pd 64(%%rdi)%{1to8%}, %%zmm4, %%zmm28\n\t"       // C[4,:] += A[4,4] * B[4,:]
+    "vfmadd231pd 72(%%rdi)%{1to8%}, %%zmm4, %%zmm31\n\t"       // C[7,:] += A[7,4] * B[4,:]
+
+    // C[5,:] += broadcast(A[ri,5]) * B[5,:] for ri in range(r) if A[ri,5] != 0
+    "vfmadd231pd 80(%%rdi)%{1to8%}, %%zmm5, %%zmm29\n\t"       // C[5,:] += A[5,5] * B[5,:]
+
+    // C[6,:] += broadcast(A[ri,6]) * B[6,:] for ri in range(r) if A[ri,6] != 0
+    "vfmadd231pd 88(%%rdi)%{1to8%}, %%zmm6, %%zmm30\n\t"       // C[6,:] += A[6,6] * B[6,:]
+
+    // C[7,:] += broadcast(A[ri,7]) * B[7,:] for ri in range(r) if A[ri,7] != 0
+    "vfmadd231pd 96(%%rdi)%{1to8%}, %%zmm7, %%zmm24\n\t"       // C[0,:] += A[0,7] * B[7,:]
+    "vfmadd231pd 104(%%rdi)%{1to8%}, %%zmm7, %%zmm26\n\t"      // C[2,:] += A[2,7] * B[7,:]
+    "vfmadd231pd 112(%%rdi)%{1to8%}, %%zmm7, %%zmm28\n\t"      // C[4,:] += A[4,7] * B[7,:]
+    "vfmadd231pd 120(%%rdi)%{1to8%}, %%zmm7, %%zmm31\n\t"      // C[7,:] += A[7,7] * B[7,:]
+
+    // Transpose C block
+
+    // Scatter entire C-block
+    "vmovapd %%zmm24, 0(%%rdx)\n\t"         // C[0,:]
+    "vmovapd %%zmm25, 64(%%rdx)\n\t"        // C[1,:]
+    "vmovapd %%zmm26, 128(%%rdx)\n\t"       // C[2,:]
+    "vmovapd %%zmm27, 192(%%rdx)\n\t"       // C[3,:]
+    "vmovapd %%zmm28, 256(%%rdx)\n\t"       // C[4,:]
+    "vmovapd %%zmm29, 320(%%rdx)\n\t"       // C[5,:]
+    "vmovapd %%zmm30, 384(%%rdx)\n\t"       // C[6,:]
+    "vmovapd %%zmm31, 448(%%rdx)\n\t"       // C[7,:]
+
+    : 
+    : "m"(A), "m"(B), "m"(C)
     : "rdx","rdi","rsi","r12","k1","k2","k3","k4","zmm0","zmm1","zmm17","zmm18","zmm19","zmm2","zmm20","zmm21","zmm22","zmm23","zmm24","zmm25","zmm26","zmm27","zmm28","zmm29","zmm3","zmm30","zmm31","zmm4","zmm5","zmm6","zmm7","zmm8");
 };
 
@@ -743,11 +898,11 @@ void test_libxsmm_sparse() {
 
 
 int main(int argc, char** argv) {
-    //playground();
-    test_rowmajor_spxd();
-    test_gatherscatter_spxd();
-    test_libxsmm_dense();
-    test_libxsmm_sparse();
+    playground();
+    //test_rowmajor_spxd();
+    //test_gatherscatter_spxd();
+    //test_libxsmm_dense();
+    //test_libxsmm_sparse();
     return 0;
 }
 
