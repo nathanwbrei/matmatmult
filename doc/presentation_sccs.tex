@@ -290,60 +290,56 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 
 
 \begin{frame}[fragile]
-  \frametitle{Improvement: Tiled Sparse}
-        Assume there exists a sparse pattern which tiles perfectly over B.
-        \begin{itemize}
-        \item[$+$] We can reuse a single microkernel, reducing the number of instructions
-        \item[$+$] We can visit blocks in a loop efficiently, using pointer tricks to reduce instruction size.
-        \item[$-$] This regularity assumption is likely too strong.
-        \item[$-$] In practice, the sparsity pattern would often become dense.
-        \end{itemize}
+  \frametitle{Results: Unrolled Dense-by-Sparse Scaling}
+  Matrix sizes: $m=128, n=28, k=128$. Block sizes: $bm=8, bn=28, bk=4$.
+  B is gradually filled with randomly placed nonzeros, becoming fully dense at $nnz=3584$.
 
-
-      \[
-      \left[
-          \begin{array}{c c c | c c c }
-          0 &   &   & 10 &   &   \\
-          1 & 2 &   & 11& 12&   \\
-            & 3 & 4 &   & 13& 14  \\
-          \hline
-          5 &   &   & 15  &   &   \\
-          6 & 7 &   & 16  &17   &   \\
-            & 8 & 9 &   & 18  &19   \\
-          \end{array}
-          \right]
-      \]
-\end{frame}
-
-\begin{frame}[fragile]
-  \frametitle{Improvement: Block Sparse}
-  Assume that B is decomposed into blocks which are either empty or `full'. `Full' blocks all have the same sparsity pattern. This is a sparse generalization of the block-sparse-column format.
+  \begin{columns}[t]
+    \begin{column}{0.45\textwidth}
+      \centering
+      \includegraphics[width=5cm]{images/unrolled_scaling_time.pdf}
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \centering
+      \includegraphics[width=5cm]{images/unrolled_scaling_flops.pdf}
+    \end{column}
+  \end{columns}
 
   \begin{itemize}
-  \item[$+$] We can reuse a single microkernel, reducing the number of instructions
-  \item[$+$] The zero blocks reduce the number of filled-in nonzeros.
-  \item[$-$] We can no longer visit blocks by using a loop with pointer arithmetic. \\Our options are:
-    \begin{itemize}
-    \item Look up the block location from a table in memory
-    \item Unroll the block locations into the instruction stream and repeatedly jump to the microkernel.
-    \end{itemize}
+    \item For $nnz < 3100$, time-to-solution scales linearly.
+    \item For $nnz > 3200$, the FMAs completely fill the instruction cache (regardless of matrix dimensions!)
+    \item Fully unrolled sparse algorithm outperforms dense ``nonzero'' GFlops, but always underperforms dense ``hardware'' GFlops
+    
   \end{itemize}
-
-
-      \[
-      \left[
-          \begin{array}{c c c | c c c }
-          0 &   &   &    &    &    \\
-          1 & 2 &   &    &    &    \\
-            & 3 & 4 &    &    &    \\
-          \hline
-          5 &   &   & 10 &    &    \\
-          6 & 7 &   & 11 & 12 &    \\
-            & 8 & 9 &    & 13 & 14 \\
-          \end{array}
-          \right]
-      \]
 \end{frame}
+
+
+
+\begin{frame}[fragile]
+  \frametitle{Results: Blocked Dense-by-Sparse Instruction Cache Limit}
+  Matrix sizes: $m=128, n=28, k=128$. Block sizes: $bm=8, bn=28, bk=4$.
+  B is gradually filled with randomly placed nonzeros, becoming fully dense at $nnz=3584$.
+
+  \begin{columns}[t]
+    \begin{column}{0.45\textwidth}
+      \centering
+      \includegraphics[height=5cm]{images/unrolled_scaling_time.pdf}
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \centering
+      \includegraphics[height=5cm]{images/unrolled_scaling_flops.pdf}
+    \end{column}
+  \end{columns}
+
+  \begin{itemize}
+    \item For $nnz < 3100$, time-to-solution scales linearly.
+    \item For $nnz > 3200$, the FMAs completely fill the 32KB instruction cache (regardless of matrix dimensions!)
+    \item Fully unrolled sparse algorithm outperforms dense ``nonzero'' GFlops, but always underperforms dense ``hardware'' GFlops.
+    
+  \end{itemize}
+\end{frame}
+
+
 
 \begin{frame}[fragile]
   \frametitle{Improvement: General Sparse}
@@ -448,9 +444,9 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
         {text}
         unroll over each distinct pattern:
 
-           declare unique label
+           declare unique gemm label
            blockwise C += A * B for that pattern
-           indirect jump to return address
+           indirect jump via return address register
 
         loop over m blocks:
            unroll over n blocks:
@@ -461,80 +457,20 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
                  if current B block is not empty:
 
                     move A, B to correct block
-                    load return address into register
-                    direct jump to corresponding GEMM
+                    load return address label into register
+                    direct jump to corresponding gemm label
                     declare label for return address
 
               store C block from registers
               move C right 1 block
 
-           move A to next m-panel
+           move A to next m panel
            move C down 1 block
       \end{ccode}
     \end{column}
   \end{columns}
 
 \end{frame}
-
-
-\begin{frame}
-  \frametitle{A family of dense-by-sparse algorithms}
-  \input{images/dxspfamilies_beamer}
-\end{frame}
-
-
-\begin{frame}[fragile]
-  \frametitle{Results: Unrolled Dense-by-Sparse Scaling}
-  Matrix sizes: $m=128, n=28, k=128$.
-  Microkernel block sizes: $bm=8, bn=28, bk=4$.
-  B is gradually filled with randomly placed nonzeros.
-
-  \begin{columns}[t]
-    \begin{column}{0.6\textwidth}
-      \centering
-      \includegraphics[width=6.5cm]{images/unrolled_scaling_time.pdf}
-    \end{column}
-    \begin{column}{0.6\textwidth}
-      \centering
-      \includegraphics[width=6.5cm]{images/unrolled_scaling_flops.pdf}
-    \end{column}
-  \end{columns}
-
-  \begin{itemize}
-    \item For $nnz < 3100$, time-to-solution scales linearly.
-    \item For $nnz > 3200$, the FMAs completely fill the instruction cache (regardless of matrix dimensions!)
-    \item Fully unrolled sparse algorithm outperforms dense ``nonzero'' GFlops, but always underperforms dense ``hardware'' GFlops
-    
-  \end{itemize}
-\end{frame}
-
-
-
-\begin{frame}[fragile]
-  \frametitle{Results: Blocked Dense-by-Sparse Instruction Cache Limit}
-  Matrix sizes: $m=128, n=28, k=128$.
-  Microkernel block sizes: $bm=8, bn=28, bk=4$.
-  B is gradually filled with randomly placed nonzeros.
-
-  \begin{columns}[t]
-    \begin{column}{0.45\textwidth}
-      \centering
-      \includegraphics[height=5cm]{images/unrolled_scaling_time.pdf}
-    \end{column}
-    \begin{column}{0.45\textwidth}
-      \centering
-      \includegraphics[height=5cm]{images/unrolled_scaling_flops.pdf}
-    \end{column}
-  \end{columns}
-
-  \begin{itemize}
-    \item For $nnz < 3100$, time-to-solution scales linearly.
-    \item For $nnz > 3200$, the FMAs completely fill the instruction cache (regardless of matrix dimensions!)
-    \item Fully unrolled sparse algorithm outperforms dense ``nonzero'' GFlops, but always underperforms dense ``hardware'' GFlops
-    
-  \end{itemize}
-\end{frame}
-
 
 
 \begin{frame}[fragile]
@@ -552,6 +488,40 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
   \centering
   \includegraphics[height=6cm]{images/jump_penalty_new.pdf}
 
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{A family of dense-by-sparse algorithms}
+  \input{images/dxspfamilies_beamer}
+\end{frame}
+
+
+\begin{frame}[fragile]
+  \frametitle{Implementation}
+
+  \begin{block}{Code Generation}
+    \begin{itemize}
+    \item Python domain-specific language for directly generating assembly
+    \item Includes rich assembly AST: \texttt{Operand} $\leftarrow$ \texttt{Statement} $\leftarrow$ \texttt{Block} 
+    \item Higher-level forms such as loops, subroutines, and jump tables
+          implemented as plain Python functions which return a \texttt{Block}
+    \item Pretty-printing, analysis, simulation are implemented using Visitor Pattern
+    \item Interesting theoretical problem: Moving information from runtime to compile time in a general way
+    \end{itemize}
+  \end{block}
+
+
+
+  \begin{block}{Matrix Cursor}
+    A high-level abstraction for traversing and examining a sparse blocked matrix using \emph{logical coordinates}, automatically computing the physical memory offsets. Abstracts different sparsity patterns, block decompositions, sparse matrix formats, and memory addressing schemes.
+    \begin{itemize}
+    \item \verb|has_nonzero_block(pointer, block_coords) -> bool|
+    \item \verb|has_nonzero_cell(pointer, cell_coords) -> bool|
+    \item \verb|move(pointer, block_coords) -> (new_pointer, statement)|
+    \item \verb|look(pointer, cell_coords) -> (new_pointer, memory_address)|
+    \end{itemize}
+    \end{block}
 \end{frame}
 
 
@@ -575,33 +545,6 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 
 
 \begin{frame}[fragile]
-  \frametitle{Implementation}
-
-  \begin{block}{Code Generation}
-    \begin{itemize}
-    \item Python domain-specific language for directly generating assembly
-    \item Includes rich assembly AST: \texttt{Operand} $\leftarrow$ \texttt{Statement} $\leftarrow$ \texttt{Block} 
-    \item Higher-level forms such as loops, subroutines, and jump tables
-          implemented as plain Python functions which return a \texttt{Block}
-    \item Pretty-printing, analysis, simulation are implemented using Visitor Pattern
-    \item Interesting theoretical problem: Moving information from runtime to compile time in a general way
-    \end{itemize}
-  \end{block}
-
-  \begin{block}{Matrix Cursor}
-    A high-level abstraction for traversing and examining a sparse blocked matrix using \emph{logical coordinates}, automatically translated to physical memory offsets, for a given sparsity pattern and format. 
-    \begin{itemize}
-    \item \verb|has_nonzero_block(pointer, block_coords) -> bool|
-    \item \verb|has_nonzero_cell(pointer, cell_coords) -> bool|
-    \item \verb|move(pointer, block_coords) -> (new_pointer, statement)|
-    \item \verb|look(pointer, cell_coords) -> (new_pointer, memory_address)|
-    \end{itemize}
-    \end{block}
-\end{frame}
-
-
-
-\begin{frame}[fragile]
   \frametitle{Outlook}
 
   \begin{block}{Tensor-by-sparse products}
@@ -614,10 +557,10 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
   \end{block}
 
   \begin{block}{Sparse-by-dense matrix products}
-  Idea: Speed up SeisSol. There are two approaches:
+  This is significantly more difficult, but there are two approaches:
     \begin{enumerate}
     \item Keep outer-product formulation. Transpose the register blocks.
-    \item Abandon outer-product formulation. Vectorize along sparse matrix diagonals; perform an inner-product and shift.
+    \item Abandon outer-product formulation. One possible idea: Vectorize along sparse matrix diagonals; perform an inner-product and shift.
     \end{enumerate}
   \end{block}
 
@@ -639,6 +582,64 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 \begin{center}
     \huge Thank you!
 \end{center}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+  \frametitle{Improvement: Tiled Sparse}
+        Assume there exists a sparse pattern which tiles perfectly over B.
+        \begin{itemize}
+        \item[$+$] We can reuse a single microkernel, reducing the number of instructions
+        \item[$+$] We can visit blocks in a loop efficiently, using pointer tricks to reduce instruction size.
+        \item[$-$] This regularity assumption is likely too strong.
+        \item[$-$] In practice, the sparsity pattern would often become dense.
+        \end{itemize}
+
+
+      \[
+      \left[
+          \begin{array}{c c c | c c c }
+          0 &   &   & 10 &   &   \\
+          1 & 2 &   & 11& 12&   \\
+            & 3 & 4 &   & 13& 14  \\
+          \hline
+          5 &   &   & 15  &   &   \\
+          6 & 7 &   & 16  &17   &   \\
+            & 8 & 9 &   & 18  &19   \\
+          \end{array}
+          \right]
+      \]
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Improvement: Block Sparse}
+  Assume that B is decomposed into blocks which are either empty or `full'. `Full' blocks all have the same sparsity pattern. This is a sparse generalization of the block-sparse-column format.
+
+  \begin{itemize}
+  \item[$+$] We can reuse a single microkernel, reducing the number of instructions
+  \item[$+$] The zero blocks reduce the number of filled-in nonzeros.
+  \item[$-$] We can no longer visit blocks by using a loop with pointer arithmetic. \\Our options are:
+    \begin{itemize}
+    \item Look up the block location from a table in memory
+    \item Unroll the block locations into the instruction stream and repeatedly jump to the microkernel.
+    \end{itemize}
+  \end{itemize}
+
+
+      \[
+      \left[
+          \begin{array}{c c c | c c c }
+          0 &   &   &    &    &    \\
+          1 & 2 &   &    &    &    \\
+            & 3 & 4 &    &    &    \\
+          \hline
+          5 &   &   & 10 &    &    \\
+          6 & 7 &   & 11 & 12 &    \\
+            & 8 & 9 &    & 13 & 14 \\
+          \end{array}
+          \right]
+      \]
 \end{frame}
 
 
