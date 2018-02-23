@@ -244,7 +244,7 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 
 
 \begin{frame}[fragile]
-  \frametitle{Unrolled Sparse}
+  \frametitle{Algorithm: Unrolled Sparse}
   \begin{columns}[t]%[onlytextwidth]
     \begin{column}{0.5\textwidth}
       Generate sparse microkernels for each $(k,n)$ block of B, and unroll these into the instruction stream.
@@ -504,16 +504,42 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 \begin{frame}[fragile]
   \frametitle{Results: Speedup for various SeisSol matrices}
 
-  
+  \begin{columns}[t]
+    \begin{column}{0.3\textwidth}
+      \centering
+      \includegraphics[height=2cm]{images/star_small.png}
+      \footnotesize
+      \begin{itemize}
+        \item Speedup achieved: 1.79
+        \item Best possible: 3.375
+      \end{itemize}
+      \includegraphics[width=4cm]{images/seissol_comparison_9x9.pdf}
+    \end{column}
 
-  \centering
-  \includegraphics[height=6cm]{images/seissol_comparison.pdf}
+    \begin{column}{0.3\textwidth}
+      \centering
+      \includegraphics[height=2cm]{images/star_medium.png}
+      \footnotesize
+      \begin{itemize}
+        \item Speedup achieved: 1.77
+        \item Best possible: 3.97
+      \end{itemize}
+      \includegraphics[width=4cm]{images/seissol_comparison_9x15.pdf}
+    \end{column}
 
-  \begin{itemize}
-  \item[$+$] We can reuse a single microkernel, reducing the number of instructions
-  \item[$+$] The zero blocks reduce the number of filled-in nonzeros.
-  \item[$-$] We can no longer visit blocks by using a loop with pointer arithmetic.
-  \end{itemize}
+    \begin{column}{0.3\textwidth}
+      \centering
+      \includegraphics[height=2cm]{images/star_large.png}
+      \footnotesize
+      \begin{itemize}
+        \item Speedup achieved: 5.17
+        \item Best possible: 14.02
+      \end{itemize}
+      \includegraphics[width=4cm]{images/seissol_comparison_27x27.pdf}
+    \end{column}
+
+  \end{columns}
+
 \end{frame}
 
 
