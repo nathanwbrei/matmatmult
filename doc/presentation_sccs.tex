@@ -244,6 +244,32 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 
 
 \begin{frame}[fragile]
+  \frametitle{Implementation}
+
+  \begin{block}{Code Generation}
+    \begin{itemize}
+    \item Python domain-specific language for directly generating assembly
+    \item Includes rich assembly AST: \texttt{Operand} $\leftarrow$ \texttt{Statement} $\leftarrow$ \texttt{Block} 
+    \item Higher-level forms such as loops, subroutines, and jump tables
+          implemented as plain Python functions which return a \texttt{Block}
+    \item Pretty-printing, analysis, simulation are implemented using Visitor Pattern
+    \item Interesting theoretical problem: Moving information from runtime to compile time in a general way
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Matrix Cursor}
+    A high-level abstraction for traversing and examining a sparse blocked matrix using \emph{logical coordinates}, automatically computing the physical memory offsets. Abstracts different sparsity patterns, block decompositions, sparse matrix formats, and memory addressing schemes.
+    \begin{itemize}
+    \item \verb|has_nonzero_block(pointer, block_coords) -> bool|
+    \item \verb|has_nonzero_cell(pointer, cell_coords) -> bool|
+    \item \verb|move(pointer, block_coords) -> (new_pointer, statement)|
+    \item \verb|look(pointer, cell_coords) -> (new_pointer, memory_address)|
+    \end{itemize}
+    \end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
   \frametitle{Algorithm: Unrolled Sparse}
   \begin{columns}[t]%[onlytextwidth]
     \begin{column}{0.5\textwidth}
@@ -470,34 +496,6 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 \begin{frame}
   \frametitle{A family of dense-by-sparse algorithms}
   \input{images/dxspfamilies_beamer}
-\end{frame}
-
-
-\begin{frame}[fragile]
-  \frametitle{Implementation}
-
-  \begin{block}{Code Generation}
-    \begin{itemize}
-    \item Python domain-specific language for directly generating assembly
-    \item Includes rich assembly AST: \texttt{Operand} $\leftarrow$ \texttt{Statement} $\leftarrow$ \texttt{Block} 
-    \item Higher-level forms such as loops, subroutines, and jump tables
-          implemented as plain Python functions which return a \texttt{Block}
-    \item Pretty-printing, analysis, simulation are implemented using Visitor Pattern
-    \item Interesting theoretical problem: Moving information from runtime to compile time in a general way
-    \end{itemize}
-  \end{block}
-
-
-
-  \begin{block}{Matrix Cursor}
-    A high-level abstraction for traversing and examining a sparse blocked matrix using \emph{logical coordinates}, automatically computing the physical memory offsets. Abstracts different sparsity patterns, block decompositions, sparse matrix formats, and memory addressing schemes.
-    \begin{itemize}
-    \item \verb|has_nonzero_block(pointer, block_coords) -> bool|
-    \item \verb|has_nonzero_cell(pointer, cell_coords) -> bool|
-    \item \verb|move(pointer, block_coords) -> (new_pointer, statement)|
-    \item \verb|look(pointer, cell_coords) -> (new_pointer, memory_address)|
-    \end{itemize}
-    \end{block}
 \end{frame}
 
 
