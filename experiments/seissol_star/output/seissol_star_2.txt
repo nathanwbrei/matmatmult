@@ -1,0 +1,19 @@
+
+exp_seissol_star_9x15_libxsmm, 0.331599
+exp_seissol_star_9x15_breuer, 0.690201
+exp_seissol_star_9x15_breuer2, 0.223539
+exp_seissol_star_9x15_unrolled, 0.187493
+exp_seissol_star_9x15_general, 0.248043
+
+exp_seissol_star_9x9_libxsmm, 0.223142
+exp_seissol_star_9x9_breuer, 0.435492
+exp_seissol_star_9x9_breuer2, 0.155168
+exp_seissol_star_9x9_unrolled, 0.124872
+exp_seissol_star_9x9_general, 0.210299
+
+exp_seissol_star_27x27_libxsmm, 1.52054
+exp_seissol_star_27x27_breuer, 1.06045
+exp_seissol_star_27x27_breuer2, 0.356015
+exp_seissol_star_27x27_unrolled, 0.294066
+exp_seissol_star_27x27_general, 0.509837
+

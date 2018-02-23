@@ -2,7 +2,7 @@ from typing import NamedTuple
 from components.parameters import Parameters
 import subprocess
 
-path_to_libxsmm = "../libxsmm/bin/libxsmm_gemm_generator"
+path_to_libxsmm = "/Users/nathanwbrei/src/libxsmm/bin/libxsmm_gemm_generator"
 
 class LibxsmmParameters(Parameters):
 
