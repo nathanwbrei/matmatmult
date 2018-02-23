@@ -315,34 +315,9 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 
 
 
-\begin{frame}[fragile]
-  \frametitle{Results: Blocked Dense-by-Sparse Instruction Cache Limit}
-  Matrix sizes: $m=128, n=28, k=128$. Block sizes: $bm=8, bn=28, bk=4$.
-  B is gradually filled with randomly placed nonzeros, becoming fully dense at $nnz=3584$.
-
-  \begin{columns}[t]
-    \begin{column}{0.45\textwidth}
-      \centering
-      \includegraphics[height=5cm]{images/unrolled_scaling_time.pdf}
-    \end{column}
-    \begin{column}{0.45\textwidth}
-      \centering
-      \includegraphics[height=5cm]{images/unrolled_scaling_flops.pdf}
-    \end{column}
-  \end{columns}
-
-  \begin{itemize}
-    \item For $nnz < 3100$, time-to-solution scales linearly.
-    \item For $nnz > 3200$, the FMAs completely fill the 32KB instruction cache (regardless of matrix dimensions!)
-    \item Fully unrolled sparse algorithm outperforms dense ``nonzero'' GFlops, but always underperforms dense ``hardware'' GFlops.
-    
-  \end{itemize}
-\end{frame}
-
-
 
 \begin{frame}[fragile]
-  \frametitle{Improvement: General Sparse}
+  \frametitle{Algorithm: General Sparse}
   Bypass the instruction cache limit by compressing the sparsity pattern. Decompose the matrix into blocks, fill in zeros to reduce the number of distinct block patterns, generate a microkernel for each \emph{distinct} block pattern. Traverse the block structure, jumping to the correct microkernel for each block. 
 
 
@@ -369,7 +344,7 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
           \item Distinct blocks = 3
           \item Jumps = 3
           \item Nonzeros = 13
-          \item Sparsity = 36\%
+          \item Density = 36\%
           \item FMAs = 13
         \end{itemize}
     \end{column}
@@ -392,7 +367,7 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
           \item Distinct blocks = 2
           \item Jumps = 3
           \item Nonzeros = 15
-          \item Sparsity = 42\%
+          \item Density = 42\%
           \item FMAs = 10
         \end{itemize}
     \end{column}
@@ -415,7 +390,7 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
           \item Distinct blocks = 1
           \item Jumps = 3
           \item Nonzeros = 21
-          \item Sparsity = 58\%
+          \item Density = 58\%
           \item FMAs = 7
         \end{itemize}
     \end{column}
@@ -424,7 +399,7 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Improvement: General Sparse}
+  \frametitle{Algorithm: General Sparse}
   Implement this using a \emph{jump table} to efficiently dispatch to the correct microkernel. Unroll the block traversal into the instruction stream. This gives our matrix a sparse-outer, sparse-inner structure.
 
 
@@ -475,18 +450,19 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 
 \begin{frame}[fragile]
   \frametitle{Results: Compressed Dense-by-Sparse Scaling}
+  How do the number of jumps affect the performance of GeneralSparse?
 
-  What are we trying to test? 
-  Assume that B is decomposed into blocks which are either empty or `full'. `Full' blocks all have the same sparsity pattern. This is a sparse generalization of the block-sparse-column format.
-
-  \begin{itemize}
-  \item[$+$] We can reuse a single microkernel, reducing the number of instructions
-  \item[$+$] The zero blocks reduce the number of filled-in nonzeros.
-  \item[$-$] We can no longer visit blocks by using a loop with pointer arithmetic.
-  \end{itemize}
+  Choose matrix sizes $m=n=k=64$, block sizes $bm=bn=8, bk\in \{4,8,16\}.$ 
+  B is randomly filled with $nnz\in\{400,800,...\}$. No compression was used.
 
   \centering
-  \includegraphics[height=6cm]{images/jump_penalty_new.pdf}
+  \includegraphics[height=5.5cm]{images/jump_penalty_new.pdf}
+
+  \begin{itemize}
+  \item Penalty is about 0.2 microseconds/jump
+  \item Penalty does \emph{not} vary strongly with number of nonzeros
+  \item Larger blocksizes needed for this to be effective $\implies$ Use UnrolledSparse as microkernel instead
+  \end{itemize}
 
 \end{frame}
 
@@ -526,20 +502,18 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 
 
 \begin{frame}[fragile]
-  \frametitle{Results: Application to SeisSol}
+  \frametitle{Results: Speedup for various SeisSol matrices}
 
-  What are we trying to test? 
-  Assume that B is decomposed into blocks which are either empty or `full'. `Full' blocks all have the same sparsity pattern. This is a sparse generalization of the block-sparse-column format.
+  
+
+  \centering
+  \includegraphics[height=6cm]{images/seissol_comparison.pdf}
 
   \begin{itemize}
   \item[$+$] We can reuse a single microkernel, reducing the number of instructions
   \item[$+$] The zero blocks reduce the number of filled-in nonzeros.
   \item[$-$] We can no longer visit blocks by using a loop with pointer arithmetic.
   \end{itemize}
-
-  \centering
-  \includegraphics[height=6cm]{images/seissol_comparison.pdf}
-
 \end{frame}
 
 
@@ -587,7 +561,7 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 
 
 \begin{frame}[fragile]
-  \frametitle{Improvement: Tiled Sparse}
+  \frametitle{Algorithm: Tiled Sparse}
         Assume there exists a sparse pattern which tiles perfectly over B.
         \begin{itemize}
         \item[$+$] We can reuse a single microkernel, reducing the number of instructions
@@ -613,7 +587,7 @@ vmovapd %zmm18, 128(%rdx)                                # store C[:,2]
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Improvement: Block Sparse}
+  \frametitle{Algorithm: Block Sparse}
   Assume that B is decomposed into blocks which are either empty or `full'. `Full' blocks all have the same sparsity pattern. This is a sparse generalization of the block-sparse-column format.
 
   \begin{itemize}
